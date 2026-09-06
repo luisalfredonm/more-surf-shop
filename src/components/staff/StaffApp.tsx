@@ -88,30 +88,35 @@ export default function StaffApp() {
 
   return (
     <div className="st-wrap">
-      <header className="st-header">
-        <span className="st-logo">
+      <aside className="st-side">
+        <span className="st-side-brand">
           more<span>surf</span>shop
         </span>
-        <span className="st-spacer" />
-        <span className="st-user">
-          {profile.display_name || 'staff'} · {profile.role}
-        </span>
-        <button onClick={signOut}>Salir</button>
-      </header>
+        <nav className="st-side-nav">
+          <button
+            className={view === 'agenda' ? 'is-active' : ''}
+            onClick={() => setView('agenda')}
+          >
+            Agenda
+          </button>
+          <button
+            className={view === 'slots' ? 'is-active' : ''}
+            onClick={() => setView('slots')}
+          >
+            Slots
+          </button>
+        </nav>
+        <div className="st-side-foot">
+          <span className="st-side-user">
+            {profile.display_name || 'staff'} · {profile.role}
+          </span>
+          <button onClick={signOut}>Salir</button>
+        </div>
+      </aside>
 
-      <nav className="st-nav">
-        <button
-          className={view === 'agenda' ? 'is-active' : ''}
-          onClick={() => setView('agenda')}
-        >
-          Agenda
-        </button>
-        <button className={view === 'slots' ? 'is-active' : ''} onClick={() => setView('slots')}>
-          Slots
-        </button>
-      </nav>
-
-      <main className="st-main">{view === 'agenda' ? <AgendaView /> : <SlotsView />}</main>
+      <div className="st-content">
+        <main className="st-main">{view === 'agenda' ? <AgendaView /> : <SlotsView />}</main>
+      </div>
     </div>
   );
 }
