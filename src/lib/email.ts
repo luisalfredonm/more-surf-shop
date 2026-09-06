@@ -131,6 +131,33 @@ function adminHtml(c: GroupCtx): string {
   </body></html>`;
 }
 
+function reminderHtml(c: GroupCtx): string {
+  const wa = whatsappUrl(`Hola! Consulta sobre mi reserva ${c.reference}.`);
+  const payLine = c.paid
+    ? `Ya está pagado (${esc(money(c.total, c.currency))}).`
+    : `Pagás <strong>${esc(money(c.total, c.currency))}</strong> al llegar — efectivo o tarjeta.`;
+  return `<!doctype html><html><body style="margin:0;background:#F5EEE0;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+  <div style="max-width:540px;margin:0 auto;padding:24px 16px">
+    <div style="background:#0A2540;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;font-family:Georgia,serif;font-size:18px;font-weight:600">
+      more<span style="color:#14B8A6">surf</span>shop
+    </div>
+    <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px">
+      <h1 style="margin:0 0 6px;font-family:Georgia,serif;font-size:20px;color:#0A2540">Tu lección de surf es pronto</h1>
+      <p style="margin:0 0 4px;color:#6B7280;font-size:14px">Recordatorio, ${esc(c.customerName)}. Código:</p>
+      <p style="margin:0 0 16px;font-family:Georgia,serif;font-size:22px;font-weight:600;color:#0A2540;letter-spacing:.04em">${esc(c.reference)}</p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">${itemLines(c)}</table>
+      <p style="margin:0 0 16px;padding:10px 14px;background:#FDF6E3;border-left:3px solid #F97316;font-size:14px;color:#1F2937">${payLine}</p>
+      <ul style="margin:0 0 16px;padding-left:18px;color:#1F2937;font-size:14px;line-height:1.6">
+        <li>Llegá 15 minutos antes a la tienda.</li>
+        <li>Firmás el waiver en el mostrador.</li>
+        <li>Traé traje de baño, protector solar reef-safe y toalla.</li>
+      </ul>
+      <p style="margin:0 0 4px;color:#6B7280;font-size:13px">${esc(BUSINESS.address.formatted)}</p>
+      <p style="margin:0"><a href="${wa}" style="color:#0F9488;font-size:14px;font-weight:600">Necesitás reprogramar? Escribinos</a></p>
+    </div>
+  </div></body></html>`;
+}
+
 /**
  * Envía la confirmación del grupo al cliente y (si hay ADMIN_EMAIL) al admin.
  * Idempotente vía booking_groups.confirmation_sent_at.
@@ -199,4 +226,100 @@ export async function sendBookingGroupEmails(groupId: string): Promise<void> {
   } catch (e) {
     console.error('[email] sendBookingGroupEmails', e);
   }
+}
+
+/**
+ * Recordatorio al cliente ~24h antes. Idempotente vía reminder_sent_at.
+ */
+export async function sendBookingGroupReminder(groupId: string): Promise<void> {
+  if (!isEmailConfigured() || !isSupabaseConfigured()) return;
+  try {
+    const supabase = getSupabase();
+    const { data: g } = await supabase
+      .from('booking_groups')
+      .select('id, reference, status, total_amount, currency, payment_method, customer_id, reminder_sent_at')
+      .eq('id', groupId)
+      .maybeSingle();
+    if (!g || g.status !== 'confirmed' || g.reminder_sent_at) return;
+
+    const { data: marked } = await supabase
+      .from('booking_groups')
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq('id', groupId)
+      .is('reminder_sent_at', null)
+      .select('id');
+    if (!marked || marked.length === 0) return;
+
+    const [{ data: cust }, { data: bookings }] = await Promise.all([
+      supabase.from('customers').select('full_name, email').eq('id', g.customer_id).maybeSingle(),
+      supabase
+        .from('bookings')
+        .select('slot_date, start_time, participants_count, total_amount, payment_id, class_types(name)')
+        .eq('group_id', groupId)
+        .order('slot_date'),
+    ]);
+    if (!cust?.email) return;
+
+    const items: Item[] = (bookings ?? []).map((b: any) => ({
+      class_name: (Array.isArray(b.class_types) ? b.class_types[0]?.name : b.class_types?.name) ?? 'Surf lesson',
+      slot_date: b.slot_date,
+      start_time: String(b.start_time),
+      participants_count: b.participants_count,
+      total_amount: Number(b.total_amount),
+    }));
+    const paid =
+      g.payment_method === 'paypal' ||
+      ((bookings ?? []).length > 0 && (bookings ?? []).every((b: any) => b.payment_id));
+
+    const ctx: GroupCtx = {
+      reference: g.reference,
+      items,
+      total: Number(g.total_amount),
+      currency: g.currency || 'USD',
+      paid,
+      customerName: cust.full_name || 'crack',
+      customerEmail: cust.email,
+    };
+    await sendEmail({
+      to: cust.email,
+      subject: `Recordatorio: tu lección de surf — ${ctx.reference}`,
+      html: reminderHtml(ctx),
+    });
+  } catch (e) {
+    console.error('[email] sendBookingGroupReminder', e);
+  }
+}
+
+/**
+ * Busca grupos confirmados con una lección ~10–34h en el futuro (hora CR)
+ * sin recordatorio enviado, y les manda el recordatorio. Lo llama el cron.
+ */
+export async function sendDueReminders(): Promise<{ processed: number }> {
+  if (!isEmailConfigured() || !isSupabaseConfigured()) return { processed: 0 };
+  const supabase = getSupabase();
+  const crMs = Date.now() - 6 * 3_600_000;
+  const today = new Date(crMs).toISOString().slice(0, 10);
+  const in3 = new Date(crMs + 3 * 86_400_000).toISOString().slice(0, 10);
+
+  const { data } = await supabase
+    .from('bookings')
+    .select('group_id, slot_date, start_time')
+    .eq('status', 'confirmed')
+    .gte('slot_date', today)
+    .lte('slot_date', in3)
+    .not('group_id', 'is', null);
+
+  const nowMs = Date.now();
+  const due = new Set<string>();
+  for (const b of data ?? []) {
+    const instant =
+      Date.parse(`${b.slot_date}T${String(b.start_time).slice(0, 5)}:00Z`) + 6 * 3_600_000;
+    const hrs = (instant - nowMs) / 3_600_000;
+    if (hrs >= 10 && hrs <= 34 && b.group_id) due.add(b.group_id as string);
+  }
+
+  for (const gid of due) {
+    await sendBookingGroupReminder(gid);
+  }
+  return { processed: due.size };
 }

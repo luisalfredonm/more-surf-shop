@@ -207,9 +207,11 @@ create table if not exists public.booking_groups (
   payment_method text check (payment_method in ('paypal', 'on_arrival')),
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled')),
   confirmation_sent_at timestamptz,
+  reminder_sent_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists idx_booking_groups_customer on public.booking_groups (customer_id);
+alter table public.booking_groups add column if not exists reminder_sent_at timestamptz;
 
 -- ============================================
 -- Tabla: bookings (una reserva de lección; pertenece a un booking_group)

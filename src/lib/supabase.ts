@@ -203,6 +203,7 @@ export interface DbBookingGroup {
   payment_method: PaymentMethod | null;
   status: 'pending' | 'confirmed' | 'cancelled';
   confirmation_sent_at: string | null;
+  reminder_sent_at: string | null;
   created_at: string;
 }
 
