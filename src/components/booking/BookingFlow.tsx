@@ -22,7 +22,7 @@ interface Props {
 }
 
 interface ApiSlot {
-  slot_id: string;
+  slot_key: string;
   slot_date: string;
   start_time: string;
   class_type_id: string;
@@ -291,7 +291,8 @@ export default function BookingFlow({
         body: JSON.stringify({
           items: cart.map((it) => ({
             class_type_id: it.classId,
-            slot_id: it.slot.slot_id,
+            slot_date: it.slot.slot_date,
+            start_time: it.slot.start_time,
             guests: it.guests,
           })),
           contact: {
@@ -540,9 +541,9 @@ export default function BookingFlow({
               <div className="bf-slotgrid">
                 {daySlots.map((s) => (
                   <button
-                    key={s.slot_id}
+                    key={s.slot_key}
                     type="button"
-                    className={`bf-slot${s.slot_id === draftSlot?.slot_id ? ' is-selected' : ''}`}
+                    className={`bf-slot${s.slot_key === draftSlot?.slot_key ? ' is-selected' : ''}`}
                     onClick={() => pickSlot(s)}
                   >
                     <span className="bf-slot-time">{fmtTime(s.start_time)}</span>

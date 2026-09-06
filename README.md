@@ -69,7 +69,7 @@ Al abrir `/surf-lessons-tamarindo` sin Supabase configurado, se renderizan los d
 
 1. Crear proyecto en [supabase.com](https://supabase.com).
 2. En SQL Editor, ejecutar `supabase/schema.sql`.
-3. En SQL Editor, ejecutar `supabase/schema-bookings.sql` (Fase 1: reservas de lecciones + base compartida — `profiles`, `customers`, `waivers`, `payments`, `lesson_slots`, `bookings`, `booking_participants`).
+3. En SQL Editor, ejecutar `supabase/schema-bookings.sql` (base compartida + reservas: `profiles`, `customers`, `payments`, `booking_groups`, `bookings`, …) y luego `supabase/schema-scheduling.sql` (plantilla semanal: `weekly_slots`, `date_overrides`).
 4. Copiar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` a `.env`.
    Copiar también `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY` (mismos valores; los usa el panel de staff en el browser).
 5. Cargar datos reales en `class_types`, `instructors`, `reviews`:

@@ -9,9 +9,12 @@ export const prerender = false;
 
 const ItemSchema = z.object({
   class_type_id: z.string().uuid(),
-  slot_id: z.string().uuid(),
+  slot_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
   guests: z.number().int().min(1).max(20),
 });
+
+const norm = (t: string) => (t.length === 5 ? `${t}:00` : t);
 
 const CreateSchema = z.object({
   items: z.array(ItemSchema).min(1).max(10),
@@ -40,7 +43,6 @@ const json = (b: unknown, s = 200) =>
 
 interface PricedItem {
   class_type_id: string;
-  slot_id: string;
   guests: number;
   slot_date: string;
   start_time: string;
@@ -80,23 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   for (let i = 0; i < data.items.length; i++) {
     const item = data.items[i];
-
-    const { data: slot, error: slotErr } = await supabase
-      .from('lesson_slots')
-      .select('id, slot_date, start_time, status, class_type_id')
-      .eq('id', item.slot_id)
-      .maybeSingle();
-    if (slotErr) {
-      console.error('[bookings/create] slot:', slotErr.message);
-      return json({ error: 'No se pudo verificar un horario' }, 500);
-    }
-    if (!slot) return json({ error: 'Un horario ya no existe.', code: 'slot_missing', item: i }, 409);
-    if (slot.status !== 'open') {
-      return json({ error: 'Un horario está cerrado.', code: 'slot_closed', item: i }, 409);
-    }
-    if (slot.class_type_id !== item.class_type_id) {
-      return json({ error: 'Horario y tipo de clase no coinciden.', code: 'mismatch', item: i }, 409);
-    }
+    const wantTime = norm(item.start_time);
 
     const { data: ct, error: ctErr } = await supabase
       .from('class_types')
@@ -111,14 +97,16 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: 'Un tipo de clase no está disponible.', code: 'class_inactive', item: i }, 409);
     }
 
-    // Cupo restante (guard de carrera) menos lo que ya consumió el carrito.
+    // Disponibilidad calculada desde la plantilla (guard de carrera) menos
+    // lo que ya consumió el carrito.
     const avail = await getAvailableSlots({
-      from: slot.slot_date,
-      to: slot.slot_date,
+      from: item.slot_date,
+      to: item.slot_date,
       classTypeId: item.class_type_id,
     });
-    const thisSlot = avail.find((s) => s.slot_id === item.slot_id);
-    const alreadyInCart = usedBySlot.get(item.slot_id) ?? 0;
+    const thisSlot = avail.find((s) => norm(s.start_time) === wantTime);
+    const slotKey = `${item.slot_date}|${wantTime}`;
+    const alreadyInCart = usedBySlot.get(slotKey) ?? 0;
     if (!thisSlot) {
       return json(
         { error: 'Un horario ya no está disponible (cerrado, pasado o lleno).', code: 'slot_unavailable', item: i },
@@ -136,7 +124,7 @@ export const POST: APIRoute = async ({ request }) => {
         409,
       );
     }
-    usedBySlot.set(item.slot_id, alreadyInCart + item.guests);
+    usedBySlot.set(slotKey, alreadyInCart + item.guests);
 
     const maxGuests = ct.max_guests ?? thisSlot.capacity_total;
     if (item.guests < (ct.min_guests ?? 1) || item.guests > maxGuests) {
@@ -160,10 +148,9 @@ export const POST: APIRoute = async ({ request }) => {
 
     priced.push({
       class_type_id: item.class_type_id,
-      slot_id: item.slot_id,
       guests: item.guests,
-      slot_date: slot.slot_date,
-      start_time: slot.start_time,
+      slot_date: item.slot_date,
+      start_time: norm(thisSlot.start_time),
       class_name: ct.name,
       unit_price: unit,
       line_total: Math.round(unit * item.guests * 100) / 100,
@@ -245,7 +232,6 @@ export const POST: APIRoute = async ({ request }) => {
     group_id: group!.id,
     customer_id: customerId,
     class_type_id: p.class_type_id,
-    slot_id: p.slot_id,
     slot_date: p.slot_date,
     start_time: p.start_time,
     participants_count: p.guests,

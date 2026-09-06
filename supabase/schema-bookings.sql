@@ -32,6 +32,9 @@ $$;
 -- min_guests: mínimo por reserva. max_guests: tope (null = usar la capacidad del slot).
 alter table public.class_types add column if not exists min_guests integer not null default 1;
 alter table public.class_types add column if not exists max_guests integer;
+alter table public.class_types add column if not exists duration_min integer not null default 90;
+-- max_capacity: cupo total de personas por horario (todas las reservas juntas).
+alter table public.class_types add column if not exists max_capacity integer not null default 8;
 
 -- ============================================
 -- Tabla: profiles (staff + dueño, ligado a auth.users)
@@ -346,11 +349,20 @@ create policy "lesson_slots_staff_all" on public.lesson_slots
   for all using (public.is_staff()) with check (public.is_staff());
 
 -- ============================================
--- Función: get_available_slots — superficie de lectura de disponibilidad.
--- security definer: lee lesson_slots/bookings (RLS staff-only) pero solo expone
--- agregados no sensibles (horarios y cupo restante, sin datos personales).
--- La llama el server desde src/lib/queries/availability.ts
+-- Función: get_available_slots — disponibilidad calculada desde la plantilla.
+--
+-- Para cada (día del rango, servicio activo):
+--   - si hay date_override 'closed'  -> sin horarios
+--   - si hay date_override 'custom'  -> usa override.times
+--   - si no                          -> usa weekly_slots del día de semana
+-- Luego resta las reservas activas y aplica class_types.max_capacity, la
+-- antelación mínima (zona horaria CR) y devuelve solo lo que tiene cupo.
+--
+-- El override específico de un servicio gana sobre el global (class_type_id null).
+-- security definer: lee tablas con RLS staff-only pero solo expone agregados.
 -- ============================================
+drop function if exists public.get_available_slots(date, date, uuid, integer);
+
 create or replace function public.get_available_slots(
   p_from date,
   p_to date,
@@ -358,7 +370,7 @@ create or replace function public.get_available_slots(
   p_min_lead_hours integer default 2
 )
 returns table (
-  slot_id uuid,
+  slot_key text,
   slot_date date,
   start_time time,
   class_type_id uuid,
@@ -376,38 +388,71 @@ stable
 security definer
 set search_path = public
 as $$
+  with days as (
+    select d::date as day from generate_series(p_from, p_to, interval '1 day') d
+  ),
+  svc as (
+    select id, name, price_per_person, ratio_label, max_capacity
+    from public.class_types
+    where active and (p_class_type_id is null or id = p_class_type_id)
+  ),
+  grid as (
+    select days.day, svc.id as ct_id, svc.name, svc.price_per_person,
+           svc.ratio_label, svc.max_capacity, ov.kind as ov_kind, ov.times as ov_times
+    from days
+    cross join svc
+    left join lateral (
+      select o.kind, o.times
+      from public.date_overrides o
+      where o.override_date = days.day
+        and (o.class_type_id = svc.id or o.class_type_id is null)
+      order by (o.class_type_id is not null) desc
+      limit 1
+    ) ov on true
+  ),
+  slots as (
+    select g.day, g.ct_id, g.name, g.price_per_person, g.ratio_label, g.max_capacity, t.st
+    from grid g
+    cross join lateral (
+      select ws.start_time as st
+        from public.weekly_slots ws
+        where ws.active and ws.class_type_id = g.ct_id
+          and ws.weekday = extract(dow from g.day)::int
+          and g.ov_kind is distinct from 'closed'
+          and g.ov_kind is distinct from 'custom'
+      union
+      select unnest(g.ov_times) where g.ov_kind = 'custom'
+    ) t(st)
+  )
   select
-    s.id,
-    s.slot_date,
-    s.start_time,
-    s.class_type_id,
-    ct.name,
-    ct.price_per_person,
-    ct.ratio_label,
-    s.instructor_id,
-    i.name,
-    s.capacity_total,
-    coalesce(b.booked, 0)::integer,
-    (s.capacity_total - coalesce(b.booked, 0))::integer
-  from public.lesson_slots s
-  join public.class_types ct on ct.id = s.class_type_id
-  left join public.instructors i on i.id = s.instructor_id
+    s.ct_id::text || '|' || s.day::text || '|' || s.st::text,
+    s.day,
+    s.st,
+    s.ct_id,
+    s.name,
+    s.price_per_person,
+    s.ratio_label,
+    null::uuid,
+    null::text,
+    s.max_capacity,
+    coalesce(bk.booked, 0)::integer,
+    (s.max_capacity - coalesce(bk.booked, 0))::integer
+  from slots s
   left join lateral (
-    select sum(bk.participants_count)::integer as booked
-    from public.bookings bk
-    where bk.slot_id = s.id
+    select sum(b.participants_count)::integer as booked
+    from public.bookings b
+    where b.class_type_id = s.ct_id
+      and b.slot_date = s.day
+      and b.start_time = s.st
       and (
-        bk.status = 'confirmed'
-        or (bk.status = 'pending_payment' and bk.created_at > now() - interval '20 minutes')
+        b.status = 'confirmed'
+        or (b.status = 'pending_payment' and b.created_at > now() - interval '20 minutes')
       )
-  ) b on true
-  where s.status = 'open'
-    and s.slot_date between p_from and p_to
-    and (p_class_type_id is null or s.class_type_id = p_class_type_id)
-    and ((s.slot_date + s.start_time) at time zone 'America/Costa_Rica')
+  ) bk on true
+  where ((s.day + s.st) at time zone 'America/Costa_Rica')
         > now() + (greatest(p_min_lead_hours, 0) * interval '1 hour')
-    and s.capacity_total - coalesce(b.booked, 0) > 0
-  order by s.slot_date, s.start_time, ct.name;
+    and s.max_capacity - coalesce(bk.booked, 0) > 0
+  order by s.day, s.st, s.name;
 $$;
 
 -- ============================================

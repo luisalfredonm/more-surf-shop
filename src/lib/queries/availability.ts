@@ -10,7 +10,7 @@ import { getSupabase, isSupabaseConfigured } from '../supabase';
  */
 
 export interface AvailableSlot {
-  slot_id: string;
+  slot_key: string;             // 'ctId|YYYY-MM-DD|HH:MM:SS' (sintético)
   slot_date: string;            // 'YYYY-MM-DD'
   start_time: string;           // 'HH:MM:SS'
   class_type_id: string;

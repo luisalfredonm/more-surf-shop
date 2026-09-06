@@ -58,6 +58,8 @@ export interface DbClassType {
   sort_order: number;
   min_guests: number;
   max_guests: number | null;
+  duration_min: number;
+  max_capacity: number;
   created_at: string;
   updated_at: string;
 }
