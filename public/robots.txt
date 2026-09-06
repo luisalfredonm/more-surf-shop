@@ -5,6 +5,7 @@ Allow: /
 Disallow: /api/
 Disallow: /admin
 Disallow: /staff
+Disallow: /booking
 
 # Sitemap
 Sitemap: https://moresurfshop.com/sitemap-index.xml

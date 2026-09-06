@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { getAvailableSlots, PENDING_HOLD_MINUTES } from '@lib/queries/availability';
 import { sendBookingGroupEmails } from '@lib/email';
+import { rateLimit, clientKey, tooMany } from '@lib/ratelimit';
 
 export const prerender = false;
 
@@ -52,6 +53,8 @@ interface PricedItem {
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!rateLimit(`bk:${clientKey(request)}`, 12, 10 * 60_000)) return tooMany();
+
   let raw: unknown;
   try {
     raw = await request.json();

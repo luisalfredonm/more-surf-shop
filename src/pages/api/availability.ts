@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getAvailableSlots } from '@lib/queries/availability';
+import { rateLimit, clientKey, tooMany } from '@lib/ratelimit';
 
 export const prerender = false;
 
@@ -32,7 +33,9 @@ function costaRicaToday(): string {
   return new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10);
 }
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, request }) => {
+  if (!rateLimit(`av:${clientKey(request)}`, 120, 60_000)) return tooMany();
+
   const parsed = QuerySchema.safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) {
     return json({ error: 'Invalid query', issues: parsed.error.flatten() }, 400);

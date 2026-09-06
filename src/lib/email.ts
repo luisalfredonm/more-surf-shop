@@ -5,7 +5,7 @@
  * doble envío con booking_groups.confirmation_sent_at.
  */
 import { getSupabase, isSupabaseConfigured } from './supabase';
-import { BUSINESS, whatsappUrl } from './constants';
+import { BUSINESS, SITE, whatsappUrl } from './constants';
 
 const RESEND_API_KEY = import.meta.env.RESEND_API_KEY ?? '';
 const FROM_EMAIL = import.meta.env.FROM_EMAIL ?? 'hello@moresurfshop.com';
@@ -111,6 +111,7 @@ function customerHtml(c: GroupCtx): string {
         <li>Traé traje de baño, protector solar reef-safe y toalla. Tabla, licra e instructor van incluidos.</li>
       </ul>
       <p style="margin:0 0 4px;color:#6B7280;font-size:13px">${esc(BUSINESS.address.formatted)}</p>
+      <p style="margin:0 0 4px"><a href="${SITE.url}/booking" style="color:#0F9488;font-size:14px;font-weight:600">Ver tu reserva online</a></p>
       <p style="margin:0"><a href="${wa}" style="color:#0F9488;font-size:14px;font-weight:600">Escribinos por WhatsApp</a></p>
     </div>
     <p style="text-align:center;color:#6B7280;font-size:12px;margin-top:16px">

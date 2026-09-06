@@ -1,0 +1,33 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import BookingLookup from '@components/booking/BookingLookup.tsx';
+import { getPageSeo } from '@lib/seo';
+
+export const prerender = false;
+const seo = getPageSeo('booking')!;
+---
+
+<BaseLayout seo={seo}>
+  <section class="section">
+    <Container>
+      <div class="wrap">
+        <h1>Check your booking</h1>
+        <p class="lead">Enter your booking code (starts with <code>GRP-</code>) and the email you used.</p>
+        <BookingLookup client:load />
+      </div>
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .section { padding: 5rem 0; min-height: 60vh; }
+  .wrap { max-width: 460px; }
+  .lead { color: var(--text-muted); margin: 0.75rem 0 2rem; }
+  .lead code {
+    background: var(--bg-alt);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+</style>

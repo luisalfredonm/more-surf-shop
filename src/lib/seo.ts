@@ -98,6 +98,15 @@ export const seoData: Record<string, PageSeo> = {
     noindex: true,
   },
 
+  booking: {
+    slug: '/booking',
+    keyfocus: 'check surf lesson booking tamarindo',
+    title: 'Check your booking | More Surf Shop',
+    description:
+      'Look up your More Surf Shop booking with your code and email — date, time, status and payment.',
+    noindex: true,
+  },
+
   contact: {
     slug: '/contact',
     keyfocus: 'contact more surf shop tamarindo',

@@ -1,0 +1,64 @@
+.bl {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 460px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.bl-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
+.bl-field label { font-size: 0.8rem; font-weight: 600; color: var(--navy); }
+.bl-field input {
+  font: inherit;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+.bl-field input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+.bl-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid transparent;
+  background: var(--sunset);
+  color: #fff;
+  cursor: pointer;
+}
+.bl-btn:hover { background: var(--sunset-dark); }
+.bl-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.bl-btn-ghost { background: transparent; color: var(--navy); border-color: var(--border); margin-top: 1rem; }
+.bl-btn-ghost:hover { border-color: var(--navy); }
+
+.bl-err {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid var(--sunset);
+  color: var(--sunset-dark);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+.bl-ref {
+  display: inline-block;
+  font-family: 'Fraunces', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.9rem;
+  letter-spacing: 0.04em;
+}
+.bl-status { color: var(--text); font-size: 0.95rem; margin: 0.75rem 0; }
+.bl-items { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.bl-items li { font-size: 0.9rem; color: var(--text-muted); }
+.bl-items strong { color: var(--navy); }
+.bl-items em { color: var(--sunset-dark); font-style: normal; }
+.bl-note { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
