@@ -168,7 +168,10 @@ create table if not exists public.lesson_slots (
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (slot_date, start_time, class_type_id, instructor_id)
+  -- NULLS NOT DISTINCT: un slot sin instructor asignado (instructor_id null)
+  -- también colisiona en el upsert. Requiere PostgreSQL 15+ (Supabase lo es).
+  constraint lesson_slots_slot_unique
+    unique nulls not distinct (slot_date, start_time, class_type_id, instructor_id)
 );
 
 create index if not exists idx_lesson_slots_date on public.lesson_slots (slot_date, status);
@@ -297,9 +300,131 @@ create policy "lesson_slots_staff_all" on public.lesson_slots
   for all using (public.is_staff()) with check (public.is_staff());
 
 -- ============================================
--- Seed opcional — un día de ejemplo de lesson_slots.
--- Descomentar y ajustar tras cargar class_types e instructors reales.
+-- Función: get_available_slots — superficie de lectura de disponibilidad.
+-- security definer: lee lesson_slots/bookings (RLS staff-only) pero solo expone
+-- agregados no sensibles (horarios y cupo restante, sin datos personales).
+-- La llama el server desde src/lib/queries/availability.ts
 -- ============================================
+create or replace function public.get_available_slots(
+  p_from date,
+  p_to date,
+  p_class_type_id uuid default null,
+  p_min_lead_hours integer default 2
+)
+returns table (
+  slot_id uuid,
+  slot_date date,
+  start_time time,
+  class_type_id uuid,
+  class_type_name text,
+  price_per_person numeric,
+  ratio_label text,
+  instructor_id uuid,
+  instructor_name text,
+  capacity_total integer,
+  booked integer,
+  remaining integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    s.id,
+    s.slot_date,
+    s.start_time,
+    s.class_type_id,
+    ct.name,
+    ct.price_per_person,
+    ct.ratio_label,
+    s.instructor_id,
+    i.name,
+    s.capacity_total,
+    coalesce(b.booked, 0)::integer,
+    (s.capacity_total - coalesce(b.booked, 0))::integer
+  from public.lesson_slots s
+  join public.class_types ct on ct.id = s.class_type_id
+  left join public.instructors i on i.id = s.instructor_id
+  left join lateral (
+    select sum(bk.participants_count)::integer as booked
+    from public.bookings bk
+    where bk.slot_id = s.id
+      and (
+        bk.status = 'confirmed'
+        or (bk.status = 'pending_payment' and bk.created_at > now() - interval '20 minutes')
+      )
+  ) b on true
+  where s.status = 'open'
+    and s.slot_date between p_from and p_to
+    and (p_class_type_id is null or s.class_type_id = p_class_type_id)
+    and ((s.slot_date + s.start_time) at time zone 'America/Costa_Rica')
+        > now() + (greatest(p_min_lead_hours, 0) * interval '1 hour')
+    and s.capacity_total - coalesce(b.booked, 0) > 0
+  order by s.slot_date, s.start_time, ct.name;
+$$;
+
+-- ============================================
+-- Función: open_lesson_slots — abre slots en lote (staff / SQL editor).
+-- Idempotente por lesson_slots_slot_unique. No accesible por anon.
+-- Devuelve cuántos slots nuevos se crearon.
+-- ============================================
+create or replace function public.open_lesson_slots(
+  p_dates date[],
+  p_times time[],
+  p_class_type_id uuid,
+  p_instructor_id uuid default null,
+  p_capacity integer default 4
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_date date;
+  v_time time;
+  v_count integer := 0;
+begin
+  -- Si hay usuario autenticado, debe ser staff. Contexto server/SQL (sin uid) pasa.
+  if auth.uid() is not null and not public.is_staff() then
+    raise exception 'not authorized: staff only';
+  end if;
+
+  foreach v_date in array p_dates loop
+    foreach v_time in array p_times loop
+      insert into public.lesson_slots
+        (slot_date, start_time, class_type_id, instructor_id, capacity_total)
+      values
+        (v_date, v_time, p_class_type_id, p_instructor_id, greatest(p_capacity, 1))
+      on conflict on constraint lesson_slots_slot_unique do nothing;
+      if found then
+        v_count := v_count + 1;
+      end if;
+    end loop;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
+revoke all on function public.open_lesson_slots(date[], time[], uuid, uuid, integer) from public;
+grant execute on function public.open_lesson_slots(date[], time[], uuid, uuid, integer)
+  to authenticated, service_role;
+
+-- ============================================
+-- Seed opcional — abrir slots de prueba tras cargar class_types e instructors.
+-- ============================================
+-- Opción A: la función en lote (una clase, varios días y horas).
+--   select public.open_lesson_slots(
+--     array[current_date + 1, current_date + 2]::date[],
+--     array['07:00', '09:30']::time[],
+--     (select id from public.class_types where name ilike '%group%' limit 1),
+--     null,        -- instructor (opcional)
+--     4            -- capacidad
+--   );
+--
+-- Opción B: insert directo para todas las clases activas, mañana.
 /*
 insert into public.lesson_slots (slot_date, start_time, class_type_id, instructor_id, capacity_total)
 select
@@ -310,5 +435,6 @@ select
   case when ct.name ilike '%group%' then 4 else 3 end
 from public.class_types ct
 cross join (values ('07:00'::time), ('09:30'::time)) as t(start_time)
-where ct.active = true and ct.category = 'lesson';
+where ct.active = true and ct.category = 'lesson'
+on conflict on constraint lesson_slots_slot_unique do nothing;
 */
