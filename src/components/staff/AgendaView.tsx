@@ -44,10 +44,12 @@ interface Booking {
   staff_note: string | null;
   total_amount: number;
   currency: string;
-  waiver_id: string | null;
+  payment_method: string | null;
   payment_id: string | null;
+  group_id: string | null;
   customers: Customer | Customer[] | null;
   booking_participants: Participant[] | null;
+  booking_groups: { reference: string } | { reference: string }[] | null;
 }
 interface Slot {
   id: string;
@@ -82,9 +84,10 @@ export default function AgendaView() {
          instructors ( name ),
          bookings (
            id, reference, status, participants_count, customer_note, staff_note,
-           total_amount, currency, waiver_id, payment_id,
+           total_amount, currency, payment_method, payment_id, group_id,
            customers ( full_name, email, phone, country_of_residence ),
-           booking_participants ( full_name, age, is_minor )
+           booking_participants ( full_name, age, is_minor ),
+           booking_groups ( reference )
          )`,
       )
       .gte('slot_date', from)
@@ -117,6 +120,30 @@ export default function AgendaView() {
       return;
     }
     await load();
+  }
+
+  async function registerCash(b: Booking) {
+    setBusyId(b.id);
+    const sb = getBrowserSupabase();
+    const { data: pay, error } = await sb
+      .from('payments')
+      .insert({
+        provider: 'cash',
+        amount: b.total_amount,
+        currency: b.currency,
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        related_type: 'booking',
+        related_id: b.id,
+      })
+      .select('id')
+      .single();
+    if (!error && pay) {
+      await sb.from('bookings').update({ payment_id: pay.id }).eq('id', b.id);
+    }
+    setBusyId(null);
+    if (error) alert(error.message);
+    else await load();
   }
 
   const byDay = groupByDay(slots);
@@ -172,14 +199,14 @@ export default function AgendaView() {
 
                 {bookings.map((b) => {
                   const cust = one(b.customers);
+                  const grp = one(b.booking_groups);
                   const isOpen = openId === b.id;
-                  const paidBadge =
-                    b.status === 'confirmed'
-                      ? b.payment_id
-                        ? 'paid'
-                        : 'unpaid'
+                  const pay = b.payment_id
+                    ? { cls: 'paid', label: 'pagado' }
+                    : b.status === 'confirmed' && b.payment_method === 'on_arrival'
+                      ? { cls: 'unpaid', label: 'cobrar al llegar' }
                       : b.status === 'pending_payment'
-                        ? 'unpaid'
+                        ? { cls: 'unpaid', label: 'esperando pago' }
                         : null;
                   return (
                     <div className="st-booking" key={b.id}>
@@ -188,6 +215,9 @@ export default function AgendaView() {
                         onClick={() => setOpenId(isOpen ? null : b.id)}
                       >
                         <span className="st-ref">{b.reference}</span>
+                        {grp?.reference && (
+                          <span className="st-booking-ppl">grupo {grp.reference}</span>
+                        )}
                         <span className="st-booking-name">{cust?.full_name ?? '—'}</span>
                         <span className="st-booking-ppl">
                           {b.participants_count} pers · {money(b.total_amount, b.currency)}
@@ -195,14 +225,7 @@ export default function AgendaView() {
                         <span className={`st-badge ${b.status}`}>
                           {b.status.replace('_', ' ')}
                         </span>
-                        {paidBadge && (
-                          <span className={`st-badge ${paidBadge}`}>
-                            {paidBadge === 'paid' ? 'pagado' : 'sin pago'}
-                          </span>
-                        )}
-                        <span className="st-badge" style={{ color: b.waiver_id ? '#2f7a55' : '#b3261e' }}>
-                          waiver {b.waiver_id ? '✓' : '✗'}
-                        </span>
+                        {pay && <span className={`st-badge ${pay.cls}`}>{pay.label}</span>}
                       </div>
 
                       {isOpen && (
@@ -211,6 +234,7 @@ export default function AgendaView() {
                           customer={cust}
                           busy={busyId === b.id}
                           onStatus={(s) => setStatus(b.id, s)}
+                          onCash={() => registerCash(b)}
                         />
                       )}
                     </div>
@@ -230,32 +254,14 @@ function BookingDetail({
   customer: cust,
   busy,
   onStatus,
+  onCash,
 }: {
   booking: Booking;
   customer: Customer | null;
   busy: boolean;
   onStatus: (status: string) => void;
+  onCash: () => void;
 }) {
-  const [waiver, setWaiver] = useState<string | null>(null);
-  const [waiverOpen, setWaiverOpen] = useState(false);
-
-  async function loadWaiver() {
-    setWaiverOpen(true);
-    if (waiver || !b.waiver_id) return;
-    const { data } = await getBrowserSupabase()
-      .from('waivers')
-      .select('rendered_text_snapshot, signer_name_typed, signed_at, is_minor, guardian_name, ip')
-      .eq('id', b.waiver_id)
-      .maybeSingle();
-    setWaiver(
-      data
-        ? `Firmado por: ${data.signer_name_typed}\nFecha: ${data.signed_at}\n` +
-            (data.is_minor ? `Tutor: ${data.guardian_name}\n` : '') +
-            `IP: ${data.ip ?? '—'}\n\n${data.rendered_text_snapshot}`
-        : 'No se encontró el waiver.',
-    );
-  }
-
   const participants = b.booking_participants ?? [];
 
   return (
@@ -310,6 +316,11 @@ function BookingDetail({
             Deshacer
           </button>
         )}
+        {b.status === 'confirmed' && !b.payment_id && (
+          <button className="st-btn st-btn-ghost st-btn-sm" disabled={busy} onClick={onCash}>
+            Registrar pago efectivo
+          </button>
+        )}
         {b.status === 'cancelled' ? (
           <button className="st-btn st-btn-ghost st-btn-sm" disabled={busy} onClick={() => onStatus('confirmed')}>
             Reactivar
@@ -325,14 +336,7 @@ function BookingDetail({
             Cancelar
           </button>
         )}
-        {b.waiver_id && (
-          <button className="st-btn st-btn-ghost st-btn-sm" onClick={loadWaiver}>
-            {waiverOpen ? 'Ocultar waiver' : 'Ver waiver'}
-          </button>
-        )}
       </div>
-
-      {waiverOpen && <div className="st-waiver-box">{waiver ?? 'Cargando…'}</div>}
     </div>
   );
 }
