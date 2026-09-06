@@ -5,7 +5,7 @@ import { isPayPalConfigured, createOrder } from '@lib/paypal';
 
 export const prerender = false;
 
-const Schema = z.object({ booking_id: z.string().uuid() });
+const Schema = z.object({ group_id: z.string().uuid() });
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -22,64 +22,52 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isPayPalConfigured() || !isSupabaseConfigured()) {
-    return json(
-      { error: 'El pago en línea todavía no está disponible.', code: 'not_configured' },
-      503,
-    );
+    return json({ error: 'El pago en línea todavía no está disponible.', code: 'not_configured' }, 503);
   }
 
   const supabase = getSupabase();
-  const { data: booking, error } = await supabase
-    .from('bookings')
-    .select(
-      'id, reference, status, total_amount, currency, waiver_id, class_type_id, slot_date, start_time',
-    )
-    .eq('id', parsed.data.booking_id)
+  const { data: group, error } = await supabase
+    .from('booking_groups')
+    .select('id, reference, status, total_amount, currency, payment_method')
+    .eq('id', parsed.data.group_id)
     .maybeSingle();
   if (error) {
-    console.error('[paypal/create-order] booking:', error.message);
+    console.error('[paypal/create-order] group:', error.message);
     return json({ error: 'No se pudo verificar la reserva' }, 500);
   }
-  if (!booking) return json({ error: 'Esa reserva no existe.', code: 'booking_missing' }, 404);
-  if (booking.status === 'confirmed') {
+  if (!group) return json({ error: 'Esa reserva no existe.', code: 'group_missing' }, 404);
+  if (group.status === 'confirmed') {
     return json({ error: 'Esa reserva ya está pagada.', code: 'already_paid' }, 409);
   }
-  if (booking.status !== 'pending_payment') {
-    return json({ error: 'Esa reserva no admite pago.', code: 'bad_status' }, 409);
+  if (group.status !== 'pending' || group.payment_method !== 'paypal') {
+    return json({ error: 'Esa reserva no admite pago con PayPal.', code: 'bad_status' }, 409);
   }
-  if (!booking.waiver_id) {
-    return json({ error: 'Primero hay que firmar el waiver.', code: 'no_waiver' }, 409);
-  }
-  if (!(Number(booking.total_amount) > 0)) {
+  if (!(Number(group.total_amount) > 0)) {
     return json({ error: 'Monto inválido.', code: 'bad_amount' }, 409);
   }
 
-  const { data: ct } = await supabase
-    .from('class_types')
-    .select('name')
-    .eq('id', booking.class_type_id)
-    .maybeSingle();
-  const description = `${ct?.name ?? 'Surf lesson'} — ${booking.slot_date} ${String(
-    booking.start_time,
-  ).slice(0, 5)} (${booking.reference})`;
+  const { count } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('group_id', group.id);
+  const description = `More Surf Shop — ${count ?? 1} clase(s) (${group.reference})`;
 
   try {
     const order = await createOrder({
-      amount: Number(booking.total_amount),
-      currency: booking.currency,
-      bookingId: booking.id,
-      reference: booking.reference,
+      amount: Number(group.total_amount),
+      currency: group.currency,
+      bookingId: group.id, // custom_id = group id
+      reference: group.reference,
       description,
     });
-    // Registrar el intento de pago (se completa en /capture o por webhook).
     await supabase.from('payments').insert({
       provider: 'paypal',
       provider_ref: order.id,
-      amount: Number(booking.total_amount),
-      currency: booking.currency,
+      amount: Number(group.total_amount),
+      currency: group.currency,
       status: 'pending',
-      related_type: 'booking',
-      related_id: booking.id,
+      related_type: 'booking_group',
+      related_id: group.id,
     });
     return json({ id: order.id }, 201);
   } catch (e) {

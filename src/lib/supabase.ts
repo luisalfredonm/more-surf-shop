@@ -56,6 +56,8 @@ export interface DbClassType {
   cta_label: string | null;
   active: boolean;
   sort_order: number;
+  min_guests: number;
+  max_guests: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -188,9 +190,24 @@ export type BookingStatus =
   | 'completed'
   | 'no_show';
 
+export type PaymentMethod = 'paypal' | 'on_arrival';
+
+export interface DbBookingGroup {
+  id: string;
+  reference: string;             // p.ej. 'GRP-3F7K2'
+  customer_id: string;
+  total_amount: number;
+  currency: string;
+  payment_method: PaymentMethod | null;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  confirmation_sent_at: string | null;
+  created_at: string;
+}
+
 export interface DbBooking {
   id: string;
   reference: string;             // p.ej. 'MSS-3F7K2'
+  group_id: string | null;
   customer_id: string;
   class_type_id: string;
   slot_id: string | null;
@@ -201,6 +218,7 @@ export interface DbBooking {
   total_amount: number;
   currency: string;
   status: BookingStatus;
+  payment_method: PaymentMethod | null;
   payment_id: string | null;
   waiver_id: string | null;
   source: 'web' | 'walk_in' | 'whatsapp' | 'phone';

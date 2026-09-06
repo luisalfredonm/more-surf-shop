@@ -28,6 +28,11 @@ begin
 end;
 $$;
 
+-- Límites de personas por tipo de clase (los usa el paso "Guests" del wizard).
+-- min_guests: mínimo por reserva. max_guests: tope (null = usar la capacidad del slot).
+alter table public.class_types add column if not exists min_guests integer not null default 1;
+alter table public.class_types add column if not exists max_guests integer;
+
 -- ============================================
 -- Tabla: profiles (staff + dueño, ligado a auth.users)
 -- role: owner (todo) | staff (operación)
@@ -146,6 +151,11 @@ create index if not exists idx_payments_related on public.payments (related_type
 create index if not exists idx_payments_status on public.payments (status);
 create index if not exists idx_payments_provider_ref on public.payments (provider_ref) where provider_ref is not null;
 
+-- Ampliar related_type para pagos a nivel de grupo (un checkout con varias reservas).
+alter table public.payments drop constraint if exists payments_related_type_check;
+alter table public.payments add constraint payments_related_type_check
+  check (related_type in ('booking', 'booking_group', 'rental_reservation', 'order'));
+
 drop trigger if exists trg_payments_updated_at on public.payments;
 create trigger trg_payments_updated_at
   before update on public.payments
@@ -182,16 +192,35 @@ create trigger trg_lesson_slots_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============================================
--- Tabla: bookings (reserva de lección)
--- Flujo web (decisión #1 "reservar = pagar"):
---   pending_payment --(PayPal capturado)--> confirmed --> completed | no_show
---                    \--> cancelled
--- Walk-in del staff: se crea directo en 'confirmed' con payment 'cash'.
+-- Tabla: booking_groups (un checkout = 1..N reservas confirmadas/pagadas juntas)
+-- El cliente ve el código del grupo (GRP-XXXXX); el staff ve cada booking.
+-- ============================================
+create table if not exists public.booking_groups (
+  id uuid primary key default uuid_generate_v4(),
+  reference text not null unique,          -- GRP-XXXXX
+  customer_id uuid not null references public.customers(id) on delete restrict,
+  total_amount numeric(10, 2) not null default 0,
+  currency text not null default 'USD' check (char_length(currency) = 3),
+  payment_method text check (payment_method in ('paypal', 'on_arrival')),
+  status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled')),
+  confirmation_sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_booking_groups_customer on public.booking_groups (customer_id);
+
+-- ============================================
+-- Tabla: bookings (una reserva de lección; pertenece a un booking_group)
+-- Flujo web:
+--   payment_method = 'paypal'     -> pending_payment --(capturado)--> confirmed
+--   payment_method = 'on_arrival' -> confirmed de una (paga en la tienda)
+--                                    --> completed | no_show | cancelled
+-- Walk-in del staff: 'confirmed' directo. El waiver se firma en la tienda.
 -- Disponibilidad cuenta: confirmed + pending_payment de los últimos ~20 min.
 -- ============================================
 create table if not exists public.bookings (
   id uuid primary key default uuid_generate_v4(),
   reference text not null unique,
+  group_id uuid references public.booking_groups(id) on delete set null,
   customer_id uuid not null references public.customers(id) on delete restrict,
   class_type_id uuid not null references public.class_types(id) on delete restrict,
   slot_id uuid references public.lesson_slots(id) on delete set null,
@@ -204,22 +233,30 @@ create table if not exists public.bookings (
   currency text not null default 'USD' check (char_length(currency) = 3),
   status text not null default 'pending_payment'
     check (status in ('pending_payment', 'confirmed', 'cancelled', 'completed', 'no_show')),
+  payment_method text check (payment_method in ('paypal', 'on_arrival')),
   payment_id uuid references public.payments(id) on delete set null,
   waiver_id uuid references public.waivers(id) on delete set null,
   source text not null default 'web' check (source in ('web', 'walk_in', 'whatsapp', 'phone')),
   customer_note text,
   staff_note text,
-  confirmation_sent_at timestamptz,   -- se setea al enviar el email de confirmación (evita doble envío)
+  confirmation_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 -- Para bases creadas con una versión previa de este archivo.
 alter table public.bookings add column if not exists confirmation_sent_at timestamptz;
+alter table public.bookings add column if not exists group_id uuid references public.booking_groups(id) on delete set null;
+alter table public.bookings add column if not exists payment_method text;
+do $$ begin
+  alter table public.bookings add constraint bookings_payment_method_check
+    check (payment_method in ('paypal', 'on_arrival'));
+exception when duplicate_object then null; end $$;
 
 create index if not exists idx_bookings_slot on public.bookings (slot_id);
 create index if not exists idx_bookings_status_date on public.bookings (status, slot_date);
 create index if not exists idx_bookings_customer on public.bookings (customer_id);
+create index if not exists idx_bookings_group on public.bookings (group_id);
 create index if not exists idx_bookings_pending_created on public.bookings (created_at)
   where status = 'pending_payment';
 
@@ -260,6 +297,7 @@ alter table public.customers enable row level security;
 alter table public.waivers enable row level security;
 alter table public.payments enable row level security;
 alter table public.lesson_slots enable row level security;
+alter table public.booking_groups enable row level security;
 alter table public.bookings enable row level security;
 alter table public.booking_participants enable row level security;
 
@@ -287,6 +325,10 @@ create policy "waivers_staff_all" on public.waivers
 
 drop policy if exists "payments_staff_all" on public.payments;
 create policy "payments_staff_all" on public.payments
+  for all using (public.is_staff()) with check (public.is_staff());
+
+drop policy if exists "booking_groups_staff_all" on public.booking_groups;
+create policy "booking_groups_staff_all" on public.booking_groups
   for all using (public.is_staff()) with check (public.is_staff());
 
 drop policy if exists "bookings_staff_all" on public.bookings;

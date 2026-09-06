@@ -2,31 +2,27 @@ import type { APIRoute } from 'astro';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { verifyWebhook } from '@lib/paypal';
-import { sendBookingConfirmationEmails } from '@lib/email';
+import { sendBookingGroupEmails } from '@lib/email';
 
 export const prerender = false;
 
 const ok = () => new Response('ok', { status: 200 });
 
-async function confirmFromWebhook(
-  supabase: SupabaseClient,
-  bookingId: string,
-  resource: any,
-): Promise<void> {
-  const { data: booking } = await supabase
-    .from('bookings')
+async function confirmGroup(supabase: SupabaseClient, groupId: string, resource: any): Promise<void> {
+  const { data: group } = await supabase
+    .from('booking_groups')
     .select('id, status, total_amount, currency')
-    .eq('id', bookingId)
+    .eq('id', groupId)
     .maybeSingle();
-  if (!booking || booking.status !== 'pending_payment') return;
+  if (!group || group.status !== 'pending') return;
 
   const value = resource?.amount?.value;
   const currency = resource?.amount?.currency_code;
   if (
-    value !== Number(booking.total_amount).toFixed(2) ||
-    (currency && currency !== booking.currency)
+    value !== Number(group.total_amount).toFixed(2) ||
+    (currency && currency !== group.currency)
   ) {
-    console.error('[paypal/webhook] amount mismatch', { bookingId, value, currency });
+    console.error('[paypal/webhook] amount mismatch', { groupId, value, currency });
     return;
   }
 
@@ -34,12 +30,12 @@ async function confirmFromWebhook(
   const paidRow = {
     provider: 'paypal' as const,
     provider_ref: orderId,
-    amount: Number(booking.total_amount),
-    currency: booking.currency,
+    amount: Number(group.total_amount),
+    currency: group.currency,
     status: 'paid' as const,
     paid_at: new Date().toISOString(),
-    related_type: 'booking' as const,
-    related_id: booking.id,
+    related_type: 'booking_group' as const,
+    related_id: group.id,
     notes: JSON.stringify({ capture_id: resource?.id ?? null, via: 'webhook' }),
   };
 
@@ -47,7 +43,7 @@ async function confirmFromWebhook(
   const { data: existing } = await supabase
     .from('payments')
     .select('id')
-    .eq('related_id', booking.id)
+    .eq('related_id', group.id)
     .eq('provider', 'paypal')
     .order('created_at', { ascending: false })
     .limit(1)
@@ -56,21 +52,18 @@ async function confirmFromWebhook(
     await supabase.from('payments').update(paidRow).eq('id', existing.id);
     paymentId = existing.id;
   } else {
-    const { data: created } = await supabase
-      .from('payments')
-      .insert(paidRow)
-      .select('id')
-      .single();
+    const { data: created } = await supabase.from('payments').insert(paidRow).select('id').single();
     paymentId = created?.id ?? null;
   }
 
   await supabase
     .from('bookings')
     .update({ status: 'confirmed', payment_id: paymentId })
-    .eq('id', booking.id)
+    .eq('group_id', group.id)
     .eq('status', 'pending_payment');
+  await supabase.from('booking_groups').update({ status: 'confirmed' }).eq('id', group.id);
 
-  await sendBookingConfirmationEmails(booking.id);
+  await sendBookingGroupEmails(group.id);
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -98,34 +91,34 @@ export const POST: APIRoute = async ({ request }) => {
   const supabase = getSupabase();
   const type: string = event.event_type ?? '';
   const resource = event.resource ?? {};
-  const bookingId: string | undefined = resource.custom_id;
+  const groupId: string | undefined = resource.custom_id; // = booking_groups.id
 
   try {
-    if (type === 'PAYMENT.CAPTURE.COMPLETED' && bookingId) {
-      await confirmFromWebhook(supabase, bookingId, resource);
+    if (type === 'PAYMENT.CAPTURE.COMPLETED' && groupId) {
+      await confirmGroup(supabase, groupId, resource);
     } else if (
       (type === 'PAYMENT.CAPTURE.REFUNDED' || type === 'PAYMENT.CAPTURE.REVERSED') &&
-      bookingId
+      groupId
     ) {
       await supabase
         .from('payments')
         .update({ status: 'refunded' })
-        .eq('related_id', bookingId)
+        .eq('related_id', groupId)
         .eq('provider', 'paypal');
+      await supabase.from('bookings').update({ status: 'cancelled' }).eq('group_id', groupId);
       await supabase
-        .from('bookings')
-        .update({ status: 'cancelled', staff_note: 'Pago reembolsado (PayPal webhook)' })
-        .eq('id', bookingId);
-    } else if (type === 'PAYMENT.CAPTURE.DENIED' && bookingId) {
+        .from('booking_groups')
+        .update({ status: 'cancelled' })
+        .eq('id', groupId);
+    } else if (type === 'PAYMENT.CAPTURE.DENIED' && groupId) {
       await supabase
         .from('payments')
         .update({ status: 'failed' })
-        .eq('related_id', bookingId)
+        .eq('related_id', groupId)
         .eq('provider', 'paypal');
     }
   } catch (e) {
     console.error('[paypal/webhook]', type, e);
-    // 200 igual: reintentar no ayuda si el error es nuestro y no transitorio.
   }
   return ok();
 };
