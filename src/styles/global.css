@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   Design Tokens (CSS variables)
+   Mantenemos como CSS vars para uso en componentes .astro con CSS scoped
+   ============================================ */
+:root {
+  --navy: #0A2540;
+  --navy-dark: #061A2E;
+  --teal: #14B8A6;
+  --teal-dark: #0F9488;
+  --sunset: #F97316;
+  --sunset-dark: #EA580C;
+  --bg: #FDF8F0;
+  --bg-alt: #F5EEE0;
+  --text: #1F2937;
+  --text-muted: #6B7280;
+  --border: #E5DECD;
+  --white: #FFFFFF;
+  --shadow-sm: 0 1px 2px rgba(10, 37, 64, 0.05);
+  --shadow-md: 0 4px 20px rgba(10, 37, 64, 0.08);
+  --shadow-lg: 0 20px 60px rgba(10, 37, 64, 0.15);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --container: 1200px;
+  --section-pad: 6rem;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --section-pad: 3.5rem;
+  }
+}
+
+/* ============================================
+   Base
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  body { font-size: 16px; }
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+h1, h2, h3, h4 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--navy);
+  margin: 0;
+}
+
+h1 { font-size: clamp(2.5rem, 5vw + 1rem, 4.5rem); }
+h2 { font-size: clamp(2rem, 3vw + 1rem, 3rem); margin-bottom: 1rem; }
+h3 { font-size: 1.375rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.5rem; }
+h4 { font-size: 1.125rem; margin-bottom: 0.75rem; }
+
+p { margin: 0 0 1rem 0; }
+p:last-child { margin-bottom: 0; }
+
+ul { margin: 0; padding: 0; list-style: none; }
+
+/* ============================================
+   Focus states (accesibilidad)
+   ============================================ */
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ============================================
+   Reduced motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

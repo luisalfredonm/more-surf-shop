@@ -1,0 +1,67 @@
+---
+import { BUSINESS } from '@lib/constants';
+
+interface Props {
+  /** Override opcional de las métricas. Por defecto usa BUSINESS.trust (enfoque lecciones). */
+  items?: { num: string; label: string }[];
+}
+
+const {
+  items = [
+    { num: BUSINESS.trust.studentsCount, label: 'Students taught' },
+    { num: BUSINESS.trust.googleRating, label: 'Google rating' },
+    { num: BUSINESS.trust.countriesVisited, label: 'Countries visited' },
+    { num: BUSINESS.trust.bilingualInstructors, label: 'Bilingual instructors' },
+  ],
+} = Astro.props;
+---
+
+<div class="trust-bar">
+  <div class="trust-inner">
+    {items.map((item) => (
+      <div class="trust-item">
+        <span class="num">{item.num}</span>
+        <span class="label">{item.label}</span>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .trust-bar {
+    background: var(--navy);
+    color: var(--white);
+    padding: 2rem 0;
+  }
+  .trust-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    text-align: center;
+  }
+  .trust-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .num {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--teal);
+  }
+  .label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+  @media (max-width: 640px) {
+    .trust-inner {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+    .num { font-size: 1.5rem; }
+  }
+</style>

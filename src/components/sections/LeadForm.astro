@@ -1,0 +1,278 @@
+---
+/**
+ * Formulario simple de lead capture.
+ * POSTea a /api/leads/create con progressive enhancement (funciona sin JS
+ * como POST tradicional, y con JS hace fetch + muestra feedback inline).
+ */
+---
+
+<div class="lead-form-container">
+  <h3>Quick booking request</h3>
+  <p class="form-lead">
+    Prefer a form? Fill this in and we'll message you back within a few hours to confirm your
+    lesson.
+  </p>
+
+  <form id="leadForm" method="POST" action="/api/leads/create" novalidate>
+    <input type="hidden" name="source_page" value="/surf-lessons-tamarindo" />
+
+    <div class="field-row">
+      <div class="field">
+        <label for="lead-name">Your name *</label>
+        <input id="lead-name" name="name" type="text" required autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="lead-email">Email *</label>
+        <input
+          id="lead-email"
+          name="email"
+          type="email"
+          required
+          autocomplete="email"
+          inputmode="email"
+        />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="lead-phone">WhatsApp / phone (optional)</label>
+        <input
+          id="lead-phone"
+          name="phone"
+          type="tel"
+          autocomplete="tel"
+          inputmode="tel"
+          placeholder="+1 555 555 5555"
+        />
+      </div>
+      <div class="field">
+        <label for="lead-country">Country (optional)</label>
+        <input id="lead-country" name="country" type="text" autocomplete="country-name" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="lead-interest">Lesson type *</label>
+        <select id="lead-interest" name="interest" required>
+          <option value="">Choose one…</option>
+          <option value="private">Private</option>
+          <option value="semi-private">Semi-Private</option>
+          <option value="group">Group</option>
+          <option value="family">Family / Kids</option>
+          <option value="general">Not sure yet</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="lead-date">Preferred date (optional)</label>
+        <input id="lead-date" name="preferred_date" type="date" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="lead-party">How many people? (optional)</label>
+      <input
+        id="lead-party"
+        name="party_size"
+        type="number"
+        min="1"
+        max="20"
+        placeholder="1"
+        inputmode="numeric"
+      />
+    </div>
+
+    <div class="field">
+      <label for="lead-notes">Anything else we should know? (optional)</label>
+      <textarea
+        id="lead-notes"
+        name="notes"
+        rows="3"
+        placeholder="Skill level, questions, arrival date…"
+      ></textarea>
+    </div>
+
+    <!-- Honeypot anti-spam -->
+    <div class="honeypot" aria-hidden="true">
+      <label for="website">Website</label>
+      <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+    </div>
+
+    <button type="submit" class="submit-btn">Send booking request</button>
+
+    <p class="privacy-note">
+      We reply on WhatsApp or email. Your info is only used to answer you — no marketing, ever.
+    </p>
+
+    <div id="formStatus" class="form-status" role="status" aria-live="polite"></div>
+  </form>
+</div>
+
+<style>
+  .lead-form-container {
+    background: var(--white);
+    color: var(--text);
+    padding: 2rem;
+    border-radius: var(--radius);
+    margin-top: 2rem;
+  }
+  .lead-form-container h3 {
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+  }
+  .form-lead {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+  }
+  .field label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 150ms, box-shadow 150ms;
+    width: 100%;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    background: var(--sunset);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 150ms, transform 150ms;
+    margin-top: 0.5rem;
+  }
+  .submit-btn:hover {
+    background: var(--sunset-dark);
+    transform: translateY(-1px);
+  }
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .privacy-note {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 1rem 0 0;
+  }
+  .form-status {
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    display: none;
+  }
+  .form-status.success {
+    display: block;
+    background: rgba(20, 184, 166, 0.1);
+    color: var(--teal-dark);
+    border: 1px solid var(--teal);
+  }
+  .form-status.error {
+    display: block;
+    background: rgba(249, 115, 22, 0.1);
+    color: var(--sunset-dark);
+    border: 1px solid var(--sunset);
+  }
+  @media (max-width: 640px) {
+    .lead-form-container { padding: 1.5rem; }
+    .field-row { grid-template-columns: 1fr; gap: 0; }
+  }
+</style>
+
+<script>
+  // Progressive enhancement: intercepta el submit y hace fetch
+  const form = document.getElementById('leadForm') as HTMLFormElement | null;
+  const status = document.getElementById('formStatus') as HTMLDivElement | null;
+
+  if (form && status) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending…';
+      status.className = 'form-status';
+      status.textContent = '';
+
+      try {
+        const formData = new FormData(form);
+        const payload: Record<string, string | number> = {};
+        formData.forEach((value, key) => {
+          const s = value.toString();
+          if (s) payload[key] = key === 'party_size' ? Number(s) : s;
+        });
+
+        const res = await fetch('/api/leads/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          status.className = 'form-status success';
+          status.textContent =
+            '✓ Thanks! We received your request and will reply within a few hours.';
+          form.reset();
+        } else {
+          throw new Error(data.error || 'Something went wrong');
+        }
+      } catch (err) {
+        status.className = 'form-status error';
+        status.textContent =
+          '⚠ We could not send your request. Please try WhatsApp instead or reload the page.';
+        console.error('Lead form error:', err);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send booking request';
+      }
+    });
+  }
+</script>

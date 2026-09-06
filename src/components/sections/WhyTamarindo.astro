@@ -1,0 +1,91 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+
+const reasons = [
+  {
+    title: 'Warm water, year-round',
+    text: 'The Pacific here sits between 78 and 84°F (26–29°C) all year. No wetsuit needed. Ever.',
+  },
+  {
+    title: 'Sandy bottom, no reef',
+    text: "The bottom in front of our shop is soft sand. If you fall, you fall on sand. Most beginner-friendly reef breaks in the world can't say that.",
+  },
+  {
+    title: 'Consistent gentle waves',
+    text: 'Tamarindo Bay filters swell in a way that produces long, rolling whitewater ideal for learning. Bigger waves stay further out.',
+  },
+  {
+    title: 'Right in front of our shop',
+    text: "You walk out our door, cross the sand, and you're in the water. No shuttles, no long drives, no wasted vacation time.",
+  },
+  {
+    title: 'Lifeguard-monitored beach',
+    text: "Tamarindo Beach has full-time lifeguards during peak hours. Combined with our in-water instructor ratio, you're in the safest learning setup you'll find.",
+  },
+];
+---
+
+<section class="section section-alt">
+  <Container>
+    <Eyebrow>The location</Eyebrow>
+    <h2>Why Tamarindo Is the Best Place to Learn to Surf in Costa Rica</h2>
+    <p class="section-intro">
+      We're biased — we live and surf here every day — but there's a reason Tamarindo shows up
+      in every "best places to learn to surf in the world" list. Five reasons, specifically.
+    </p>
+
+    <div class="reasons-grid">
+      {reasons.map((r) => (
+        <div class="reason">
+          <h3>{r.title}</h3>
+          <p>{r.text}</p>
+        </div>
+      ))}
+    </div>
+
+    <div class="map-placeholder" role="img" aria-label="Map of Tamarindo Beach, Guanacaste, Costa Rica">
+      <span>📍 Interactive Google Map — Tamarindo Beach, Guanacaste, Costa Rica</span>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .reasons-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  .reason {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--sunset);
+  }
+  .reason h3 { margin-bottom: 0.75rem; }
+  .reason p { color: var(--text); }
+  .map-placeholder {
+    aspect-ratio: 16 / 6;
+    background: var(--white);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+  @media (max-width: 900px) {
+    .reasons-grid { grid-template-columns: 1fr; }
+  }
+</style>

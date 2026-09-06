@@ -1,0 +1,13 @@
+# Normalizar saltos de línea a LF dentro del repo (Vercel/CI build en Linux).
+* text=auto eol=lf
+
+# Binarios: sin conversión ni diff de texto.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary

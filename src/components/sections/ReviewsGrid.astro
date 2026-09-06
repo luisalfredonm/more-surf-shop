@@ -1,0 +1,149 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import type { DbReview } from '@lib/supabase';
+
+interface Props {
+  reviews: DbReview[];
+  aggregate?: {
+    ratingValue: number;
+    reviewCount: number;
+    bestRating: 5;
+    worstRating: 1;
+  } | null;
+  eyebrow?: string;
+  title?: string;
+}
+
+const {
+  reviews,
+  aggregate,
+  eyebrow = 'What students say',
+  title = 'Real Reviews from Our Surf Students',
+} = Astro.props;
+
+function stars(rating: number): string {
+  return '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+}
+
+function initials(name: string): string {
+  return name.charAt(0).toUpperCase();
+}
+
+function sourceLabel(source: string): string {
+  return source === 'google' ? 'Google' : source === 'tripadvisor' ? 'TripAdvisor' : 'Direct';
+}
+---
+
+<section class="section section-alt">
+  <Container>
+    <Eyebrow>{eyebrow}</Eyebrow>
+    <h2>{title}</h2>
+
+    <div class="reviews-grid">
+      {reviews.map((review) => (
+        <article class="review">
+          <div class="stars" aria-label={`Rated ${review.rating} out of 5`}>
+            {stars(review.rating)}
+          </div>
+          <p class="review-quote">"{review.quote}"</p>
+          <div class="review-author">
+            <div class="review-avatar" aria-hidden="true">{initials(review.author_name)}</div>
+            <div>
+              <div class="name">{review.author_name}</div>
+              <div class="place">
+                {review.author_location && <>{review.author_location} · </>}
+                {sourceLabel(review.source)}
+              </div>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    {aggregate ? (
+      <div class="reviews-summary">
+        <p>
+          <strong>⭐ {aggregate.ratingValue.toFixed(1)} average</strong> across{' '}
+          {aggregate.reviewCount} Google reviews
+        </p>
+      </div>
+    ) : (
+      <div class="reviews-summary">
+        <p>
+          <strong>⭐ [X.X] average</strong> across [XXX] Google reviews
+        </p>
+      </div>
+    )}
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+  .review {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+  }
+  .stars {
+    color: #FBBF24;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+  }
+  .review-quote {
+    color: var(--text);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    flex: 1;
+    font-style: italic;
+  }
+  .review-author {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .review-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--teal);
+    color: var(--white);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .review-author .name {
+    font-weight: 600;
+    color: var(--navy);
+    font-size: 0.9375rem;
+  }
+  .review-author .place {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+  }
+  .reviews-summary {
+    text-align: center;
+    margin-top: 2rem;
+  }
+  .reviews-summary p { font-size: 1.0625rem; color: var(--text); }
+  @media (max-width: 900px) {
+    .reviews-grid { grid-template-columns: 1fr; }
+  }
+</style>

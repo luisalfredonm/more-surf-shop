@@ -1,0 +1,30 @@
+---
+/**
+ * FAQPage schema.
+ * Genera el JSON-LD desde el mismo array que renderiza el acordeón visual,
+ * garantizando paridad entre contenido visible y datos estructurados.
+ */
+import type { FaqItem } from '@data/faqs/surf-lessons-tamarindo';
+
+interface Props {
+  faqs: FaqItem[];
+}
+
+const { faqs } = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((faq) => ({
+    '@type': 'Question',
+    name: faq.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      // Google acepta HTML dentro de acceptedAnswer.text
+      text: faq.a,
+    },
+  })),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

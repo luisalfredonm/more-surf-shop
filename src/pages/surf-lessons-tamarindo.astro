@@ -1,0 +1,77 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getPageSeo } from '@lib/seo';
+import { getSurfLessons } from '@lib/queries/lessons';
+import { getInstructors } from '@lib/queries/instructors';
+import { getFeaturedReviews } from '@lib/queries/reviews';
+import { surfLessonsTamarindoFaqs } from '@data/faqs/surf-lessons-tamarindo';
+
+// Layout components
+import TrustBar from '@components/layout/TrustBar.astro';
+
+// Sections
+import LessonsHero from '@components/sections/LessonsHero.astro';
+import PricingCards from '@components/sections/PricingCards.astro';
+import FamilyKids from '@components/sections/FamilyKids.astro';
+import WhatsIncluded from '@components/sections/WhatsIncluded.astro';
+import InstructorsGrid from '@components/sections/InstructorsGrid.astro';
+import ExpectationTimeline from '@components/sections/ExpectationTimeline.astro';
+import WhyTamarindo from '@components/sections/WhyTamarindo.astro';
+import BestTimeToSurf from '@components/sections/BestTimeToSurf.astro';
+import ReviewsGrid from '@components/sections/ReviewsGrid.astro';
+import LocationBlock from '@components/sections/LocationBlock.astro';
+import FaqAccordion from '@components/sections/FaqAccordion.astro';
+import FinalCTA from '@components/sections/FinalCTA.astro';
+
+// SEO Schemas
+import ServiceSchema from '@components/seo/ServiceSchema.astro';
+import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
+import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+
+export const prerender = false;
+
+const seo = getPageSeo('surf-lessons-tamarindo')!;
+
+// Fetch data (con fallback si Supabase no está configurado)
+const [lessons, instructors, reviewsData] = await Promise.all([
+  getSurfLessons(),
+  getInstructors(),
+  getFeaturedReviews(),
+]);
+
+const heroImage =
+  'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=1920&q=80&auto=format&fit=crop';
+
+const breadcrumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Surf Lessons Tamarindo', path: '/surf-lessons-tamarindo' },
+];
+---
+
+<BaseLayout seo={seo} heroImage={heroImage} aggregateRating={reviewsData.aggregate}>
+  <Fragment slot="head">
+    <ServiceSchema
+      serviceName="Surf Lessons in Tamarindo"
+      serviceDescription="Beginner-friendly surf lessons on Tamarindo Beach with bilingual instructors, soft-top boards, and everything included."
+      serviceSlug="/surf-lessons-tamarindo"
+      serviceType="Surf Lesson"
+      offers={lessons}
+    />
+    <FAQPageSchema faqs={surfLessonsTamarindoFaqs} />
+    <BreadcrumbSchema items={breadcrumbs} />
+  </Fragment>
+
+  <LessonsHero />
+  <TrustBar />
+  <PricingCards lessons={lessons} />
+  <FamilyKids />
+  <WhatsIncluded />
+  <InstructorsGrid instructors={instructors} />
+  <ExpectationTimeline />
+  <WhyTamarindo />
+  <BestTimeToSurf />
+  <ReviewsGrid reviews={reviewsData.reviews} aggregate={reviewsData.aggregate} />
+  <LocationBlock />
+  <FaqAccordion faqs={surfLessonsTamarindoFaqs} />
+  <FinalCTA />
+</BaseLayout>

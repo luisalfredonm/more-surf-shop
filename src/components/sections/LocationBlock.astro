@@ -1,0 +1,122 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import { BUSINESS, whatsappUrl } from '@lib/constants';
+
+const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${BUSINESS.geo.latitude},${BUSINESS.geo.longitude}`;
+---
+
+<section class="section" id="location">
+  <Container>
+    <div class="location">
+      <div
+        class="location-map"
+        role="img"
+        aria-label="Map showing More Surf Shop location on Tamarindo Beach"
+      >
+        <div class="pin" aria-hidden="true">📍</div>
+      </div>
+      <div class="location-info">
+        <Eyebrow>Come see us</Eyebrow>
+        <h2>Our Surf Shop in Tamarindo</h2>
+        <p class="lead">
+          A real, physical shop on Tamarindo Beach — walk in, meet the team, see the boards,
+          book on the spot.
+        </p>
+        <ul class="location-details">
+          <li>
+            <strong>Address</strong>
+            <span>{BUSINESS.address.formatted}</span>
+          </li>
+          <li>
+            <strong>Hours</strong>
+            <span>7:00 AM – 6:00 PM (Mon – Sun) — TODO: confirmar horarios</span>
+          </li>
+          <li>
+            <strong>WhatsApp</strong>
+            <span>{BUSINESS.whatsapp.display}</span>
+          </li>
+          <li>
+            <strong>Email</strong>
+            <span>{BUSINESS.email.main}</span>
+          </li>
+        </ul>
+        <div class="location-actions">
+          <Button variant="dark" href={directionsUrl} target="_blank">
+            Get Directions
+          </Button>
+          <Button variant="whatsapp" href={whatsappUrl()} target="_blank">
+            <WhatsAppIcon size={18} />
+            WhatsApp Us
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .location {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .location-map {
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--navy) 100%);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    position: relative;
+    box-shadow: var(--shadow-lg);
+  }
+  .pin {
+    font-size: 3rem;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  }
+  .lead {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+  .location-details {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .location-details li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    background: var(--bg-alt);
+    border-radius: var(--radius-sm);
+  }
+  .location-details strong {
+    color: var(--teal-dark);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .location-details span {
+    color: var(--text);
+    font-size: 0.9375rem;
+  }
+  .location-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  @media (max-width: 900px) {
+    .location { grid-template-columns: 1fr; gap: 2rem; }
+  }
+</style>

@@ -1,0 +1,150 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+
+/**
+ * Los 4 pilares del negocio — hub central de la home.
+ * Cada card enlaza a su página de servicio real (file-based routing).
+ *
+ * TODO: reemplazar las imágenes de Unsplash por fotos reales de la tienda.
+ */
+const pillars = [
+  {
+    tag: 'Most popular',
+    title: 'Surf Lessons in Tamarindo',
+    text: 'Private, semi-private, and group lessons for beginners, families, and returning surfers. Bilingual ISA-certified instructors, all gear included, right on Tamarindo Beach.',
+    href: '/surf-lessons-tamarindo',
+    cta: 'See surf lessons',
+    image: 'https://images.unsplash.com/photo-1502933691298-84fc14542831?w=800&q=80&auto=format&fit=crop',
+  },
+  {
+    tag: 'Daily & weekly',
+    title: 'Surfboard Rentals',
+    text: "Soft-tops, funboards, shortboards. Rent by the hour, day, week, or month. We match the board to your level and today's conditions. Locker and shower at the shop for rental customers.",
+    href: '/surfboard-rental-tamarindo',
+    cta: 'See surfboard rentals',
+    image: 'https://images.unsplash.com/photo-1533603208986-24fd819e718f?w=800&q=80&auto=format&fit=crop',
+  },
+  {
+    tag: 'Guided',
+    title: 'Surf Trips & Tours in Guanacaste',
+    text: 'Day trips to Playa Grande, Avellanas, and Nosara with a local guide, plus non-surf adventures — sport fishing, catamaran sails, estuary boat tours, and more. Something for every travel partner.',
+    href: '/tours-tamarindo',
+    cta: 'See trips & tours',
+    image: 'https://images.unsplash.com/photo-1519821172144-4f87d85de2a4?w=800&q=80&auto=format&fit=crop',
+  },
+  {
+    tag: 'In the shop',
+    title: 'Surf Gear & Accessories',
+    text: 'Leashes, wax, rash guards, reef-safe sunscreen, waterproof pouches, board bags, bikinis, and beach hats. Forgot something or snapped a leash on the last wave? Walk in — we have it.',
+    href: '/surf-shop-tamarindo',
+    cta: 'See the surf shop',
+    image: 'https://images.unsplash.com/photo-1526406915894-7bcd65f60845?w=800&q=80&auto=format&fit=crop',
+  },
+];
+---
+
+<section class="section" id="services">
+  <Container>
+    <Eyebrow>What we do</Eyebrow>
+    <h2>Everything You Need to Surf Tamarindo</h2>
+    <p class="section-intro">
+      One shop for your whole trip. Book a lesson, grab a board for the week, jump on a surf
+      trip to a new beach, or hop on a fishing charter. Whatever you need in Guanacaste,
+      start here.
+    </p>
+
+    <div class="pillars-grid">
+      {pillars.map((p) => (
+        <a href={p.href} class="pillar-card">
+          <div class="pillar-img" style={`background-image: url('${p.image}');`}>
+            <span class="pillar-tag">{p.tag}</span>
+          </div>
+          <div class="pillar-body">
+            <h3>{p.title}</h3>
+            <p>{p.text}</p>
+            <span class="pillar-link">{p.cta} →</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .pillar-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    color: inherit;
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .pillar-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--teal);
+  }
+  .pillar-img {
+    aspect-ratio: 16 / 10;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .pillar-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(10, 37, 64, 0.45) 100%);
+  }
+  .pillar-tag {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1;
+    padding: 0.35rem 0.85rem;
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--navy);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 999px;
+  }
+  .pillar-body {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .pillar-body h3 { margin-bottom: 0.75rem; }
+  .pillar-body p {
+    color: var(--text);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin-bottom: 1.25rem;
+    flex-grow: 1;
+  }
+  .pillar-link {
+    color: var(--teal-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .pillar-card:hover .pillar-link { color: var(--teal); }
+  @media (max-width: 768px) {
+    .pillars-grid { grid-template-columns: 1fr; }
+  }
+</style>

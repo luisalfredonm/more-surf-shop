@@ -1,0 +1,99 @@
+---
+import Container from '@components/ui/Container.astro';
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import LeadForm from './LeadForm.astro';
+import { whatsappUrl } from '@lib/constants';
+---
+
+<section class="section" id="book">
+  <Container>
+    <div class="final-cta">
+      <h2>Book Your Surf Lesson in Tamarindo Today</h2>
+      <p class="lead">
+        The waves are already breaking. Your instructor is already on the beach. All that's
+        missing is you.
+      </p>
+      <div class="final-cta-buttons">
+        <Button variant="whatsapp" size="lg" href={whatsappUrl()} target="_blank">
+          <WhatsAppIcon size={20} />
+          WhatsApp Us Now
+        </Button>
+        <a href="#lead-form" class="btn-link">or send us a quick booking request →</a>
+      </div>
+      <div class="guarantee">✓ Stand up or your second lesson is on us</div>
+
+      <div id="lead-form" class="lead-form-wrap">
+        <LeadForm />
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .final-cta {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    border-radius: var(--radius);
+    padding: 4rem 3rem;
+    text-align: center;
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .final-cta::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .final-cta h2 {
+    color: var(--white);
+    margin-bottom: 1rem;
+  }
+  .final-cta .lead {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.125rem;
+    max-width: 640px;
+    margin: 0 auto 2rem;
+  }
+  .final-cta-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .btn-link {
+    color: var(--teal);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .btn-link:hover { color: var(--white); }
+  .guarantee {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: rgba(20, 184, 166, 0.2);
+    border: 1px solid var(--teal);
+    border-radius: 999px;
+    font-size: 0.875rem;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 3rem;
+  }
+  .lead-form-wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  @media (max-width: 640px) {
+    .final-cta { padding: 2.5rem 1.5rem; }
+  }
+</style>

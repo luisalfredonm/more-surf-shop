@@ -1,0 +1,31 @@
+---
+/**
+ * BreadcrumbList schema.
+ * Necesario para el rich result de breadcrumbs en SERP.
+ */
+import { absoluteUrl } from '@lib/constants';
+
+interface BreadcrumbItem {
+  name: string;
+  path: string; // ej. '/surf-lessons-tamarindo'
+}
+
+interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items } = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((item, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: item.name,
+    item: absoluteUrl(item.path),
+  })),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

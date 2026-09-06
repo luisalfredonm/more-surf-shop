@@ -1,0 +1,139 @@
+---
+import { BUSINESS, whatsappUrl } from '@lib/constants';
+
+const year = new Date().getFullYear();
+
+const columns = [
+  {
+    heading: 'Surf Lessons',
+    links: [
+      { label: 'Private Lessons', href: '/surf-lessons-tamarindo#lessons' },
+      { label: 'Semi-Private Lessons', href: '/surf-lessons-tamarindo#lessons' },
+      { label: 'Group Lessons', href: '/surf-lessons-tamarindo#lessons' },
+      { label: 'Family & Kids', href: '/surf-lessons-tamarindo#lessons' },
+    ],
+  },
+  {
+    heading: 'Services',
+    links: [
+      { label: 'Surfboard Rental', href: '/surfboard-rental-tamarindo' },
+      { label: 'Surf Trips', href: '/tours-tamarindo' },
+      { label: 'Tamarindo Tours', href: '/tours-tamarindo' },
+      { label: 'Surf Shop', href: '/surf-shop-tamarindo' },
+    ],
+  },
+  {
+    heading: 'Company',
+    links: [
+      { label: 'About', href: '/about' },
+      { label: 'Contact', href: '/contact' },
+      { label: 'WhatsApp', href: whatsappUrl() },
+    ],
+  },
+];
+---
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">more<span>surf</span>shop</div>
+      <p>{BUSINESS.description}</p>
+    </div>
+
+    {columns.map((col) => (
+      <div>
+        <h4>{col.heading}</h4>
+        <ul>
+          {col.links.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                target={link.href.startsWith('http') ? '_blank' : undefined}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+  <div class="footer-bottom">
+    © {year} {BUSINESS.name} · {BUSINESS.address.locality}, {BUSINESS.address.region}, {BUSINESS.address.countryName} · Built with pura vida
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--navy);
+    color: rgba(255, 255, 255, 0.85);
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+  }
+  .footer-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+  }
+  .footer-brand p {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9375rem;
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--teal); }
+  h4 {
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  a {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9375rem;
+    transition: color 150ms;
+  }
+  a:hover { color: var(--teal); }
+  .footer-bottom {
+    max-width: var(--container);
+    margin: 3rem auto 0;
+    padding: 2rem 1.5rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  @media (max-width: 900px) {
+    .footer-inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    .footer-brand { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .footer { padding: 3rem 0 1.5rem; }
+    .footer-inner { grid-template-columns: 1fr; }
+  }
+</style>

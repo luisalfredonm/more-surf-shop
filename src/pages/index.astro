@@ -1,0 +1,71 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import { getPageSeo } from '@lib/seo';
+import { getFeaturedReviews } from '@lib/queries/reviews';
+import { homeFaqs } from '@data/faqs/home';
+import { BUSINESS } from '@lib/constants';
+
+// Layout
+import TrustBar from '@components/layout/TrustBar.astro';
+
+// Sections
+import HomeHero from '@components/sections/HomeHero.astro';
+import ServicesGrid from '@components/sections/ServicesGrid.astro';
+import WhyChooseUs from '@components/sections/WhyChooseUs.astro';
+import BrandStory from '@components/sections/BrandStory.astro';
+import ShopAccessories from '@components/sections/ShopAccessories.astro';
+import ReviewsGrid from '@components/sections/ReviewsGrid.astro';
+import LocationBlock from '@components/sections/LocationBlock.astro';
+import FaqAccordion from '@components/sections/FaqAccordion.astro';
+import HomeFinalCTA from '@components/sections/HomeFinalCTA.astro';
+
+// SEO schemas
+import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
+import WebSiteSchema from '@components/seo/WebSiteSchema.astro';
+
+export const prerender = false;
+
+const seo = getPageSeo('home')!;
+
+const reviewsData = await getFeaturedReviews();
+
+// Debe coincidir con el <link rel="preload"> del hero (LCP).
+const heroImage =
+  'https://images.unsplash.com/photo-1530870110042-98b2cb110834?w=1920&q=80&auto=format&fit=crop';
+
+// Métricas de la home (enfoque tienda, no lecciones).
+// TODO: reemplazar placeholders en BUSINESS.trust con datos reales.
+const trustItems = [
+  { num: BUSINESS.trust.studentsCount, label: 'Travelers helped' },
+  { num: BUSINESS.trust.googleRating, label: 'Google rating' },
+  { num: '7 days', label: 'Open every week' },
+  { num: BUSINESS.trust.bilingualInstructors, label: 'Bilingual team' },
+];
+---
+
+<BaseLayout seo={seo} heroImage={heroImage} aggregateRating={reviewsData.aggregate}>
+  <Fragment slot="head">
+    <WebSiteSchema />
+    <FAQPageSchema faqs={homeFaqs} />
+  </Fragment>
+
+  <HomeHero image={heroImage} />
+  <TrustBar items={trustItems} />
+  <ServicesGrid />
+  <WhyChooseUs />
+  <BrandStory />
+  <ShopAccessories />
+  <ReviewsGrid
+    reviews={reviewsData.reviews}
+    aggregate={reviewsData.aggregate}
+    eyebrow="What travelers say"
+    title="What Our Customers Say"
+  />
+  <LocationBlock />
+  <FaqAccordion
+    faqs={homeFaqs}
+    title="Planning Your Costa Rica Surf Trip? Start Here"
+    intro="The questions we get most from travelers before their first visit to the shop. If yours isn't here, message us on WhatsApp — we reply fast."
+  />
+  <HomeFinalCTA />
+</BaseLayout>

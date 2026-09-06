@@ -1,0 +1,92 @@
+---
+import Button from '@components/ui/Button.astro';
+
+/**
+ * Header global.
+ * Los links del nav apuntan a las páginas del sitio.
+ * Cuando una página en particular quiere anclas propias (#lessons, #faq),
+ * se pueden usar como fragments desde otras páginas.
+ */
+const navLinks = [
+  { label: 'Lessons', href: '/surf-lessons-tamarindo' },
+  { label: 'Rentals', href: '/surfboard-rental-tamarindo' },
+  { label: 'Shop', href: '/surf-shop-tamarindo' },
+  { label: 'Tours', href: '/tours-tamarindo' },
+  { label: 'About', href: '/about' },
+];
+---
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="logo" aria-label="More Surf Shop — home">
+      more<span>surf</span>shop
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav-links">
+        {navLinks.map((link) => (
+          <li><a href={link.href}>{link.label}</a></li>
+        ))}
+      </ul>
+      <Button variant="dark" size="sm" href="/surf-lessons-tamarindo#book" class="header-cta">
+        Book Now
+      </Button>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(253, 248, 240, 0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(229, 222, 205, 0.5);
+  }
+  .header-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .logo span { color: var(--teal); }
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav-links a {
+    font-size: 0.9375rem;
+    color: var(--text);
+    font-weight: 500;
+    transition: color 150ms;
+  }
+  .nav-links a:hover { color: var(--teal-dark); }
+
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+  }
+  @media (max-width: 640px) {
+    .header-cta { display: none; }
+    .header-inner { padding: 0.875rem 1rem; }
+  }
+</style>

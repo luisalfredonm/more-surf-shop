@@ -1,0 +1,84 @@
+---
+/**
+ * LocalBusiness schema (SportingGoodsStore + SportsActivityLocation).
+ * Emite datos que ayudan al pack local de Google (Maps) y a rich results.
+ *
+ * Se emite en TODAS las páginas del sitio (via BaseLayout > SEOHead).
+ */
+import { BUSINESS, SITE, absoluteUrl } from '@lib/constants';
+
+interface Props {
+  aggregateRating?: {
+    ratingValue: number;
+    reviewCount: number;
+    bestRating: 5;
+    worstRating: 1;
+  } | null;
+}
+
+const { aggregateRating } = Astro.props;
+
+// Convertir openingHours a formato schema.org
+const openingHoursSpecification = BUSINESS.openingHours.map((entry) => ({
+  '@type': 'OpeningHoursSpecification',
+  dayOfWeek: entry.days,
+  opens: entry.open,
+  closes: entry.close,
+}));
+
+const sameAs = [
+  BUSINESS.social.instagram,
+  BUSINESS.social.facebook,
+  BUSINESS.social.tripadvisor,
+  BUSINESS.social.googleBusinessProfile,
+].filter(Boolean);
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': ['SportingGoodsStore', 'SportsActivityLocation'],
+  '@id': `${SITE.url}/#business`,
+  name: BUSINESS.name,
+  description: BUSINESS.description,
+  url: SITE.url,
+  telephone: BUSINESS.phone,
+  email: BUSINESS.email.main,
+  image: absoluteUrl('/og-default.jpg'),
+  logo: absoluteUrl('/logo.png'),
+  priceRange: '$$',
+  currenciesAccepted: 'USD, CRC',
+  paymentAccepted: 'Cash, Credit Card, Debit Card, SINPE Móvil',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: BUSINESS.address.street,
+    addressLocality: BUSINESS.address.locality,
+    addressRegion: BUSINESS.address.region,
+    postalCode: BUSINESS.address.postalCode,
+    addressCountry: BUSINESS.address.country,
+  },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: BUSINESS.geo.latitude,
+    longitude: BUSINESS.geo.longitude,
+  },
+  hasMap: `https://www.google.com/maps/search/?api=1&query=${BUSINESS.geo.latitude},${BUSINESS.geo.longitude}`,
+  openingHoursSpecification,
+  sameAs,
+  ...(aggregateRating && {
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: aggregateRating.ratingValue,
+      reviewCount: aggregateRating.reviewCount,
+      bestRating: aggregateRating.bestRating,
+      worstRating: aggregateRating.worstRating,
+    },
+  }),
+  areaServed: [
+    { '@type': 'Place', name: 'Tamarindo' },
+    { '@type': 'Place', name: 'Guanacaste' },
+    { '@type': 'Place', name: 'Playa Grande' },
+    { '@type': 'Place', name: 'Playa Langosta' },
+  ],
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

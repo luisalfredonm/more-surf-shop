@@ -1,0 +1,21 @@
+---
+/**
+ * WebSite schema — se emite solo en la home.
+ * Señal canónica de "este es el sitio de <marca>", enlazada al
+ * LocalBusiness (@id .../#business) que emite SEOHead en todas las páginas.
+ */
+import { BUSINESS, SITE } from '@lib/constants';
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE.url}/#website`,
+  url: SITE.url,
+  name: BUSINESS.name,
+  description: BUSINESS.description,
+  inLanguage: 'en',
+  publisher: { '@id': `${SITE.url}/#business` },
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

@@ -1,0 +1,105 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+
+/**
+ * "Why choose More Surf Shop" — diferenciadores del negocio.
+ * Distinto de WhyTamarindo.astro (que argumenta por qué Tamarindo es
+ * buen lugar para aprender a surfear, y vive en la página de lecciones).
+ */
+const reasons = [
+  {
+    icon: '🏪',
+    title: 'A real physical shop',
+    text: "Walk in, meet the team, see the boards. Not just a WhatsApp number or a meeting point on the beach. We have a locker, a shower, and a roof.",
+  },
+  {
+    icon: '🌊',
+    title: 'One stop for your whole trip',
+    text: 'Surf lessons, board rentals, surf trips, tours, gear — bundled or à la carte. Fewer emails to send, fewer platforms to trust with your credit card.',
+  },
+  {
+    icon: '🗣️',
+    title: 'Local team, fluent English',
+    text: 'Our staff grew up surfing this beach. They speak fluent English, know the tide charts by heart, and give straight recommendations — not sales pitches.',
+  },
+  {
+    icon: '💬',
+    title: 'WhatsApp booking, real replies',
+    text: "Message us with a question at 8 PM and you'll get a real answer from a real person in minutes. Not a chatbot, not a form, not a 24-hour wait.",
+  },
+  {
+    icon: '🏷️',
+    title: 'Straight prices, no hidden fees',
+    text: 'What we quote is what you pay. Board, rash guard, and instructor included in every lesson. No mid-lesson upsells, no surprise "gear rental" charges.',
+  },
+  {
+    icon: '🧭',
+    title: 'Personalized to your trip',
+    text: "Four days in Tamarindo? First time in Costa Rica? Traveling with kids? Tell us and we'll build the mix of lessons, rentals, and tours that fits your dates and your group.",
+  },
+];
+---
+
+<section class="section section-alt" id="why">
+  <Container>
+    <Eyebrow>Why us</Eyebrow>
+    <h2>Why Choose More Surf Shop</h2>
+    <p class="section-intro">
+      There are plenty of surf shops in Tamarindo. Here's what makes ours different, and why
+      travelers keep coming back to us instead of the booking platforms.
+    </p>
+
+    <div class="why-grid">
+      {reasons.map((r) => (
+        <div class="why-item">
+          <div class="why-icon" aria-hidden="true">{r.icon}</div>
+          <h3>{r.title}</h3>
+          <p>{r.text}</p>
+        </div>
+      ))}
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.5rem;
+  }
+  .why-item {
+    padding: 1.75rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .why-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(20, 184, 166, 0.12);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+  }
+  .why-item h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  .why-item p {
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+</style>

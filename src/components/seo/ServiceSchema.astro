@@ -1,0 +1,63 @@
+---
+/**
+ * Service schema con Offers anidadas.
+ * Genera un @type Service con múltiples offers, uno por cada class_type.
+ * Se emite en la página surf-lessons-tamarindo.
+ */
+import type { DbClassType } from '@lib/supabase';
+import { BUSINESS, SITE, absoluteUrl } from '@lib/constants';
+
+interface Props {
+  serviceName: string;
+  serviceDescription: string;
+  serviceSlug: string;         // ej. '/surf-lessons-tamarindo'
+  serviceType: string;         // ej. 'Surf Lesson'
+  offers: DbClassType[];
+}
+
+const { serviceName, serviceDescription, serviceSlug, serviceType, offers } = Astro.props;
+
+const url = absoluteUrl(serviceSlug);
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  '@id': `${url}#service`,
+  name: serviceName,
+  description: serviceDescription,
+  serviceType,
+  url,
+  provider: {
+    '@id': `${SITE.url}/#business`, // referencia al LocalBusiness
+  },
+  areaServed: {
+    '@type': 'Place',
+    name: 'Tamarindo, Guanacaste, Costa Rica',
+  },
+  audience: {
+    '@type': 'PeopleAudience',
+    audienceType: 'Tourists, beginners, families, intermediate surfers',
+  },
+  offers: offers
+    .filter((o) => o.price_per_person > 0) // solo emitir precios reales, nunca placeholders
+    .map((offer) => ({
+      '@type': 'Offer',
+      name: offer.name,
+      description: offer.description || undefined,
+      price: offer.price_per_person,
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      url: `${url}#lessons`,
+      seller: {
+        '@id': `${SITE.url}/#business`,
+      },
+    })),
+};
+
+// Si no hay offers con precio, no emitimos el bloque de offers (evita schema inválido)
+if (schema.offers.length === 0) {
+  delete (schema as any).offers;
+}
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />

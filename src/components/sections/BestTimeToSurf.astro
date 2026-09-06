@@ -1,0 +1,102 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+---
+
+<section class="section">
+  <Container>
+    <Eyebrow>Planning your visit</Eyebrow>
+    <h2>Best Time to Surf in Tamarindo for Beginners</h2>
+    <p class="section-intro">
+      Short answer: any time of year works for beginners in Tamarindo. Here's the longer
+      answer.
+    </p>
+
+    <div class="season-grid">
+      <div class="season-card season-dry">
+        <h3>Dry Season</h3>
+        <div class="season-months">December – April</div>
+        <p>
+          The most popular window for a reason. Sunny skies, minimal rain, mellow-to-medium
+          swell, and predictable morning conditions. Water is clear, sunsets are big, and the
+          town is lively. If it's your first surf trip, this is the easiest window.
+        </p>
+      </div>
+
+      <div class="season-card season-green">
+        <h3>Green Season</h3>
+        <div class="season-months">May – November</div>
+        <p>
+          Bigger swell and afternoon rain showers. Mornings are still surfable and often less
+          crowded. Some of our best lessons happen in September and October when the water is
+          warmest and the beach feels almost private. Sunny mornings, quick tropical showers,
+          not all-day downpours.
+        </p>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <div class="icon" aria-hidden="true">☀️</div>
+      <div>
+        <strong>Best time of day, any season</strong>
+        <p>
+          Book a lesson between 7 and 10 AM. Wind is offshore or glassy, the sun isn't
+          scorching yet, and you have your whole afternoon free.
+        </p>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .season-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .season-card {
+    padding: 2.5rem 2rem;
+    border-radius: var(--radius);
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .season-dry {
+    background: linear-gradient(135deg, var(--sunset) 0%, #FBBF24 100%);
+  }
+  .season-green {
+    background: linear-gradient(135deg, var(--teal) 0%, #059669 100%);
+  }
+  .season-card h3 { color: var(--white); margin-bottom: 0.375rem; }
+  .season-months {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1.25rem;
+    opacity: 0.9;
+  }
+  .season-card p { color: rgba(255, 255, 255, 0.95); margin: 0; }
+  .tip-box {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.5rem;
+    background: var(--bg-alt);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--sunset);
+  }
+  .tip-box .icon { font-size: 1.5rem; flex-shrink: 0; line-height: 1.2; }
+  .tip-box strong { display: block; margin-bottom: 0.375rem; }
+  .tip-box p { margin: 0; color: var(--text); }
+  @media (max-width: 900px) {
+    .season-grid { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,97 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import Button from '@components/ui/Button.astro';
+
+const familyImgSrc =
+  'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1200&q=80&auto=format&fit=crop';
+---
+
+<section class="section section-alt">
+  <Container>
+    <div class="family">
+      <div
+        class="family-img"
+        role="img"
+        aria-label="Parent and child on a surfboard together in Tamarindo"
+        style={`background-image: url('${familyImgSrc}');`}
+      />
+      <div class="family-content">
+        <Eyebrow>For the whole family</Eyebrow>
+        <h2>Family &amp; Kids Surf Lessons in Tamarindo</h2>
+        <p>
+          If you're traveling with kids, Tamarindo is one of the easiest places in the world
+          to put them on a board for the first time. The waves in front of our shop are gentle,
+          the water is warm year-round, the bottom is sand (no reef, no rocks), and you can
+          stand up in the lineup while your kid catches waves.
+        </p>
+        <p>
+          We take kids from <strong>[minimum age]</strong> and up. Younger children get their
+          own dedicated instructor for safety — the same as a private lesson, no extra
+          strangers, and we match the coach to your child's temperament.
+        </p>
+        <ul class="family-list">
+          <li>
+            <strong>You can surf with your kids.</strong> Book a family semi-private and we put
+            you all in the same lesson.
+          </li>
+          <li>
+            <strong>You don't need to be a swimmer to watch.</strong> The lesson zone is waist-
+            to chest-deep.
+          </li>
+          <li>
+            <strong>We keep sessions to [XX] minutes with kids.</strong> Attention spans matter
+            more than lesson length.
+          </li>
+          <li>
+            <strong>Sun protection is on us.</strong> We loan rash guards. You bring reef-safe
+            sunscreen.
+          </li>
+        </ul>
+        <Button variant="dark" href="#book">Book a Family Surf Lesson</Button>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .family {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .family-img {
+    aspect-ratio: 4 / 5;
+    background-size: cover;
+    background-position: center;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+  }
+  .family-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .family-list li {
+    padding-left: 1.75rem;
+    position: relative;
+  }
+  .family-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--teal-dark);
+    font-weight: 700;
+  }
+  @media (max-width: 900px) {
+    .family { grid-template-columns: 1fr; gap: 2.5rem; }
+    .family-img { aspect-ratio: 16 / 10; max-height: 400px; }
+  }
+</style>

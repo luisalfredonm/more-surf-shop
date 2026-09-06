@@ -1,0 +1,89 @@
+---
+/**
+ * Meta tags, Open Graph, Twitter Card, canonical, preloads y schema base.
+ * Se incluye en BaseLayout.astro para toda página.
+ */
+import { BUSINESS, SITE, absoluteUrl } from '@lib/constants';
+import type { PageSeo } from '@lib/seo';
+import LocalBusinessSchema from './LocalBusinessSchema.astro';
+
+interface Props {
+  seo: PageSeo;
+  /** URL de imagen preload para LCP (ej. hero background). Absoluta o relativa. */
+  heroImage?: string;
+  /** Aggregate rating para incluir en LocalBusiness schema */
+  aggregateRating?: {
+    ratingValue: number;
+    reviewCount: number;
+    bestRating: 5;
+    worstRating: 1;
+  } | null;
+}
+
+const { seo, heroImage, aggregateRating } = Astro.props;
+
+const canonical = absoluteUrl(seo.slug);
+const ogImage = seo.ogImage ? absoluteUrl(seo.ogImage) : absoluteUrl(SITE.defaultOgImage);
+---
+
+<!-- Charset y viewport -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="format-detection" content="telephone=no" />
+
+<!-- Title y description -->
+<title>{seo.title}</title>
+<meta name="description" content={seo.description} />
+
+<!-- Canonical -->
+<link rel="canonical" href={canonical} />
+
+<!-- Robots -->
+{seo.noindex ? (
+  <meta name="robots" content="noindex, follow" />
+) : (
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+)}
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={seo.title} />
+<meta property="og:description" content={seo.description} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content={SITE.locale} />
+<meta property="og:site_name" content={BUSINESS.name} />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={canonical} />
+<meta name="twitter:title" content={seo.title} />
+<meta name="twitter:description" content={seo.description} />
+<meta name="twitter:image" content={ogImage} />
+
+<!-- Author / theme -->
+<meta name="author" content={BUSINESS.name} />
+<meta name="theme-color" content="#0A2540" />
+
+<!-- Favicons -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Fonts preconnect + preload (LCP) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+
+<!-- Preload de imagen hero para mejorar LCP -->
+{heroImage && (
+  <link rel="preload" as="image" href={heroImage} fetchpriority="high" />
+)}
+
+<!-- LocalBusiness schema (siempre presente) -->
+<LocalBusinessSchema aggregateRating={aggregateRating} />

@@ -1,0 +1,89 @@
+---
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import { whatsappUrl } from '@lib/constants';
+
+/**
+ * NOTE: la imagen del hero está referenciada por CSS var --hero-image.
+ * TODO: reemplazar por una foto real de la playa/lección en Tamarindo.
+ * Cuando esté la foto, importar con Astro:
+ *   import heroImg from '@assets/images/hero-surf-tamarindo.jpg';
+ *   const heroSrc = heroImg.src;
+ */
+const heroSrc =
+  'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=1920&q=80&auto=format&fit=crop';
+---
+
+<section class="hero" role="region" aria-label="Hero">
+  <div
+    class="hero-bg"
+    role="img"
+    aria-label="Beginner surfer riding a wave at Tamarindo Beach"
+    style={`background-image: linear-gradient(135deg, rgba(10, 37, 64, 0.75) 0%, rgba(20, 184, 166, 0.4) 100%), url('${heroSrc}');`}
+  />
+  <div class="hero-inner">
+    <div class="hero-content">
+      <h1>Surf Lessons in Tamarindo, Costa Rica</h1>
+      <p class="hero-sub">
+        Local, family-run surf school right on Tamarindo Beach. Bilingual instructors,
+        beginner-friendly waves, and everything you need included. Beginners and returning
+        surfers welcome.
+      </p>
+      <div class="hero-ctas">
+        <Button variant="primary" size="lg" href="#book">Book Your Lesson</Button>
+        <Button variant="secondary" size="lg" href={whatsappUrl()} target="_blank">
+          <WhatsAppIcon size={20} />
+          WhatsApp us — we reply in minutes
+        </Button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 620px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    color: var(--white);
+    isolation: isolate;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .hero-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 5rem 1.5rem;
+    width: 100%;
+  }
+  .hero-content { max-width: 720px; }
+  .hero h1 {
+    color: var(--white);
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    margin-bottom: 1.5rem;
+  }
+  .hero-sub {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    margin-bottom: 2.5rem;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.2);
+  }
+  .hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  @media (max-width: 640px) {
+    .hero { min-height: 520px; }
+    .hero-sub { font-size: 1.0625rem; }
+  }
+</style>

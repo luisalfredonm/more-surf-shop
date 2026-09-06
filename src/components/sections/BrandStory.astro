@@ -1,0 +1,79 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+
+/**
+ * Brand story de la home. Refuerza el ángulo "tienda local real,
+ * no una plataforma de reservas".
+ * TODO: reemplazar la foto por una imagen real del equipo / tienda.
+ */
+const storyImage =
+  'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80&auto=format&fit=crop';
+---
+
+<section class="section">
+  <Container>
+    <div class="story">
+      <div
+        class="story-img"
+        role="img"
+        aria-label="Local surfer walking on Tamarindo Beach with a board under their arm"
+        style={`background-image: url('${storyImage}');`}
+      />
+      <div class="story-content">
+        <Eyebrow>Our story</Eyebrow>
+        <h2>A Real Surf Shop. Not a Booking Platform.</h2>
+        <p>
+          More Surf Shop is a family-run shop on Tamarindo Beach. We were born here, we grew up
+          surfing this bay, and we know every peak from Playa Grande to Nosara by name.
+        </p>
+        <p>
+          We started this shop because we watched too many travelers get their Costa Rica trip
+          planned by an algorithm — pushed toward the operator paying the highest commission,
+          not the one closest to their hotel or best suited to their level.
+        </p>
+        <p>
+          When you come in, we ask about your trip. We match you with the right board for
+          today's conditions. We tell you if the surf is bigger at Langosta this morning and
+          worth the walk. We give you the honest answer about which tour is worth your money
+          and which one to skip. That's the difference between a shop and a platform.
+        </p>
+        <p class="story-signature">— The More Surf Shop team, Tamarindo</p>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .story {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .story-img {
+    border-radius: var(--radius);
+    overflow: hidden;
+    aspect-ratio: 4 / 5;
+    background-size: cover;
+    background-position: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .story-content p {
+    margin-bottom: 1.25rem;
+    color: var(--text);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+  .story-signature {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--teal-dark);
+    margin-top: 2rem;
+    font-size: 1.1rem;
+  }
+  @media (max-width: 900px) {
+    .story { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+</style>

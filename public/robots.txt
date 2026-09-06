@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Bloqueamos rutas internas
+Disallow: /api/
+Disallow: /admin
+
+# Sitemap
+Sitemap: https://moresurfshop.com/sitemap-index.xml

@@ -1,0 +1,110 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import Button from '@components/ui/Button.astro';
+import { whatsappUrl } from '@lib/constants';
+
+/**
+ * Franja secundaria de la home: accesorios / tienda física.
+ * Segunda puerta de entrada a /surf-shop-tamarindo.
+ * TODO: reemplazar la imagen por una foto del interior de la tienda.
+ */
+const items = [
+  'Leashes & fins',
+  'Surf wax (tropical)',
+  'Rash guards & boardshorts',
+  'Reef-safe sunscreen',
+  'Waterproof bags & pouches',
+  'Beach hats & sunglasses',
+  'Bikinis & swimwear',
+  'Board bags for travel',
+];
+
+const shopImage =
+  'https://images.unsplash.com/photo-1531737212197-1a1323d4c3f5?w=800&q=80&auto=format&fit=crop';
+const waMessage = 'Hi! I want to know what surf gear you have in stock.';
+---
+
+<section class="section">
+  <Container>
+    <div class="accessories">
+      <div
+        class="accessories-visual"
+        role="img"
+        aria-label="Surf accessories and gear inside the More Surf Shop store"
+        style={`background-image: url('${shopImage}');`}
+      />
+      <div class="accessories-content">
+        <Eyebrow class="on-dark">In the shop</Eyebrow>
+        <h2>Surf Gear &amp; Accessories</h2>
+        <p>
+          Forgot your reef-safe sunscreen? Snapped a leash on the last wave? Need a rash guard
+          for your kid? Walk in — we have it.
+        </p>
+        <ul class="accessories-list">
+          {items.map((item) => <li>{item}</li>)}
+        </ul>
+        <Button variant="primary" href={whatsappUrl(waMessage)} target="_blank">
+          Ask what's in stock
+        </Button>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .accessories {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 3rem;
+    align-items: center;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: var(--radius);
+    padding: 3rem;
+    overflow: hidden;
+  }
+  .accessories h2 { color: var(--white); margin-bottom: 1rem; }
+  .accessories-content p {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1.05rem;
+    margin-bottom: 1.5rem;
+  }
+  .accessories :global(.eyebrow.on-dark) { color: var(--teal); }
+  .accessories-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1.5rem;
+    list-style: none;
+    margin: 0 0 2rem;
+    padding: 0;
+  }
+  .accessories-list li {
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.35rem 0 0.35rem 1.5rem;
+    position: relative;
+    font-size: 0.95rem;
+  }
+  .accessories-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .accessories-visual {
+    aspect-ratio: 4 / 5;
+    background-size: cover;
+    background-position: center;
+    border-radius: var(--radius-sm);
+    min-height: 300px;
+  }
+  @media (max-width: 900px) {
+    .accessories { grid-template-columns: 1fr; padding: 2rem; }
+    .accessories-visual { aspect-ratio: 16 / 10; min-height: 0; }
+  }
+  @media (max-width: 480px) {
+    .accessories-list { grid-template-columns: 1fr; }
+  }
+</style>

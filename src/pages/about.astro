@@ -1,0 +1,66 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import { getPageSeo } from '@lib/seo';
+import { whatsappUrl } from '@lib/constants';
+
+export const prerender = false;
+const seo = getPageSeo('about')!;
+---
+
+<BaseLayout seo={seo}>
+  <section class="coming-soon">
+    <Container>
+      <div class="content">
+        <span class="badge">Coming soon</span>
+        <h1>About More Surf Shop</h1>
+        <p class="lead">
+          A local surf and adventure shop on Tamarindo Beach. Bilingual team, born and raised in Guanacaste.
+        </p>
+        <div class="cta-row">
+          <Button variant="whatsapp" size="lg" href={whatsappUrl('Hi! I have a question about More Surf Shop.')} target="_blank">
+            <WhatsAppIcon size={20} />
+            WhatsApp us
+          </Button>
+          <Button variant="outline" size="lg" href="/surf-lessons-tamarindo">
+            Book a surf lesson
+          </Button>
+        </div>
+      </div>
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .coming-soon {
+    padding: 6rem 0;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+  }
+  .content { max-width: 720px; }
+  .badge {
+    display: inline-block;
+    background: var(--bg-alt);
+    color: var(--teal-dark);
+    padding: 0.375rem 0.875rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .lead {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    margin: 1.5rem 0 2rem;
+  }
+  .cta-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+</style>

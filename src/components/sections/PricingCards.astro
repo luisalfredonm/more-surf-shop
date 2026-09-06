@@ -1,0 +1,167 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import Button from '@components/ui/Button.astro';
+import type { DbClassType } from '@lib/supabase';
+
+interface Props {
+  lessons: DbClassType[];
+}
+
+const { lessons } = Astro.props;
+
+// Formatea el precio, o retorna null si es placeholder (0)
+function formatPrice(price: number): string | null {
+  return price > 0 ? `$${price.toFixed(0)}` : null;
+}
+---
+
+<section class="section" id="lessons">
+  <Container>
+    <Eyebrow>Prices &amp; Options</Eyebrow>
+    <h2>Book a Surf Lesson in Tamarindo</h2>
+    <p class="section-intro">
+      Three ways to learn, all with the same certified coaches, the same soft-top boards, and
+      the same guarantee. Choose the format that fits how you like to learn.
+    </p>
+    <p class="section-note">
+      All prices per person. Board, rash guard, and instructor included. Lessons last 90 minutes.
+    </p>
+
+    <div class="pricing-grid">
+      {lessons.map((lesson) => {
+        const price = formatPrice(lesson.price_per_person);
+        const isFeatured = Boolean(lesson.badge);
+        return (
+          <article class={`price-card ${isFeatured ? 'featured' : ''}`}>
+            {lesson.badge && <div class="badge">{lesson.badge}</div>}
+            <h3>{lesson.name}</h3>
+            {lesson.ratio_label && <div class="ratio">{lesson.ratio_label}</div>}
+            <div class="price-tag">
+              {price ? (
+                <><span>{price}</span><span class="per">/ person</span></>
+              ) : (
+                <span class="placeholder">$[XX]<span class="per">/ person</span></span>
+              )}
+            </div>
+            <p class="price-desc">{lesson.description}</p>
+            {lesson.included && lesson.included.length > 0 && (
+              <div class="price-includes">{lesson.included.join(' · ')}</div>
+            )}
+            <Button
+              variant={isFeatured ? 'dark' : 'outline'}
+              href="#book"
+              class="price-cta"
+            >
+              {lesson.cta_label || `Book ${lesson.name}`}
+            </Button>
+          </article>
+        );
+      })}
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .section-note {
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    margin-bottom: 3rem;
+    font-style: italic;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  .price-card {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .price-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--teal);
+  }
+  .price-card.featured {
+    border: 2px solid var(--teal);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-8px);
+  }
+  .badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--teal);
+    color: var(--white);
+    padding: 0.375rem 1rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .price-card h3 {
+    margin-bottom: 0.5rem;
+  }
+  .ratio {
+    color: var(--teal-dark);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+  }
+  .price-tag {
+    font-family: 'Fraunces', serif;
+    font-size: 2.75rem;
+    font-weight: 600;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+  }
+  .price-tag .per {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .price-tag .placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .price-desc {
+    color: var(--text);
+    margin-bottom: 1.5rem;
+    flex: 1;
+  }
+  .price-includes {
+    background: var(--bg-alt);
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+  .price-cta { width: 100%; }
+
+  @media (max-width: 900px) {
+    .pricing-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .price-card.featured { transform: none; }
+  }
+</style>

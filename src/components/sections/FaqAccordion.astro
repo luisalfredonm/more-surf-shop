@@ -1,0 +1,102 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import type { FaqItem } from '@data/faqs/surf-lessons-tamarindo';
+
+interface Props {
+  faqs: FaqItem[];
+  title?: string;
+  intro?: string;
+}
+
+const {
+  faqs,
+  title = 'Surf Lessons Tamarindo: Frequently Asked Questions',
+  intro = "The questions we get most from students planning their first visit. If yours isn't here, message us on WhatsApp — we reply fast.",
+} = Astro.props;
+---
+
+<section class="section section-alt" id="faq">
+  <Container>
+    <Eyebrow>Common questions</Eyebrow>
+    <h2>{title}</h2>
+    <p class="section-intro">{intro}</p>
+
+    <div class="faq-list">
+      {faqs.map((faq) => (
+        <details class="faq-item">
+          <summary class="faq-summary">
+            <span>{faq.q}</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer" set:html={faq.a} />
+        </details>
+      ))}
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 860px;
+  }
+  .faq-item {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: box-shadow 200ms;
+  }
+  .faq-item[open] {
+    box-shadow: var(--shadow-md);
+    border-color: var(--teal);
+  }
+  .faq-summary {
+    padding: 1.5rem 1.75rem;
+    cursor: pointer;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--navy);
+    font-size: 1.125rem;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    user-select: none;
+  }
+  .faq-summary::-webkit-details-marker { display: none; }
+  .faq-icon {
+    color: var(--teal);
+    font-size: 1.5rem;
+    font-weight: 400;
+    flex-shrink: 0;
+    transition: transform 200ms ease;
+    line-height: 1;
+  }
+  .faq-item[open] .faq-icon { transform: rotate(45deg); }
+  .faq-answer {
+    padding: 0 1.75rem 1.75rem;
+    color: var(--text);
+  }
+  .faq-answer :global(p) { margin: 0 0 1rem 0; }
+  .faq-answer :global(p:last-child) { margin-bottom: 0; }
+  .faq-answer :global(ul) {
+    margin: 0.75rem 0 1rem;
+    padding-left: 1.5rem;
+    list-style: disc;
+  }
+  .faq-answer :global(li) { margin-bottom: 0.5rem; }
+  .faq-answer :global(strong) { color: var(--navy); }
+</style>

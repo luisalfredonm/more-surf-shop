@@ -1,0 +1,115 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import type { DbInstructor } from '@lib/supabase';
+
+interface Props {
+  instructors: DbInstructor[];
+}
+
+const { instructors } = Astro.props;
+
+// Fallback images para instructores sin foto (Unsplash — reemplazar por reales)
+const fallbackPhotos = [
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&q=80&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80&auto=format&fit=crop',
+];
+---
+
+<section class="section section-alt" id="instructors">
+  <Container>
+    <Eyebrow>Real people, real experience</Eyebrow>
+    <h2>Meet Your Tamarindo Surf Instructors</h2>
+    <p class="section-intro">
+      You're not booking a lesson with a company. You're booking a lesson with a specific
+      person who's going to be in the water with you. Here's who you might get.
+    </p>
+
+    <div class="instructors-grid">
+      {instructors.map((inst, i) => {
+        const photoUrl = inst.photo_url || fallbackPhotos[i % fallbackPhotos.length];
+        const yearsText = inst.years_teaching ? `${inst.years_teaching} years teaching` : '[XX] years teaching';
+        const certText = inst.certifications && inst.certifications.length > 0
+          ? inst.certifications.join(', ')
+          : '';
+        const meta = certText ? `${yearsText} · ${certText}` : yearsText;
+        return (
+          <article class="instructor-card">
+            <div
+              class="instructor-img"
+              role="img"
+              aria-label={`Photo of ${inst.name}`}
+              style={`background-image: url('${photoUrl}');`}
+            />
+            <div class="instructor-body">
+              <h3>{inst.name}</h3>
+              <div class="instructor-meta">{meta}</div>
+              {inst.bio && <p class="instructor-bio">{inst.bio}</p>}
+              {(inst.favorite_break || inst.personal_detail) && (
+                <p class="instructor-detail">
+                  {inst.favorite_break && <>Favorite Tamarindo break: {inst.favorite_break}</>}
+                  {inst.favorite_break && inst.personal_detail && ' · '}
+                  {inst.personal_detail && <>Off the beach: {inst.personal_detail}</>}
+                </p>
+              )}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-alt { background: var(--bg-alt); }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .instructors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  .instructor-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform 200ms, box-shadow 200ms;
+  }
+  .instructor-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .instructor-img {
+    aspect-ratio: 4 / 3;
+    background-size: cover;
+    background-position: center;
+  }
+  .instructor-body { padding: 1.75rem; }
+  .instructor-meta {
+    font-size: 0.875rem;
+    color: var(--teal-dark);
+    font-weight: 600;
+    margin: 0.25rem 0 1rem;
+  }
+  .instructor-bio {
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .instructor-detail {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 900px) {
+    .instructors-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+</style>

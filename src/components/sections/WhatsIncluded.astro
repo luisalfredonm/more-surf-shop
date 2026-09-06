@@ -1,0 +1,100 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+
+const includedItems = [
+  { icon: '🏄', name: 'Soft-top board', desc: 'Matched to your size and level' },
+  { icon: '👕', name: 'Rash guard', desc: 'Prevents sunburn and board rash' },
+  { icon: '🗣️', name: 'Bilingual instructor', desc: 'Every coach speaks fluent English' },
+  { icon: '🛟', name: 'Safety briefing', desc: 'On the beach before you paddle out' },
+  { icon: '🔒', name: 'Locker', desc: 'For your bag, phone, and dry clothes' },
+  { icon: '🚿', name: 'Freshwater shower', desc: 'And changing area for after your session' },
+  { icon: '💧', name: 'Water', desc: 'To keep you hydrated during the lesson' },
+  { icon: '📍', name: 'Local tips', desc: 'Best surf hour, lunch spots, what to do next' },
+];
+---
+
+<section class="section">
+  <Container>
+    <Eyebrow>Everything in the price</Eyebrow>
+    <h2>What's Included in Every Surf Lesson</h2>
+    <p class="section-intro">
+      Everything you need to walk in with a swimsuit and walk out having surfed. No hidden
+      add-ons, no equipment rental upsell mid-lesson.
+    </p>
+
+    <div class="included-grid">
+      {includedItems.map((item) => (
+        <div class="included-item">
+          <div class="included-icon" aria-hidden="true">{item.icon}</div>
+          <div class="name">{item.name}</div>
+          <div class="desc">{item.desc}</div>
+        </div>
+      ))}
+    </div>
+
+    <div class="bring-note">
+      <strong>What to bring:</strong> swimsuit, reef-safe sunscreen, a towel, and a smile.
+      That's it. Leave your phone, watch, and jewelry at your hotel or in our locker — the
+      ocean doesn't give things back.
+    </div>
+  </Container>
+</section>
+
+<style>
+  .section { padding: var(--section-pad) 0; }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 3rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .included-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  .included-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+  .included-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .included-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+  .included-item .name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 0.25rem;
+    font-size: 1.0625rem;
+  }
+  .included-item .desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .bring-note {
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    background: var(--bg-alt);
+    border-left: 4px solid var(--teal);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+  }
+  @media (max-width: 900px) {
+    .included-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .included-grid { grid-template-columns: 1fr; }
+  }
+</style>
