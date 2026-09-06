@@ -12,6 +12,7 @@ import TrustBar from '@components/layout/TrustBar.astro';
 // Sections
 import LessonsHero from '@components/sections/LessonsHero.astro';
 import PricingCards from '@components/sections/PricingCards.astro';
+import BookingSection from '@components/sections/BookingSection.astro';
 import FamilyKids from '@components/sections/FamilyKids.astro';
 import WhatsIncluded from '@components/sections/WhatsIncluded.astro';
 import InstructorsGrid from '@components/sections/InstructorsGrid.astro';
@@ -64,6 +65,7 @@ const breadcrumbs = [
   <LessonsHero />
   <TrustBar />
   <PricingCards lessons={lessons} />
+  <BookingSection lessons={lessons} />
   <FamilyKids />
   <WhatsIncluded />
   <InstructorsGrid instructors={instructors} />

@@ -1,0 +1,89 @@
+---
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import BookingFlow from '@components/booking/BookingFlow.tsx';
+import { BUSINESS, whatsappUrl } from '@lib/constants';
+import type { DbClassType } from '@lib/supabase';
+
+interface Props {
+  lessons: DbClassType[];
+}
+
+const { lessons } = Astro.props;
+
+// Solo tipos con precio real llegan al flujo de reserva; el resto cae a WhatsApp.
+const bookable = lessons
+  .filter((l) => l.price_per_person > 0)
+  .map((l) => ({
+    id: l.id,
+    name: l.name,
+    price_per_person: l.price_per_person,
+    ratio_label: l.ratio_label,
+    badge: l.badge,
+  }));
+
+const waHref = whatsappUrl('Hola! Quiero reservar una lección de surf en Tamarindo.');
+---
+
+<section class="section" id="book">
+  <Container>
+    <Eyebrow>Reservá tu lugar</Eyebrow>
+    <h2>Reservá tu lección de surf</h2>
+    <p class="section-intro">
+      Elegí formato, día y hora. Te guardamos el cupo mientras coordinás el pago — no se
+      cobra nada en este paso.
+    </p>
+
+    {bookable.length > 0 ? (
+      <BookingFlow
+        client:visible
+        classTypes={bookable}
+        whatsappNumber={BUSINESS.whatsapp.number}
+      />
+    ) : (
+      <div class="fallback">
+        <p>
+          Estamos terminando de cargar precios y horarios. Escribinos y coordinamos tu
+          lección al toque.
+        </p>
+        <a class="wa" href={waHref} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      </div>
+    )}
+
+    <noscript>
+      <p class="fallback">
+        Necesitás JavaScript para reservar en línea.
+        <a href={waHref}>Escribinos por WhatsApp</a> y lo coordinamos.
+      </p>
+    </noscript>
+  </Container>
+</section>
+
+<style>
+  .section {
+    padding: var(--section-pad) 0;
+    border-top: 1px solid var(--border);
+  }
+  .section-intro {
+    max-width: 640px;
+    margin-bottom: 2.5rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+  .fallback {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    max-width: 720px;
+  }
+  .fallback .wa {
+    display: inline-block;
+    margin-top: 1rem;
+    background: #25d366;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+  }
+</style>

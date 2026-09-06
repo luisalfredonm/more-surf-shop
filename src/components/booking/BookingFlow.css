@@ -1,0 +1,243 @@
+/* Booking wizard — isla React. Prefijo .bf- para no chocar con estilos globales.
+   Usa los tokens de :root definidos en src/styles/global.css */
+
+.bf {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 720px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+}
+@media (max-width: 560px) {
+  .bf { padding: 1.25rem; }
+}
+
+/* ----- Progreso ----- */
+.bf-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  list-style: none;
+}
+.bf-step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.bf-step .bf-dot {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  font-size: 0.72rem;
+  background: var(--white);
+}
+.bf-step.is-active { color: var(--navy); }
+.bf-step.is-active .bf-dot { border-color: var(--teal); color: var(--teal-dark); }
+.bf-step.is-done { color: var(--teal-dark); }
+.bf-step.is-done .bf-dot { background: var(--teal); border-color: var(--teal); color: var(--white); }
+
+/* ----- Encabezado de paso ----- */
+.bf-h {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 0.35rem;
+  outline: none;
+}
+.bf-sub { color: var(--text-muted); font-size: 0.9375rem; margin: 0 0 1.25rem; }
+
+/* ----- Banner ----- */
+.bf-banner {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid var(--sunset);
+  color: var(--sunset-dark);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ----- Opciones de clase ----- */
+.bf-options { display: flex; flex-direction: column; gap: 0.75rem; }
+.bf-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.15rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, transform 100ms ease;
+}
+.bf-option:hover { border-color: var(--teal); }
+.bf-option:active { transform: scale(0.995); }
+.bf-option.is-selected { border-color: var(--teal); background: rgba(20, 184, 166, 0.06); }
+.bf-option-name { font-weight: 600; color: var(--navy); }
+.bf-option-ratio { font-size: 0.85rem; color: var(--text-muted); }
+.bf-option-price { font-family: 'Fraunces', serif; font-weight: 600; color: var(--navy); white-space: nowrap; }
+.bf-option-price small { font-family: 'Inter', sans-serif; font-weight: 500; color: var(--text-muted); }
+
+/* ----- Slots ----- */
+.bf-day { margin-bottom: 1.5rem; }
+.bf-day-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+  margin-bottom: 0.6rem;
+}
+.bf-slotgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+}
+.bf-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.bf-slot:hover { border-color: var(--teal); }
+.bf-slot.is-selected { border-color: var(--teal); background: rgba(20, 184, 166, 0.06); }
+.bf-slot-time { font-weight: 600; color: var(--navy); }
+.bf-slot-meta { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ----- Stepper de personas ----- */
+.bf-counter { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+.bf-counter-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--navy);
+  cursor: pointer;
+}
+.bf-counter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.bf-counter-val { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 600; min-width: 1.5ch; text-align: center; }
+.bf-counter-note { font-size: 0.85rem; color: var(--text-muted); }
+
+/* ----- Formularios ----- */
+.bf-fields { display: flex; flex-direction: column; gap: 0.9rem; }
+.bf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+@media (max-width: 560px) { .bf-row { grid-template-columns: 1fr; } }
+.bf-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.bf-field label { font-size: 0.8rem; font-weight: 600; color: var(--navy); }
+.bf-field input,
+.bf-field textarea {
+  font: inherit;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+.bf-field input:focus,
+.bf-field textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+.bf-person {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+.bf-person-h { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.65rem; }
+.bf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ----- Revisión ----- */
+.bf-summary { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem; }
+.bf-summary-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.7rem 1rem; font-size: 0.9rem; }
+.bf-summary-row + .bf-summary-row { border-top: 1px solid var(--border); }
+.bf-summary-row dt { color: var(--text-muted); }
+.bf-summary-row dd { margin: 0; font-weight: 600; color: var(--navy); text-align: right; }
+.bf-summary-total { background: var(--bg-alt); }
+.bf-summary-total dd { font-family: 'Fraunces', serif; font-size: 1.15rem; }
+
+/* ----- Navegación ----- */
+.bf-nav { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+.bf-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 150ms ease, transform 100ms ease;
+}
+.bf-btn:active { transform: translateY(1px); }
+.bf-btn-primary { background: var(--sunset); color: var(--white); }
+.bf-btn-primary:hover { background: var(--sunset-dark); }
+.bf-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.bf-btn-ghost { background: transparent; color: var(--navy); border-color: var(--border); }
+.bf-btn-ghost:hover { border-color: var(--navy); }
+.bf-nav-spacer { flex: 1; }
+
+/* ----- Estados finales / vacíos ----- */
+.bf-state { text-align: center; padding: 1rem 0.5rem; }
+.bf-state-icon {
+  width: 3rem; height: 3rem; margin: 0 auto 0.85rem;
+  display: grid; place-items: center;
+  border-radius: 999px; background: rgba(20, 184, 166, 0.12);
+  color: var(--teal-dark); font-size: 1.4rem; font-weight: 700;
+}
+.bf-state h3 { font-family: 'Fraunces', serif; color: var(--navy); margin: 0 0 0.5rem; }
+.bf-state p { color: var(--text-muted); font-size: 0.92rem; margin: 0 auto 0.75rem; max-width: 44ch; }
+.bf-ref {
+  display: inline-block;
+  font-family: 'Fraunces', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 1rem;
+  margin: 0.25rem 0 1rem;
+  letter-spacing: 0.04em;
+}
+.bf-wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #25d366;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+.bf-wa:hover { background: #1db954; }
+.bf-muted { color: var(--text-muted); font-size: 0.85rem; }
+.bf-spin { display: inline-block; animation: bf-spin 0.8s linear infinite; }
+@keyframes bf-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-spin { animation: none; }
+  .bf-option, .bf-slot, .bf-btn { transition: none; }
+}
