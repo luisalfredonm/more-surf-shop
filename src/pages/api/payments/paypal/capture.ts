@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { isPayPalConfigured, captureOrder } from '@lib/paypal';
+import { sendBookingConfirmationEmails } from '@lib/email';
 
 export const prerender = false;
 
@@ -113,6 +114,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (upErr) {
     console.error('[paypal/capture] confirm:', upErr.message);
   }
+
+  await sendBookingConfirmationEmails(booking.id);
 
   return json({ ok: true, status: 'confirmed', reference: booking.reference }, 200);
 };

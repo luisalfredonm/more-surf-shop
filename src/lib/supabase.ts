@@ -206,6 +206,7 @@ export interface DbBooking {
   source: 'web' | 'walk_in' | 'whatsapp' | 'phone';
   customer_note: string | null;
   staff_note: string | null;
+  confirmation_sent_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { verifyWebhook } from '@lib/paypal';
+import { sendBookingConfirmationEmails } from '@lib/email';
 
 export const prerender = false;
 
@@ -68,6 +69,8 @@ async function confirmFromWebhook(
     .update({ status: 'confirmed', payment_id: paymentId })
     .eq('id', booking.id)
     .eq('status', 'pending_payment');
+
+  await sendBookingConfirmationEmails(booking.id);
 }
 
 export const POST: APIRoute = async ({ request }) => {

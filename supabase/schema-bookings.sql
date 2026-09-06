@@ -209,9 +209,13 @@ create table if not exists public.bookings (
   source text not null default 'web' check (source in ('web', 'walk_in', 'whatsapp', 'phone')),
   customer_note text,
   staff_note text,
+  confirmation_sent_at timestamptz,   -- se setea al enviar el email de confirmación (evita doble envío)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Para bases creadas con una versión previa de este archivo.
+alter table public.bookings add column if not exists confirmation_sent_at timestamptz;
 
 create index if not exists idx_bookings_slot on public.bookings (slot_id);
 create index if not exists idx_bookings_status_date on public.bookings (status, slot_date);
