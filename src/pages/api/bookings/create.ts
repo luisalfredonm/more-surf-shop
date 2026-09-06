@@ -247,13 +247,14 @@ export const POST: APIRoute = async ({ request }) => {
   const { data: inserted, error: bErr } = await supabase
     .from('bookings')
     .insert(rows)
-    .select('reference');
+    .select('id, reference');
   if (bErr || !inserted) {
     console.error('[bookings/create] bookings:', bErr?.message);
     await rollback(supabase, group.id);
     return json({ error: 'No se pudo crear la reserva' }, 500);
   }
   const references = inserted.map((r) => r.reference);
+  const bookingIds = inserted.map((r) => r.id);
 
   if (onArrival) {
     await supabase.from('booking_groups').update({ status: 'confirmed' }).eq('id', group.id);
@@ -264,6 +265,7 @@ export const POST: APIRoute = async ({ request }) => {
         group_id: group.id,
         group_reference: group.reference,
         references,
+        booking_ids: bookingIds,
         total: groupTotal,
         currency: 'USD',
         payment_method: 'on_arrival',
@@ -279,6 +281,7 @@ export const POST: APIRoute = async ({ request }) => {
       group_id: group.id,
       group_reference: group.reference,
       references,
+      booking_ids: bookingIds,
       total: groupTotal,
       currency: 'USD',
       payment_method: 'paypal',

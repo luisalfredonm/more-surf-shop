@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
+import NewBookingForm from './NewBookingForm';
 
 const crToday = () => new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10);
 const addDays = (iso: string, n: number) => {
@@ -80,6 +81,7 @@ export default function AgendaView() {
 
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -183,6 +185,23 @@ export default function AgendaView() {
         <Tile label="Pending" value={String(stats.pending)} tone="warn" />
         <Tile label="Revenue" value={money(stats.revenue)} tone="accent" />
       </div>
+
+      <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+        <button
+          className={`st-btn st-btn-sm ${showNew ? 'st-btn-ghost' : 'st-btn-primary'}`}
+          onClick={() => setShowNew((v) => !v)}
+        >
+          {showNew ? 'Cerrar' : '+ Nueva reserva'}
+        </button>
+      </div>
+      {showNew && (
+        <NewBookingForm
+          onCreated={() => {
+            setShowNew(false);
+            void load();
+          }}
+        />
+      )}
 
       <div className="st-filters">
         <div className="st-field">
