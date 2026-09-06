@@ -81,6 +81,27 @@ Al abrir `/surf-lessons-tamarindo` sin Supabase configurado, se renderizan los d
 
 ---
 
+## Setup de PayPal (Fase 1 — pagos)
+
+El pago del cliente es con PayPal (acepta tarjeta como invitado, sin cuenta). Si las
+variables no están, el flujo de reserva cae al handoff por WhatsApp automáticamente.
+
+1. En [developer.paypal.com](https://developer.paypal.com) → **Apps & Credentials** → crear una app (empezar en **Sandbox**).
+2. Copiar a `.env`:
+   - `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` (de la app)
+   - `PUBLIC_PAYPAL_CLIENT_ID` = el **mismo** client id (lo usa el SDK JS del browser)
+   - `PAYPAL_ENV=sandbox` (cambiar a `live` con las credenciales de producción)
+3. Crear un **webhook** en la misma app apuntando a `https://<dominio>/api/payments/paypal/webhook`, suscrito a:
+   `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.DENIED`.
+   Copiar el **Webhook ID** a `PAYPAL_WEBHOOK_ID`.
+4. Probar de punta a punta con una cuenta *sandbox buyer* (developer.paypal.com → Sandbox → Accounts).
+
+Endpoints: `create-order` (crea la orden con el monto del servidor), `capture` (captura al
+aprobar y confirma la reserva), `webhook` (respaldo asíncrono, verifica la firma). El monto
+siempre lo pone el servidor desde `bookings.total_amount` — el cliente no puede alterarlo.
+
+---
+
 ## Deploy en Vercel
 
 ```bash

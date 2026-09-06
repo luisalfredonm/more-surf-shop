@@ -23,6 +23,9 @@ const bookable = lessons
   }));
 
 const waHref = whatsappUrl('Hola! Quiero reservar una lección de surf en Tamarindo.');
+
+// PUBLIC_* se expone al browser; vacío = pago con PayPal deshabilitado (cae a WhatsApp).
+const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
 ---
 
 <section class="section" id="book">
@@ -39,6 +42,7 @@ const waHref = whatsappUrl('Hola! Quiero reservar una lección de surf en Tamari
         client:visible
         classTypes={bookable}
         whatsappNumber={BUSINESS.whatsapp.number}
+        paypalClientId={paypalClientId}
       />
     ) : (
       <div class="fallback">

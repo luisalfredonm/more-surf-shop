@@ -7,6 +7,7 @@ import {
   WAIVER_ACKNOWLEDGEMENT,
   getWaiverClauses,
 } from '@lib/waiver';
+import { usePayPalSdk } from './usePayPal';
 import './BookingFlow.css';
 
 export interface BookingClassType {
@@ -20,6 +21,7 @@ export interface BookingClassType {
 interface Props {
   classTypes: BookingClassType[];
   whatsappNumber: string;
+  paypalClientId: string;
   daysAhead?: number;
 }
 
@@ -38,7 +40,7 @@ interface ApiSlot {
   remaining: number;
 }
 
-type Step = 'type' | 'slot' | 'people' | 'contact' | 'review' | 'waiver' | 'done';
+type Step = 'type' | 'slot' | 'people' | 'contact' | 'review' | 'waiver' | 'pay' | 'done';
 type SlotState = 'idle' | 'loading' | 'ok' | 'empty' | 'error';
 
 interface Participant {
@@ -53,6 +55,7 @@ const STEP_LABELS: { key: Step; label: string }[] = [
   { key: 'contact', label: 'Contacto' },
   { key: 'review', label: 'Revisar' },
   { key: 'waiver', label: 'Waiver' },
+  { key: 'pay', label: 'Pago' },
 ];
 const MAX_PEOPLE = 8;
 
@@ -79,8 +82,15 @@ const money = (n: number, currency = 'USD') =>
 const waLink = (number: string, msg: string) =>
   `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
 
-export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21 }: Props) {
+export default function BookingFlow({
+  classTypes,
+  whatsappNumber,
+  paypalClientId,
+  daysAhead = 21,
+}: Props) {
   const bookable = classTypes.filter((c) => c.price_per_person > 0);
+  const paypalEnabled = paypalClientId.length > 0;
+  const sdkStatus = usePayPalSdk(paypalClientId);
 
   const [step, setStep] = useState<Step>('type');
   const [classId, setClassId] = useState<string | null>(bookable.length === 1 ? bookable[0].id : null);
@@ -105,6 +115,7 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
       amount: number;
       currency: string;
       hold_minutes: number;
+      paid?: boolean;
     } | null
   >(null);
 
@@ -269,7 +280,7 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        setStep('done');
+        setStep(paypalEnabled ? 'pay' : 'done');
         return;
       }
       if (res.status === 409 && data.code === 'version_mismatch') {
@@ -290,14 +301,20 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
     signerName.trim().length >= 2 &&
     (!minorFlag || guardianName.trim().length >= 2);
 
+  const handlePaid = useCallback(() => {
+    setResult((r) => (r ? { ...r, paid: true } : r));
+    setStep('done');
+  }, []);
+
   // ----- Sub-render helpers -----
-  const stepIndex = STEP_LABELS.findIndex((s) => s.key === step);
+  const visibleSteps = STEP_LABELS.filter((s) => s.key !== 'pay' || paypalEnabled);
+  const stepIndex = visibleSteps.findIndex((s) => s.key === step);
 
   function Progress() {
     if (step === 'done') return null;
     return (
       <ol className="bf-steps">
-        {STEP_LABELS.map((s, i) => (
+        {visibleSteps.map((s, i) => (
           <li
             key={s.key}
             className={`bf-step${i === stepIndex ? ' is-active' : ''}${
@@ -796,38 +813,172 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
         </div>
       )}
 
+      {/* STEP: pay */}
+      {step === 'pay' && result && selectedClass && selectedSlot && (
+        <div>
+          <h3 className="bf-h" tabIndex={-1} ref={headingRef}>
+            Pagá tu reserva
+          </h3>
+          <p className="bf-sub">
+            {selectedClass.name} · {fmtDate(selectedSlot.slot_date)} ·{' '}
+            {fmtTime(selectedSlot.start_time)}
+          </p>
+
+          <dl className="bf-summary">
+            <div className="bf-summary-row">
+              <dt>Reserva</dt>
+              <dd>{result.reference}</dd>
+            </div>
+            <div className="bf-summary-row bf-summary-total">
+              <dt>A pagar</dt>
+              <dd>{money(result.amount, result.currency)}</dd>
+            </div>
+          </dl>
+
+          {sdkStatus === 'loading' && (
+            <p className="bf-muted">
+              <span className="bf-spin">◠</span> Cargando el pago…
+            </p>
+          )}
+
+          {sdkStatus === 'error' && (
+            <div className="bf-state">
+              <p>No se pudo cargar PayPal. Pagá por WhatsApp con tu código.</p>
+              <a
+                className="bf-wa"
+                href={waLink(
+                  whatsappNumber,
+                  `Hola! Tengo la reserva ${result.reference} y quiero pagar. PayPal no cargó en la web.`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Pagar por WhatsApp
+              </a>
+            </div>
+          )}
+
+          {sdkStatus === 'ready' && (
+            <PayPalButtonsBox
+              bookingId={result.booking_id}
+              onPaid={handlePaid}
+              onFail={setBanner}
+            />
+          )}
+
+          <p className="bf-muted" style={{ marginTop: '1rem' }}>
+            <a
+              href={waLink(
+                whatsappNumber,
+                `Hola! Tengo la reserva ${result.reference} y prefiero coordinar el pago por WhatsApp.`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Prefiero pagar por WhatsApp
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* STEP: done */}
       {step === 'done' && result && selectedClass && selectedSlot && (
         <div className="bf-state">
           <div className="bf-state-icon" aria-hidden="true">
             ✓
           </div>
-          <h3>Reserva creada y waiver firmado</h3>
-          <span className="bf-ref">{result.reference}</span>
-          <p>
-            Te guardamos el cupo por {result.hold_minutes} minutos. El pago en línea se habilita
-            en breve — por ahora mandanos este código por WhatsApp y coordinamos el pago.
-          </p>
-          <a
-            className="bf-wa"
-            href={waLink(
-              whatsappNumber,
-              `Hola! Tengo la reserva ${result.reference}: ${selectedClass.name}, ${fmtDate(
-                selectedSlot.slot_date,
-              )} a las ${fmtTime(selectedSlot.start_time)}, ${participants.length} persona(s). Quiero coordinar el pago.`,
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Enviar {result.reference} por WhatsApp
-          </a>
-          <p className="bf-muted" style={{ marginTop: '1rem' }}>
-            Total estimado: {money(result.amount, result.currency)}
-          </p>
+          {result.paid ? (
+            <>
+              <h3>¡Reserva confirmada!</h3>
+              <span className="bf-ref">{result.reference}</span>
+              <p>
+                Pago recibido. Te esperamos el {fmtDate(selectedSlot.slot_date)} a las{' '}
+                {fmtTime(selectedSlot.start_time)}. Guardá tu código.
+              </p>
+              <p className="bf-muted" style={{ marginTop: '0.5rem' }}>
+                Pagado: {money(result.amount, result.currency)}
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>Reserva creada y waiver firmado</h3>
+              <span className="bf-ref">{result.reference}</span>
+              <p>
+                Te guardamos el cupo por {result.hold_minutes} minutos. Mandanos este código por
+                WhatsApp y coordinamos el pago.
+              </p>
+              <a
+                className="bf-wa"
+                href={waLink(
+                  whatsappNumber,
+                  `Hola! Tengo la reserva ${result.reference}: ${selectedClass.name}, ${fmtDate(
+                    selectedSlot.slot_date,
+                  )} a las ${fmtTime(selectedSlot.start_time)}, ${participants.length} persona(s). Quiero coordinar el pago.`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Enviar {result.reference} por WhatsApp
+              </a>
+              <p className="bf-muted" style={{ marginTop: '1rem' }}>
+                Total estimado: {money(result.amount, result.currency)}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function PayPalButtonsBox({
+  bookingId,
+  onPaid,
+  onFail,
+}: {
+  bookingId: string;
+  onPaid: () => void;
+  onFail: (msg: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rendered = useRef(false);
+
+  useEffect(() => {
+    const paypal = (window as { paypal?: any }).paypal;
+    if (rendered.current || !ref.current || !paypal) return;
+    rendered.current = true;
+
+    paypal
+      .Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+        createOrder: async () => {
+          const res = await fetch('/api/payments/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok || !d.id) throw new Error(d.error || 'No se pudo iniciar el pago');
+          return d.id;
+        },
+        onApprove: async (data: { orderID: string }) => {
+          const res = await fetch('/api/payments/paypal/capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: data.orderID, booking_id: bookingId }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (res.ok && d.ok) onPaid();
+          else onFail(d.error || 'No se pudo confirmar el pago. Escribinos por WhatsApp.');
+        },
+        onError: () => onFail('Hubo un problema con PayPal. Probá de nuevo.'),
+        onCancel: () => onFail('Cancelaste el pago. Podés intentarlo de nuevo.'),
+      })
+      .render(ref.current)
+      .catch(() => onFail('No se pudo mostrar PayPal.'));
+  }, [bookingId, onPaid, onFail]);
+
+  return <div ref={ref} className="bf-paypal" />;
 }
 
 function groupByDate(slots: ApiSlot[]): { date: string; items: ApiSlot[] }[] {

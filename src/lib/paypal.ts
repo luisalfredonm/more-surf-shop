@@ -1,0 +1,140 @@
+/**
+ * Cliente PayPal (Orders v2) para uso en server (API routes).
+ * Config vía env: PAYPAL_ENV, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID.
+ * El client_id también se expone al browser como PUBLIC_PAYPAL_CLIENT_ID para el SDK JS.
+ */
+
+const ENV = import.meta.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
+const BASE =
+  ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+const CLIENT_ID = import.meta.env.PAYPAL_CLIENT_ID ?? '';
+const CLIENT_SECRET = import.meta.env.PAYPAL_CLIENT_SECRET ?? '';
+const WEBHOOK_ID = import.meta.env.PAYPAL_WEBHOOK_ID ?? '';
+
+export function isPayPalConfigured(): boolean {
+  return Boolean(CLIENT_ID && CLIENT_SECRET);
+}
+
+let cachedToken: { value: string; exp: number } | null = null;
+
+async function accessToken(): Promise<string> {
+  const now = Date.now();
+  if (cachedToken && cachedToken.exp > now + 60_000) return cachedToken.value;
+
+  const res = await fetch(`${BASE}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+  if (!res.ok) {
+    throw new Error(`PayPal token ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  }
+  const data = await res.json();
+  cachedToken = { value: data.access_token, exp: now + data.expires_in * 1000 };
+  return cachedToken.value;
+}
+
+async function api(path: string, init: RequestInit = {}): Promise<any> {
+  const token = await accessToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!res.ok) {
+    throw new Error(`PayPal ${path} -> ${res.status} ${text.slice(0, 500)}`);
+  }
+  return data;
+}
+
+export interface CreateOrderInput {
+  amount: number;
+  currency: string;
+  bookingId: string;
+  reference: string;
+  description: string;
+}
+
+export async function createOrder(i: CreateOrderInput): Promise<{ id: string }> {
+  const data = await api('/v2/checkout/orders', {
+    method: 'POST',
+    body: JSON.stringify({
+      intent: 'CAPTURE',
+      purchase_units: [
+        {
+          amount: { currency_code: i.currency, value: i.amount.toFixed(2) },
+          custom_id: i.bookingId,
+          invoice_id: `${i.reference}-${Math.random().toString(36).slice(2, 7)}`,
+          description: i.description.slice(0, 127),
+        },
+      ],
+      application_context: {
+        brand_name: 'More Surf Shop',
+        shipping_preference: 'NO_SHIPPING',
+        user_action: 'PAY_NOW',
+      },
+    }),
+  });
+  return { id: data.id };
+}
+
+export interface CaptureResult {
+  status: string;
+  captureId: string | null;
+  amount: string | null;
+  currency: string | null;
+  payerEmail: string | null;
+  bookingId: string | null;
+}
+
+export async function captureOrder(orderId: string): Promise<CaptureResult> {
+  const data = await api(`/v2/checkout/orders/${orderId}/capture`, { method: 'POST' });
+  const pu = data.purchase_units?.[0];
+  const cap = pu?.payments?.captures?.[0];
+  return {
+    status: data.status ?? cap?.status ?? 'UNKNOWN',
+    captureId: cap?.id ?? null,
+    amount: cap?.amount?.value ?? null,
+    currency: cap?.amount?.currency_code ?? null,
+    payerEmail: data.payer?.email_address ?? null,
+    bookingId: pu?.custom_id ?? null,
+  };
+}
+
+export interface WebhookVerifyInput {
+  transmissionId: string;
+  transmissionTime: string;
+  transmissionSig: string;
+  certUrl: string;
+  authAlgo: string;
+  body: string; // JSON crudo, tal cual llegó
+}
+
+export async function verifyWebhook(i: WebhookVerifyInput): Promise<boolean> {
+  if (!WEBHOOK_ID) return false;
+  try {
+    const res = await api('/v1/notifications/verify-webhook-signature', {
+      method: 'POST',
+      body: JSON.stringify({
+        transmission_id: i.transmissionId,
+        transmission_time: i.transmissionTime,
+        transmission_sig: i.transmissionSig,
+        cert_url: i.certUrl,
+        auth_algo: i.authAlgo,
+        webhook_id: WEBHOOK_ID,
+        webhook_event: JSON.parse(i.body),
+      }),
+    });
+    return res.verification_status === 'SUCCESS';
+  } catch {
+    return false;
+  }
+}

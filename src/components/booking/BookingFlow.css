@@ -244,6 +244,12 @@
 .bf-btn-ghost:hover { border-color: var(--navy); }
 .bf-nav-spacer { flex: 1; }
 
+/* ----- Pago ----- */
+.bf-paypal {
+  min-height: 3rem;
+  margin-top: 0.5rem;
+}
+
 /* ----- Estados finales / vacíos ----- */
 .bf-state { text-align: center; padding: 1rem 0.5rem; }
 .bf-state-icon {
