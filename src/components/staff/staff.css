@@ -289,6 +289,54 @@
 .st-slotlist-row:first-child { border-top: none; }
 .st-slotlist-row .st-spacer { flex: 1; }
 
+/* ----- Weekly schedule grid ----- */
+.st-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+.st-week-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  min-width: 78px;
+}
+.st-week-day {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-align: center;
+}
+.st-week-none { text-align: center; color: var(--text-muted); font-size: 0.8rem; }
+.st-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--teal-dark);
+  border-radius: 999px;
+  padding: 0.22rem 0.3rem 0.22rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.st-chip button {
+  background: none;
+  border: none;
+  color: var(--teal-dark);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+}
+.st-chip button:hover { color: var(--crit, #b3261e); }
+
 .st-empty { color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0; }
 .st-spin { display: inline-block; animation: st-spin 0.8s linear infinite; }
 @keyframes st-spin { to { transform: rotate(360deg); } }

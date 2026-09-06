@@ -3,10 +3,11 @@ import type { Session } from '@supabase/supabase-js';
 import { getBrowserSupabase, browserSupabaseConfigured } from '@lib/supabase-browser';
 import StaffLogin from './StaffLogin';
 import AgendaView from './AgendaView';
-import SlotsView from './SlotsView';
+import WeeklyScheduleView from './WeeklyScheduleView';
+import DateOverridesView from './DateOverridesView';
 import './staff.css';
 
-type View = 'agenda' | 'slots';
+type View = 'bookings' | 'weekly' | 'overrides';
 interface Profile {
   role: 'owner' | 'staff';
   display_name: string;
@@ -17,7 +18,7 @@ export default function StaffApp() {
   const configured = browserSupabaseConfigured();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
-  const [view, setView] = useState<View>('agenda');
+  const [view, setView] = useState<View>('bookings');
 
   useEffect(() => {
     if (!configured) return;
@@ -44,7 +45,7 @@ export default function StaffApp() {
 
   async function signOut() {
     await getBrowserSupabase().auth.signOut();
-    setView('agenda');
+    setView('bookings');
   }
 
   if (!configured) {
@@ -94,16 +95,22 @@ export default function StaffApp() {
         </span>
         <nav className="st-side-nav">
           <button
-            className={view === 'agenda' ? 'is-active' : ''}
-            onClick={() => setView('agenda')}
+            className={view === 'bookings' ? 'is-active' : ''}
+            onClick={() => setView('bookings')}
           >
-            Agenda
+            Bookings
           </button>
           <button
-            className={view === 'slots' ? 'is-active' : ''}
-            onClick={() => setView('slots')}
+            className={view === 'weekly' ? 'is-active' : ''}
+            onClick={() => setView('weekly')}
           >
-            Slots
+            Weekly Schedule
+          </button>
+          <button
+            className={view === 'overrides' ? 'is-active' : ''}
+            onClick={() => setView('overrides')}
+          >
+            Date Overrides
           </button>
         </nav>
         <div className="st-side-foot">
@@ -115,7 +122,11 @@ export default function StaffApp() {
       </aside>
 
       <div className="st-content">
-        <main className="st-main">{view === 'agenda' ? <AgendaView /> : <SlotsView />}</main>
+        <main className="st-main">
+          {view === 'bookings' && <AgendaView />}
+          {view === 'weekly' && <WeeklyScheduleView />}
+          {view === 'overrides' && <DateOverridesView />}
+        </main>
       </div>
     </div>
   );
