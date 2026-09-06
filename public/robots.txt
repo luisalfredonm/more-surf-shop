@@ -4,6 +4,7 @@ Allow: /
 # Bloqueamos rutas internas
 Disallow: /api/
 Disallow: /admin
+Disallow: /staff
 
 # Sitemap
 Sitemap: https://moresurfshop.com/sitemap-index.xml

@@ -71,11 +71,16 @@ Al abrir `/surf-lessons-tamarindo` sin Supabase configurado, se renderizan los d
 2. En SQL Editor, ejecutar `supabase/schema.sql`.
 3. En SQL Editor, ejecutar `supabase/schema-bookings.sql` (Fase 1: reservas de lecciones + base compartida — `profiles`, `customers`, `waivers`, `payments`, `lesson_slots`, `bookings`, `booking_participants`).
 4. Copiar `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` a `.env`.
+   Copiar también `PUBLIC_SUPABASE_URL` y `PUBLIC_SUPABASE_ANON_KEY` (mismos valores; los usa el panel de staff en el browser).
 5. Cargar datos reales en `class_types`, `instructors`, `reviews`:
    - Interfaz web de Supabase → Table Editor
    - O usar seeds SQL (ver bloque comentado al final de `schema.sql`)
-6. Crear el primer `profiles` (rol `owner`): invitar al usuario en Auth → Users, luego en SQL Editor
-   `insert into public.profiles (id, display_name, role) values ('<uuid del usuario>', 'Dueño', 'owner');`
+6. Crear los usuarios del panel de staff (`/staff`):
+   - Auth → Users → **Add user** (con contraseña) para el dueño y cada persona de staff.
+   - Por cada uno, en SQL Editor:
+     `insert into public.profiles (id, display_name, role) values ('<uuid del usuario>', 'Nombre', 'owner');`
+     (rol `owner` para el dueño, `staff` para el resto).
+   - El panel vive en `/staff` — login con email/contraseña; RLS (`is_staff()`) es lo que restringe el acceso a los datos.
 
 **Importante:** el server usa `SUPABASE_SERVICE_ROLE_KEY` (RLS bypass). Nunca exponer esta clave en el cliente.
 

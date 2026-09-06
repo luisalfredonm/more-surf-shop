@@ -1,0 +1,29 @@
+---
+import '@/styles/global.css';
+import StaffApp from '@components/staff/StaffApp.tsx';
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Panel · More Surf Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <StaffApp client:only="react">
+      <p slot="fallback" style="padding:2rem;font-family:system-ui,sans-serif;color:#6B7280">
+        Cargando panel…
+      </p>
+    </StaffApp>
+  </body>
+</html>
