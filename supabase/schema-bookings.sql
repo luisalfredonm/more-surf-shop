@@ -334,6 +334,16 @@ drop policy if exists "booking_groups_staff_all" on public.booking_groups;
 create policy "booking_groups_staff_all" on public.booking_groups
   for all using (public.is_staff()) with check (public.is_staff());
 
+-- class_types / instructors: lectura pública ya existe (schema.sql).
+-- El staff además puede leer inactivos y editar (panel Prices & Services).
+drop policy if exists "class_types_staff_all" on public.class_types;
+create policy "class_types_staff_all" on public.class_types
+  for all using (public.is_staff()) with check (public.is_staff());
+
+drop policy if exists "instructors_staff_all" on public.instructors;
+create policy "instructors_staff_all" on public.instructors
+  for all using (public.is_staff()) with check (public.is_staff());
+
 drop policy if exists "bookings_staff_all" on public.bookings;
 create policy "bookings_staff_all" on public.bookings
   for all using (public.is_staff()) with check (public.is_staff());

@@ -5,9 +5,26 @@ import StaffLogin from './StaffLogin';
 import AgendaView from './AgendaView';
 import WeeklyScheduleView from './WeeklyScheduleView';
 import DateOverridesView from './DateOverridesView';
+import PricesView from './PricesView';
 import './staff.css';
 
-type View = 'bookings' | 'weekly' | 'overrides';
+type View = 'bookings' | 'weekly' | 'overrides' | 'prices';
+
+const NAV: { section: string; items: { key: View; label: string; disabled?: boolean }[] }[] = [
+  {
+    section: 'Surf Lessons',
+    items: [
+      { key: 'bookings', label: 'Bookings' },
+      { key: 'prices', label: 'Prices & Services' },
+      { key: 'weekly', label: 'Weekly Schedule' },
+      { key: 'overrides', label: 'Date Overrides' },
+    ],
+  },
+  {
+    section: 'Board Rentals',
+    items: [{ key: 'bookings', label: 'Próximamente', disabled: true }],
+  },
+];
 interface Profile {
   role: 'owner' | 'staff';
   display_name: string;
@@ -94,24 +111,21 @@ export default function StaffApp() {
           more<span>surf</span>shop
         </span>
         <nav className="st-side-nav">
-          <button
-            className={view === 'bookings' ? 'is-active' : ''}
-            onClick={() => setView('bookings')}
-          >
-            Bookings
-          </button>
-          <button
-            className={view === 'weekly' ? 'is-active' : ''}
-            onClick={() => setView('weekly')}
-          >
-            Weekly Schedule
-          </button>
-          <button
-            className={view === 'overrides' ? 'is-active' : ''}
-            onClick={() => setView('overrides')}
-          >
-            Date Overrides
-          </button>
+          {NAV.map((group) => (
+            <div className="st-side-group" key={group.section}>
+              <span className="st-side-section">{group.section}</span>
+              {group.items.map((item, i) => (
+                <button
+                  key={`${item.key}-${i}`}
+                  className={!item.disabled && view === item.key ? 'is-active' : ''}
+                  disabled={item.disabled}
+                  onClick={() => !item.disabled && setView(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
         </nav>
         <div className="st-side-foot">
           <span className="st-side-user">
@@ -124,6 +138,7 @@ export default function StaffApp() {
       <div className="st-content">
         <main className="st-main">
           {view === 'bookings' && <AgendaView />}
+          {view === 'prices' && <PricesView />}
           {view === 'weekly' && <WeeklyScheduleView />}
           {view === 'overrides' && <DateOverridesView />}
         </main>
