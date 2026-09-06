@@ -33,6 +33,13 @@ export interface AvailabilityQuery {
 
 const DEFAULT_MIN_LEAD_HOURS = 2;
 
+/**
+ * Minutos que una reserva en `pending_payment` retiene el cupo antes de que
+ * la disponibilidad la ignore. Debe coincidir con el `interval '20 minutes'`
+ * de la RPC get_available_slots en supabase/schema-bookings.sql.
+ */
+export const PENDING_HOLD_MINUTES = 20;
+
 export async function getAvailableSlots(q: AvailabilityQuery): Promise<AvailableSlot[]> {
   if (!isSupabaseConfigured()) {
     // Sin Supabase no hay disponibilidad real; el UI cae a "escríbenos por WhatsApp".

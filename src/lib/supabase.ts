@@ -27,12 +27,17 @@ export function getSupabase(): SupabaseClient {
 }
 
 /**
- * Helper: retorna true si las env vars de Supabase están presentes.
- * Útil para renderizar fallbacks estáticos durante desarrollo/scaffolding
- * antes de tener las credenciales configuradas.
+ * Helper: retorna true si las env vars de Supabase están presentes y no son
+ * los placeholders de .env.example. Útil para renderizar fallbacks estáticos
+ * durante desarrollo/scaffolding antes de tener credenciales reales.
  */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+  const url = SUPABASE_URL ?? '';
+  const key = SUPABASE_SERVICE_ROLE_KEY ?? '';
+  if (!url || !key) return false;
+  // Placeholders de .env.example: 'https://xxxxxxxxxxxxx.supabase.co' y 'eyJhbGci...'
+  if (url.includes('xxxx') || key.includes('...')) return false;
+  return true;
 }
 
 // ============================================
