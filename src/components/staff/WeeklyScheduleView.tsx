@@ -91,7 +91,6 @@ export default function WeeklyScheduleView() {
 
   return (
     <div>
-      <h2 className="st-h2">Plantilla semanal</h2>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
         Define qué días y horas corre cada servicio, todas las semanas. Las excepciones por
         fecha (Date Overrides) tienen prioridad.

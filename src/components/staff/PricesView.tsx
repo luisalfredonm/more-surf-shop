@@ -43,7 +43,6 @@ export default function PricesView() {
 
   return (
     <div>
-      <h2 className="st-h2">Precios y servicios</h2>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
         Los cambios se ven de inmediato en el wizard de reservas.
       </p>

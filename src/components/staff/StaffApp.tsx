@@ -10,6 +10,19 @@ import './staff.css';
 
 type View = 'bookings' | 'weekly' | 'overrides' | 'prices';
 
+const VIEW_TITLE: Record<View, string> = {
+  bookings: 'Bookings',
+  prices: 'Prices & Services',
+  weekly: 'Weekly Schedule',
+  overrides: 'Date Overrides',
+};
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
 const NAV: { section: string; items: { key: View; label: string; disabled?: boolean }[] }[] = [
   {
     section: 'Surf Lessons',
@@ -136,6 +149,19 @@ export default function StaffApp() {
       </aside>
 
       <div className="st-content">
+        <header className="st-topbar">
+          <div className="st-topbar-head">
+            <h1>{VIEW_TITLE[view]}</h1>
+            <span className="st-topbar-sub">More Surf Shop · Tamarindo, Costa Rica</span>
+          </div>
+          <span className="st-topbar-spacer" />
+          <a className="st-topbar-link" href="/" target="_blank" rel="noopener noreferrer">
+            View site ↗
+          </a>
+          <span className="st-avatar" title={profile.display_name || profile.role}>
+            {initials(profile.display_name || profile.role)}
+          </span>
+        </header>
         <main className="st-main">
           {view === 'bookings' && <AgendaView />}
           {view === 'prices' && <PricesView />}

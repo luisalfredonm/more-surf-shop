@@ -96,7 +96,6 @@ export default function DateOverridesView() {
 
   return (
     <div>
-      <h2 className="st-h2">Excepciones por fecha</h2>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
         Cerrar un día o reemplazar sus horarios. Gana sobre la plantilla semanal. Sin servicio
         = aplica a todos.

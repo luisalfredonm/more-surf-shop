@@ -26,6 +26,10 @@ const money = (n: number, c = 'USD') =>
 function one<T>(v: T | T[] | null | undefined): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
 }
+const custInitials = (name?: string | null) => {
+  const p = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  return p.length ? (p[0][0] + (p[1]?.[0] ?? '')).toUpperCase() : '·';
+};
 
 interface Customer {
   full_name: string;
@@ -264,10 +268,13 @@ export default function AgendaView() {
                     <span className="st-bcell st-b-svc">{ct?.name ?? '—'}</span>
                     <span className="st-bcell st-b-time">{fmtTime(b.start_time)}</span>
                     <span className="st-bcell st-b-cust">
-                      <strong>{cust?.full_name ?? '—'}</strong>
-                      <span>{cust?.email}</span>
-                      {cust?.phone && <span>{cust.phone}</span>}
-                      {cust?.country_of_residence && <span>{cust.country_of_residence}</span>}
+                      <span className="st-b-avatar">{custInitials(cust?.full_name)}</span>
+                      <span className="st-b-custtext">
+                        <strong>{cust?.full_name ?? '—'}</strong>
+                        <span>{cust?.email}</span>
+                        {cust?.phone && <span>{cust.phone}</span>}
+                        {cust?.country_of_residence && <span>{cust.country_of_residence}</span>}
+                      </span>
                     </span>
                     <span className="st-bcell st-b-guests">{b.participants_count}</span>
                     <span className="st-bcell st-b-total">{money(b.total_amount, b.currency)}</span>
