@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  WAIVER_VERSION,
+  WAIVER_TITLE,
+  WAIVER_SUBTITLE,
+  WAIVER_RELEASEE,
+  WAIVER_ACKNOWLEDGEMENT,
+  getWaiverClauses,
+} from '@lib/waiver';
 import './BookingFlow.css';
 
 export interface BookingClassType {
@@ -30,7 +38,7 @@ interface ApiSlot {
   remaining: number;
 }
 
-type Step = 'type' | 'slot' | 'people' | 'contact' | 'review' | 'done';
+type Step = 'type' | 'slot' | 'people' | 'contact' | 'review' | 'waiver' | 'done';
 type SlotState = 'idle' | 'loading' | 'ok' | 'empty' | 'error';
 
 interface Participant {
@@ -44,6 +52,7 @@ const STEP_LABELS: { key: Step; label: string }[] = [
   { key: 'people', label: 'Personas' },
   { key: 'contact', label: 'Contacto' },
   { key: 'review', label: 'Revisar' },
+  { key: 'waiver', label: 'Waiver' },
 ];
 const MAX_PEOPLE = 8;
 
@@ -90,8 +99,21 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [result, setResult] = useState<
-    { reference: string; amount: number; currency: string; hold_minutes: number } | null
+    {
+      reference: string;
+      booking_id: string;
+      amount: number;
+      currency: string;
+      hold_minutes: number;
+    } | null
   >(null);
+
+  // Waiver
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
+  const [signerName, setSignerName] = useState('');
+  const [minorFlag, setMinorFlag] = useState(false);
+  const [guardianName, setGuardianName] = useState('');
+  const [waiverSubmitting, setWaiverSubmitting] = useState(false);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -191,11 +213,18 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
       if (res.status === 201 && data.ok) {
         setResult({
           reference: data.reference,
+          booking_id: data.booking_id,
           amount: data.amount,
           currency: data.currency ?? 'USD',
           hold_minutes: data.hold_minutes ?? 20,
         });
-        setStep('done');
+        // Prefill de la firma y detección de menores por edad.
+        setSignerName((prev) => prev || contact.full_name.trim());
+        setGuardianName((prev) => prev || contact.full_name.trim());
+        setMinorFlag(
+          participants.some((p) => p.age.trim() !== '' && Number(p.age) < 18),
+        );
+        setStep('waiver');
         return;
       }
       if (
@@ -219,6 +248,47 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
       setSubmitting(false);
     }
   }
+
+  async function signWaiver() {
+    if (!result) return;
+    setWaiverSubmitting(true);
+    setBanner(null);
+    try {
+      const res = await fetch('/api/waivers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: result.booking_id,
+          signer_name_typed: signerName.trim(),
+          accepted_terms: true,
+          waiver_version: WAIVER_VERSION,
+          is_minor: minorFlag,
+          guardian_name: minorFlag ? guardianName.trim() : null,
+          activity: 'lesson',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setStep('done');
+        return;
+      }
+      if (res.status === 409 && data.code === 'version_mismatch') {
+        setBanner('El waiver se actualizó. Revisá el texto de nuevo y volvé a firmar.');
+        setWaiverAccepted(false);
+        return;
+      }
+      setBanner(data.error || 'No se pudo registrar la firma. Probá de nuevo.');
+    } catch {
+      setBanner('Falló la conexión. Probá de nuevo.');
+    } finally {
+      setWaiverSubmitting(false);
+    }
+  }
+
+  const waiverValid =
+    waiverAccepted &&
+    signerName.trim().length >= 2 &&
+    (!minorFlag || guardianName.trim().length >= 2);
 
   // ----- Sub-render helpers -----
   const stepIndex = STEP_LABELS.findIndex((s) => s.key === step);
@@ -553,7 +623,9 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
           <h3 className="bf-h" tabIndex={-1} ref={headingRef}>
             Revisá tu reserva
           </h3>
-          <p className="bf-sub">Todavía no se cobra nada. Coordinamos el pago después.</p>
+          <p className="bf-sub">
+            Confirmás, firmás el waiver y coordinás el pago. Todavía no se cobra nada.
+          </p>
 
           <dl className="bf-summary">
             <div className="bf-summary-row">
@@ -616,18 +688,125 @@ export default function BookingFlow({ classTypes, whatsappNumber, daysAhead = 21
         </div>
       )}
 
+      {/* STEP: waiver */}
+      {step === 'waiver' && result && selectedClass && (
+        <div>
+          <h3 className="bf-h" tabIndex={-1} ref={headingRef}>
+            Firma del waiver
+          </h3>
+          <p className="bf-sub">
+            Reserva <strong>{result.reference}</strong> creada. Leé y aceptá el waiver para
+            completarla.
+          </p>
+
+          <div className="bf-waiver-box" tabIndex={0} role="region" aria-label="Texto del waiver">
+            <h4>{WAIVER_TITLE}</h4>
+            <p className="bf-waiver-sub">{WAIVER_SUBTITLE}</p>
+            <p className="bf-waiver-releasee">
+              Releasee: {WAIVER_RELEASEE.legalName} (commercial name{' '}
+              {WAIVER_RELEASEE.commercialName}), corporate ID {WAIVER_RELEASEE.idNumber}.
+            </p>
+            {getWaiverClauses(selectedClass.name).map((clause, i) => (
+              <p key={i}>{clause}</p>
+            ))}
+            <p className="bf-waiver-ack">{WAIVER_ACKNOWLEDGEMENT}</p>
+          </div>
+
+          <label className="bf-check">
+            <input
+              type="checkbox"
+              checked={waiverAccepted}
+              onChange={(e) => setWaiverAccepted(e.target.checked)}
+            />
+            <span>
+              He leído y acepto el Release and Waiver of Liability, Assumption of Risk and
+              Indemnity Agreement.
+            </span>
+          </label>
+
+          <label className="bf-check">
+            <input
+              type="checkbox"
+              checked={minorFlag}
+              onChange={(e) => setMinorFlag(e.target.checked)}
+            />
+            <span>
+              Esta reserva incluye a un menor de 18. Soy su padre/madre o tutor legal y firmo en
+              su nombre.
+            </span>
+          </label>
+
+          <div className="bf-fields" style={{ marginTop: '0.75rem' }}>
+            {minorFlag && (
+              <div className="bf-field">
+                <label htmlFor="bf-guardian">Nombre del padre/madre o tutor</label>
+                <input
+                  id="bf-guardian"
+                  value={guardianName}
+                  onChange={(e) => setGuardianName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
+            )}
+            <div className="bf-field">
+              <label htmlFor="bf-signer">Escribí tu nombre completo para firmar</label>
+              <input
+                id="bf-signer"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                autoComplete="name"
+              />
+            </div>
+          </div>
+
+          <p className="bf-muted" style={{ marginTop: '0.75rem' }}>
+            Al firmar dejás registrada tu aceptación con fecha, hora y tu conexión. Waiver
+            versión {WAIVER_VERSION}.
+          </p>
+
+          <div className="bf-nav">
+            <button
+              type="button"
+              className="bf-btn bf-btn-primary"
+              onClick={signWaiver}
+              disabled={!waiverValid || waiverSubmitting}
+            >
+              {waiverSubmitting ? (
+                <>
+                  <span className="bf-spin">◠</span> Firmando…
+                </>
+              ) : (
+                'Firmar y completar'
+              )}
+            </button>
+          </div>
+
+          <p className="bf-muted" style={{ marginTop: '1rem' }}>
+            <a
+              href={waLink(
+                whatsappNumber,
+                `Hola! Tengo la reserva ${result.reference} y prefiero terminar el waiver y el pago por WhatsApp.`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Prefiero terminar por WhatsApp
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* STEP: done */}
       {step === 'done' && result && selectedClass && selectedSlot && (
         <div className="bf-state">
           <div className="bf-state-icon" aria-hidden="true">
             ✓
           </div>
-          <h3>Reserva creada</h3>
+          <h3>Reserva creada y waiver firmado</h3>
           <span className="bf-ref">{result.reference}</span>
           <p>
-            Te guardamos el cupo por {result.hold_minutes} minutos. El pago en línea y la firma
-            del waiver se habilitan en breve — por ahora mandanos este código por WhatsApp y
-            coordinamos el pago.
+            Te guardamos el cupo por {result.hold_minutes} minutos. El pago en línea se habilita
+            en breve — por ahora mandanos este código por WhatsApp y coordinamos el pago.
           </p>
           <a
             className="bf-wa"
