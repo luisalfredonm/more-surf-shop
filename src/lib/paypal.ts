@@ -109,6 +109,18 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
   };
 }
 
+export async function refundCapture(
+  captureId: string,
+  amount: string,
+  currency: string,
+): Promise<{ status: string; id: string | null }> {
+  const data = await api(`/v2/payments/captures/${captureId}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({ amount: { value: amount, currency_code: currency } }),
+  });
+  return { status: data.status ?? 'UNKNOWN', id: data.id ?? null };
+}
+
 export interface WebhookVerifyInput {
   transmissionId: string;
   transmissionTime: string;

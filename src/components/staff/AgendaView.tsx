@@ -52,6 +52,7 @@ interface Booking {
   currency: string;
   payment_method: string | null;
   payment_id: string | null;
+  group_id: string | null;
   slot_date: string;
   start_time: string;
   customer_note: string | null;
@@ -92,7 +93,7 @@ export default function AgendaView() {
       .from('bookings')
       .select(
         `id, reference, status, participants_count, total_amount, currency,
-         payment_method, payment_id, slot_date, start_time, customer_note, staff_note,
+         payment_method, payment_id, group_id, slot_date, start_time, customer_note, staff_note,
          class_types ( name ),
          customers ( full_name, email, phone, country_of_residence ),
          booking_participants ( full_name, age, is_minor ),
@@ -133,6 +134,33 @@ export default function AgendaView() {
     setBusyId(null);
     if (error) alert(error.message);
     else await load();
+  }
+
+  async function refund(b: Booking) {
+    if (!b.group_id) return;
+    if (
+      !confirm(
+        `Reembolsar por PayPal y cancelar TODAS las reservas del grupo ${b.reference}? No se puede deshacer.`,
+      )
+    )
+      return;
+    setBusyId(b.id);
+    const { data: sess } = await getBrowserSupabase().auth.getSession();
+    const res = await fetch('/api/payments/paypal/refund', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sess.session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify({ group_id: b.group_id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusyId(null);
+    if (!res.ok || !data.ok) {
+      alert(data.error || 'No se pudo reembolsar.');
+      return;
+    }
+    await load();
   }
 
   async function registerCash(b: Booking) {
@@ -379,6 +407,17 @@ export default function AgendaView() {
                             Register cash payment
                           </button>
                         )}
+                        {b.payment_id &&
+                          b.payment_method === 'paypal' &&
+                          b.status !== 'cancelled' && (
+                            <button
+                              className="st-btn st-btn-danger st-btn-sm"
+                              disabled={busyId === b.id}
+                              onClick={() => refund(b)}
+                            >
+                              Refund (PayPal)
+                            </button>
+                          )}
                         {b.status === 'confirmed' && (
                           <>
                             <button
