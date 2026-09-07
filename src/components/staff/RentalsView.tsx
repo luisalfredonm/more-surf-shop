@@ -60,6 +60,7 @@ export default function RentalsView() {
   const [viewWaiver, setViewWaiver] = useState<{ id: string; name: string } | null>(null);
   const [scan, setScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
+  const [scanPick, setScanPick] = useState<Rental[] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,6 +85,13 @@ export default function RentalsView() {
     [rows, now],
   );
 
+  function route(r: Rental) {
+    setScanNote(null);
+    setScanPick(null);
+    if (r.status === 'picked_up') openReturn(r);
+    else setCheckoutId(r.id); // 'confirmed' -> entregar
+  }
+
   async function onScan(text: string) {
     setScan(false);
     const norm = text.trim().toLowerCase();
@@ -91,17 +99,23 @@ export default function RentalsView() {
       .from('rentals')
       .select(COLS)
       .in('status', ['confirmed', 'picked_up'])
-      .order('start_at', { ascending: false });
-    const hit = ((data ?? []) as unknown as Rental[]).find(
+      .order('start_at', { ascending: true });
+    const matches = ((data ?? []) as unknown as Rental[]).filter(
       (r) => (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
     );
-    if (!hit) {
+    if (matches.length === 0) {
       setScanNote(`"${text}" no tiene un alquiler activo.`);
       return;
     }
+    if (matches.length === 1) return route(matches[0]);
+
+    // Varios activos para el mismo código: si hay exactamente uno afuera, es ése.
+    const out = matches.filter((r) => r.status === 'picked_up');
+    if (out.length === 1) return route(out[0]);
+
+    // Ambiguo → que el staff elija.
     setScanNote(null);
-    if (hit.status === 'picked_up') openReturn(hit);
-    else setCheckoutId(hit.id); // 'confirmed' -> entregar
+    setScanPick(matches);
   }
 
   function openReturn(r: Rental) {
@@ -150,6 +164,39 @@ export default function RentalsView() {
       </div>
       {scanNote && <p className="st-note">{scanNote}</p>}
       {scan && <QrScanner onScan={onScan} onClose={() => setScan(false)} />}
+
+      {scanPick && (
+        <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && setScanPick(null)}>
+          <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Elegir alquiler">
+            <div className="st-modal-hd">
+              <h3>Esta tabla tiene {scanPick.length} alquileres activos</h3>
+              <span className="st-modal-ref">
+                {one(scanPick[0].board_units)?.code} · {one(scanPick[0].board_models)?.name}
+              </span>
+              <span className="st-spacer" />
+              <button className="st-modal-x" onClick={() => setScanPick(null)} aria-label="Cerrar">
+                ×
+              </button>
+            </div>
+            <p className="st-note" style={{ marginBottom: '0.75rem' }}>
+              Elegí con cuál trabajar.
+            </p>
+            {scanPick.map((r) => (
+              <div className="st-slotlist-row" key={r.id}>
+                <span className="st-b-ref">{r.reference}</span>
+                <span className={`st-badge ${r.status}`}>{STATUS_LABEL[r.status] ?? r.status}</span>
+                <span className="st-note">
+                  {dt(r.start_at)} → {dt(r.end_at)}
+                </span>
+                <span className="st-spacer" />
+                <button className="st-btn st-btn-primary st-btn-sm" onClick={() => route(r)}>
+                  {r.status === 'picked_up' ? 'Recibir' : 'Entregar'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {tab === 'agenda' && showNew && (
         <NewRentalForm
           onCreated={() => {
