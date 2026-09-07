@@ -374,8 +374,8 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    Storage `rental-photos` + tipos en `src/lib/supabase.ts`. *(commit `a123ae2`)*
 2. ✅ **Refactor transversal** (§7): `confirmGroupLines` / `cancelGroupLines`,
    `groupItems` en email, `cleanup` y `/booking` lookup con rentals. *(commit `fd69951`)*
-3. **Panel staff — Fleet + Rental settings**: CRUD de modelos (tarifas) y unidades;
-   editor de `rental_settings`. Sin esto no hay inventario ni tarifas.
+3. ✅ **Panel staff — Fleet + Rental settings**: CRUD de modelos (tarifas) y
+   unidades; editor de `rental_settings`. *(commit `e55044e`)*
 4. **Panel staff — Rentals walk-in (v1)**: formulario de una pantalla + chips de
    duración + autocompletar cliente + waiver `rental` + **foto de condición** +
    registro de pago + lista "Afuera ahora" + devolución + hoja de vida digital.
