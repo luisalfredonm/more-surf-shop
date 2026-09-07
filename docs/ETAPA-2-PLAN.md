@@ -457,10 +457,63 @@ Recomendación: **B por default + un toggle "extender hasta la fecha reservada
 (`start_at = now`, `end_at = now + Δoriginal`) cubre entrega adelantada y atrasada
 y deja disponibilidad + vencidas siempre honestas.
 
-### T2. Recálculo de días extra al recibir
+### T2. Recálculo de días extra al recibir (sigue abierto)
 
 La nota de §6 dice "si la traen más tarde, al recibir el sistema recalcula el
 cobro extra" — **no está implementado.** Hoy `ReturnRentalModal` /
 `/api/rentals/return` cobran daño y el saldo base, pero no cobran días de más si
 la tabla vuelve después de `end_at`. Falta: en Recibir, mostrar "estuvo X días de
 más · +$Y" y sumarlo al cobro. (Depende de qué se decida en T1.)
+
+---
+
+## 14. Catálogo público (rediseño de la vía online)
+
+Reemplaza el widget "fechas primero". Flujo: **buscar con filtros → detalle →
+consultar disponibilidad → añadir a la reserva → pagar.**
+
+### Decisiones
+
+| Tema | Resuelto |
+| ---- | -------- |
+| Qué se navega y reserva | **La unidad** (la tabla física), no el modelo. El modelo queda como hoja de specs compartida. |
+| Fotos | **Por unidad** (`board_units.photo_url`). Es lo que hace que el catálogo no se vea repetido. |
+| Nombre visible | El **nombre de la tabla** (del modelo) + apodo opcional de la unidad. |
+| Peso | **Es filtro**: un input "¿cuánto pesás?" cruzado contra `weight_min_kg`–`weight_max_kg`. Más útil que un slider de rango. |
+| Depósito | **No existe en el sistema.** La garantía es la copia de tarjeta en la tienda. Ni columna ni display. |
+| Cuentas de cliente · favoritos · "pendiente de confirmar" | **Fuera de este proyecto.** |
+| Layout | Barra de filtros **horizontal sticky** + grilla a ancho completo. El mockup de referencia deja ~800 px de columna muerta a la izquierda; eso no se copia. |
+| Fechas del carrito | **Un solo rango para todo el carrito** ("Fechas del alquiler" + "Actualizar fechas"), que revalida cada tabla. |
+| Cobro online | Por **días inclusivos** (9 jun → 9 jun = 1 día). Múltiplos de 7 tarifan como semana (neutro salvo chip con precio fijo). Las horas quedan solo para el mostrador. |
+
+### Páginas
+
+```
+/surfboard-rental-tamarindo               hero + 3 pasos + catálogo + FAQ      [index]
+/surfboard-rental-tamarindo/[category]    mismo catálogo pre-filtrado          [index]
+/surfboard-rental-tamarindo/tabla/[slug]  ficha de la unidad + disponibilidad  [index]
+/reserva                                  carrito + datos + confirmación       [noindex]
+```
+
+El catálogo se renderiza en el server (SEO) y una isla React filtra en el
+cliente — la flota son decenas de tablas, no hace falta filtrar en SQL.
+
+### Esquema y API
+
+- `board_models` + `width_in`, `thickness_in`, `fin_setup`, `construction`,
+  `weight_min_kg`, `weight_max_kg`, `best_for[]`, `features[]`.
+- `board_units` + `slug` (único, con backfill `<modelo>-<code>`).
+- `GET /api/rentals/quote` — cotiza una tabla por rango de fechas.
+- `POST /api/rentals/book` — recibe un **carrito**: un `booking_group` con N `rentals`.
+- `lib/rental-cart.ts` — carrito en `localStorage`.
+
+### Caveat de SEO
+
+Dos unidades del mismo modelo dan fichas casi idénticas. Lo que las diferencia
+de verdad es **foto y apodo propios**. Si aun así quedan duplicadas, poner
+`canonical` de las repetidas a la primera.
+
+### Pendiente para que se vea
+
+1. Correr `schema-rentals.sql` (columnas nuevas + backfill de slugs).
+2. Cargar specs por modelo y **foto por unidad** desde Fleet.

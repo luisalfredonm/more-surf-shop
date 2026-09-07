@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { seoData } from '@lib/seo';
 import { absoluteUrl } from '@lib/constants';
-import { getBoardModels, RENTAL_CATEGORIES } from '@lib/queries/rentals';
+import { getCatalogUnits, RENTAL_CATEGORIES } from '@lib/queries/rentals';
 
 export const prerender = false;
 
@@ -23,18 +23,20 @@ export const GET: APIRoute = async () => {
     .filter((page) => !page.noindex)
     .map((page) => entry(page.slug, page.slug === '/' ? '1.0' : '0.8'));
 
-  // Categorías de rental con al menos un modelo con unidades.
-  const catUrls: string[] = [];
+  // Catálogo de alquiler: categorías con flota + la ficha de cada tabla.
+  const rentalUrls: string[] = [];
   if (seoData['surfboard-rental-tamarindo'] && !seoData['surfboard-rental-tamarindo'].noindex) {
-    const results = await Promise.all(
-      RENTAL_CATEGORIES.map(async (c) => ({ c, has: (await getBoardModels(c.slug)).length > 0 })),
-    );
-    for (const { c, has } of results) {
-      if (has) catUrls.push(entry(`/surfboard-rental-tamarindo/${c.slug}`, '0.6'));
+    const units = await getCatalogUnits();
+    const cats = new Set(units.map((u) => u.category));
+    for (const c of RENTAL_CATEGORIES) {
+      if (cats.has(c.slug)) rentalUrls.push(entry(`/surfboard-rental-tamarindo/${c.slug}`, '0.6'));
+    }
+    for (const u of units) {
+      rentalUrls.push(entry(`/surfboard-rental-tamarindo/tabla/${u.slug}`, '0.5'));
     }
   }
 
-  const urls = [...staticUrls, ...catUrls].join('\n');
+  const urls = [...staticUrls, ...rentalUrls].join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
