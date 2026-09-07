@@ -3,6 +3,7 @@ import { getBrowserSupabase } from '@lib/supabase-browser';
 import NewRentalForm from './NewRentalForm';
 import ReturnRentalModal, { type OutRental } from './ReturnRentalModal';
 import WaiverModal from './WaiverModal';
+import QrScanner from './QrScanner';
 
 const money = (n: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n));
@@ -55,6 +56,8 @@ export default function RentalsView() {
   const [showNew, setShowNew] = useState(false);
   const [returnFor, setReturnFor] = useState<OutRental | null>(null);
   const [viewWaiver, setViewWaiver] = useState<{ id: string; name: string } | null>(null);
+  const [scan, setScan] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,6 +81,20 @@ export default function RentalsView() {
     () => rows.filter((r) => r.status === 'picked_up' && Date.parse(r.end_at) < now).length,
     [rows, now],
   );
+
+  function onScan(text: string) {
+    setScan(false);
+    const norm = text.trim().toLowerCase();
+    const hit = rows.find(
+      (r) => r.status === 'picked_up' && (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
+    );
+    if (hit) {
+      setScanNote(null);
+      openReturn(hit);
+    } else {
+      setScanNote(`"${text}" no está entre las tablas afuera.`);
+    }
+  }
 
   function openReturn(r: Rental) {
     setReturnFor({
@@ -104,16 +121,27 @@ export default function RentalsView() {
         </button>
       </div>
 
-      {tab === 'agenda' && (
-        <div style={{ textAlign: 'right', margin: '1rem 0' }}>
+      <div className="st-inline" style={{ justifyContent: 'flex-end', margin: '1rem 0' }}>
+        <button
+          className="st-btn st-btn-ghost st-btn-sm"
+          onClick={() => {
+            setScanNote(null);
+            setScan(true);
+          }}
+        >
+          📷 Escanear devolución
+        </button>
+        {tab === 'agenda' && (
           <button
             className={`st-btn st-btn-sm ${showNew ? 'st-btn-ghost' : 'st-btn-primary'}`}
             onClick={() => setShowNew((v) => !v)}
           >
             {showNew ? 'Cerrar' : '+ Nuevo alquiler'}
           </button>
-        </div>
-      )}
+        )}
+      </div>
+      {scanNote && <p className="st-note">{scanNote}</p>}
+      {scan && <QrScanner onScan={onScan} onClose={() => setScan(false)} />}
       {tab === 'agenda' && showNew && (
         <NewRentalForm
           onCreated={() => {

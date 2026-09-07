@@ -765,3 +765,66 @@
   .st-rental-row { grid-template-columns: 1fr 1fr; }
   .st-rental-actions { grid-column: 1 / -1; justify-content: flex-start; }
 }
+
+.st-inline { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ----- QR scanner ----- */
+.st-qr-cam {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.st-qr-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.st-qr-reticle {
+  position: absolute;
+  inset: 22% 28%;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.25);
+}
+
+/* ----- QR stickers (impresión) ----- */
+.st-qr-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+}
+.st-qr-sticker {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 0.7rem;
+  text-align: center;
+  background: var(--white);
+  break-inside: avoid;
+}
+.st-qr-img { width: 100%; max-width: 130px; margin: 0 auto 0.35rem; }
+.st-qr-img svg { width: 100%; height: auto; display: block; }
+.st-qr-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #000;
+}
+.st-qr-model { font-size: 0.72rem; color: var(--text-muted); }
+.st-qr-brand {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+@media print {
+  .st-side,
+  .st-topbar,
+  .st-noprint {
+    display: none !important;
+  }
+  .st-wrap { display: block; }
+  .st-main { max-width: none; padding: 0; }
+  .st-qr-sheet { grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+  .st-qr-sticker { border-color: #999; }
+}

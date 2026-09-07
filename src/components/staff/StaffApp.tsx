@@ -9,6 +9,7 @@ import PricesView from './PricesView';
 import RentalsView from './RentalsView';
 import FleetView from './FleetView';
 import RentalSettingsView from './RentalSettingsView';
+import QrStickersView from './QrStickersView';
 import './staff.css';
 
 type View =
@@ -18,7 +19,8 @@ type View =
   | 'prices'
   | 'rentals'
   | 'fleet'
-  | 'rental_settings';
+  | 'rental_settings'
+  | 'qr_stickers';
 
 const VIEW_TITLE: Record<View, string> = {
   bookings: 'Bookings',
@@ -28,6 +30,7 @@ const VIEW_TITLE: Record<View, string> = {
   rentals: 'Rentals',
   fleet: 'Fleet',
   rental_settings: 'Rental Settings',
+  qr_stickers: 'QR Stickers',
 };
 
 function initials(name: string): string {
@@ -51,6 +54,7 @@ const NAV: { section: string; items: { key: View; label: string; disabled?: bool
     items: [
       { key: 'rentals', label: 'Rentals' },
       { key: 'fleet', label: 'Fleet' },
+      { key: 'qr_stickers', label: 'QR Stickers' },
       { key: 'rental_settings', label: 'Rental Settings' },
     ],
   },
@@ -186,6 +190,7 @@ export default function StaffApp() {
           {view === 'overrides' && <DateOverridesView />}
           {view === 'rentals' && <RentalsView />}
           {view === 'fleet' && <FleetView />}
+          {view === 'qr_stickers' && <QrStickersView />}
           {view === 'rental_settings' && <RentalSettingsView />}
         </main>
       </div>

@@ -9,6 +9,7 @@ import {
   WAIVER_TITLE,
 } from '@lib/waiver';
 import SignaturePad from './SignaturePad';
+import QrScanner from './QrScanner';
 
 const ACTIVITY = 'surfboard rental';
 const money = (n: number, c = 'USD') =>
@@ -66,6 +67,20 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [scan, setScan] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  function onScan(text: string) {
+    setScan(false);
+    const norm = text.trim().toLowerCase();
+    const hit = units.find((u) => u.code.trim().toLowerCase() === norm);
+    if (hit) {
+      setUnitId(hit.id);
+      setScanNote(null);
+    } else {
+      setScanNote(`"${text}" no es una tabla disponible.`);
+    }
+  }
 
   useEffect(() => {
     const sb = getBrowserSupabase();
@@ -238,16 +253,30 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       {/* Tabla */}
       <div className="st-field">
         <label>Tabla</label>
-        <select value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-          <option value="">Elegí una tabla disponible…</option>
-          {units.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.code} — {u.model_name} · {money(u.price_per_day)}/día
-            </option>
-          ))}
-        </select>
+        <div className="st-inline">
+          <select value={unitId} onChange={(e) => setUnitId(e.target.value)} style={{ flex: 1 }}>
+            <option value="">Elegí una tabla disponible…</option>
+            {units.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.code} — {u.model_name} · {money(u.price_per_day)}/día
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="st-btn st-btn-ghost st-btn-sm"
+            onClick={() => {
+              setScanNote(null);
+              setScan(true);
+            }}
+          >
+            📷 Escanear
+          </button>
+        </div>
+        {scanNote && <p className="st-note">{scanNote}</p>}
         {units.length === 0 && <p className="st-note">No hay tablas disponibles. Cargá la flota en Fleet.</p>}
       </div>
+      {scan && <QrScanner onScan={onScan} onClose={() => setScan(false)} />}
 
       {/* Duración */}
       <div className="st-field">
