@@ -252,3 +252,113 @@ export interface DbBookingParticipant {
   notes: string | null;
   created_at: string;
 }
+
+// ============================================
+// Fase 2 — Rentals de tablas
+// Espejo de supabase/schema-rentals.sql
+// ============================================
+
+export type BoardCategory =
+  | 'softtop'
+  | 'longboard'
+  | 'funboard'
+  | 'shortboard'
+  | 'fish'
+  | 'sup';
+export type BoardSkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
+export type RentalRateType = 'hour' | 'day' | 'week';
+export type RentalStatus =
+  | 'pending_payment'
+  | 'confirmed'
+  | 'picked_up'
+  | 'returned'
+  | 'cancelled'
+  | 'no_show';
+
+export interface DbBoardModel {
+  id: string;
+  name: string;
+  slug: string;
+  category: BoardCategory;
+  length_label: string | null;
+  volume_l: number | null;
+  skill_level: BoardSkillLevel;
+  description: string | null;
+  image_urls: string[];
+  price_per_hour: number;
+  price_per_day: number;               // semana = price_per_day * 7 (calculado en la app)
+  active: boolean;
+  featured: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbBoardUnit {
+  id: string;
+  model_id: string;
+  code: string;                        // "6.2 Ap" — nº de tabla de la hoja + del QR
+  nickname: string | null;
+  photo_url: string | null;
+  default_fins: number;
+  status: 'available' | 'maintenance' | 'retired';
+  condition_notes: string | null;
+  acquired_at: string | null;          // DATE
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbRental {
+  id: string;
+  reference: string;                   // 'RNT-XXXXX'
+  group_id: string | null;
+  customer_id: string;
+  unit_id: string;
+  model_id: string;                    // snapshot del modelo de la unidad
+  start_at: string;                    // retiro
+  end_at: string;                      // devolución prevista
+  rate_type: RentalRateType;
+  units_billed: number;
+  unit_price: number;
+  total_amount: number;
+  currency: string;
+  status: RentalStatus;
+  payment_method: 'paypal' | 'on_arrival' | 'cash' | null;
+  payment_id: string | null;
+  waiver_id: string | null;
+  source: 'web' | 'walk_in' | 'whatsapp' | 'phone';
+  fins_out: number | null;
+  condition_out_photo_url: string | null;
+  condition_out_notes: string | null;
+  fins_in: number | null;
+  condition_in_photo_url: string | null;
+  condition_in_notes: string | null;
+  damage_reported: boolean;
+  damage_fee: number | null;
+  picked_up_at: string | null;
+  returned_at: string | null;
+  checked_out_by: string | null;       // = profiles.id
+  checked_in_by: string | null;        // = profiles.id
+  customer_note: string | null;
+  staff_note: string | null;
+  confirmation_sent_at: string | null;
+  reminder_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RentalDurationPreset {
+  label: string;
+  kind: RentalRateType;
+  qty: number;
+}
+
+export interface DbRentalSettings {
+  id: 1;
+  min_duration_hours: number;
+  max_duration_days: number;
+  min_lead_hours: number;
+  min_charge_unit: 'hour' | 'day';
+  duration_presets: RentalDurationPreset[];
+  updated_at: string;
+}
