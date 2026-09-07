@@ -1,0 +1,271 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import FaqAccordion from '@components/sections/FaqAccordion.astro';
+import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
+import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+import RentalWidget from '@components/rentals/RentalWidget.tsx';
+import { getBoardModels, getRentalCategory, RENTAL_CATEGORIES } from '@lib/queries/rentals';
+import { surfboardRentalTamarindoFaqs } from '@data/faqs/surfboard-rental-tamarindo';
+import { BUSINESS, SITE, absoluteUrl, whatsappUrl } from '@lib/constants';
+import type { PageSeo } from '@lib/seo';
+
+export const prerender = false;
+
+const { category } = Astro.params;
+const cat = category ? getRentalCategory(category) : undefined;
+if (!cat) {
+  return Astro.redirect('/surfboard-rental-tamarindo', 302);
+}
+
+const slug = `/surfboard-rental-tamarindo/${cat.slug}`;
+const models = await getBoardModels(cat.slug);
+const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
+const waHref = whatsappUrl(`Hi! I want to rent a ${cat.label.toLowerCase()} in Tamarindo.`);
+
+const seo: PageSeo = {
+  slug,
+  keyfocus: `${cat.label.toLowerCase()} rental tamarindo`,
+  title: cat.title,
+  description: cat.description,
+  related: ['surfboard-rental-tamarindo', 'surf-lessons-tamarindo'],
+  // Sin flota cargada de este tipo: no indexar una página vacía.
+  noindex: models.length === 0,
+};
+
+const money = (n: number) => `$${Number(n).toFixed(0)}`;
+const url = absoluteUrl(slug);
+
+const itemList = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: `${cat.h1}`,
+  itemListElement: models.map((m, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'Product',
+      name: m.name,
+      category: cat.label,
+      offers: {
+        '@type': 'Offer',
+        price: m.price_per_day,
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${url}#book`,
+        seller: { '@id': `${SITE.url}/#business` },
+      },
+    },
+  })),
+};
+
+const breadcrumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Surfboard Rental Tamarindo', path: '/surfboard-rental-tamarindo' },
+  { name: cat.label, path: slug },
+];
+---
+
+<BaseLayout seo={seo}>
+  <Fragment slot="head">
+    {models.length > 0 && (
+      <script type="application/ld+json" set:html={JSON.stringify(itemList)} />
+    )}
+    <FAQPageSchema faqs={surfboardRentalTamarindoFaqs} />
+    <BreadcrumbSchema items={breadcrumbs} />
+  </Fragment>
+
+  <section class="rc-hero">
+    <Container>
+      <nav class="rc-crumb">
+        <a href="/surfboard-rental-tamarindo">Surfboard rental</a> <span>/</span> {cat.label}
+      </nav>
+      <h1>{cat.h1}</h1>
+      <p class="rc-lead">{cat.intro}</p>
+      <div class="rc-cta">
+        <Button href="#book" size="lg">Check availability</Button>
+        <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+          <WhatsAppIcon size={20} />
+          Ask on WhatsApp
+        </Button>
+      </div>
+    </Container>
+  </section>
+
+  {models.length > 0 && (
+    <section class="section">
+      <Container>
+        <Eyebrow>In the fleet</Eyebrow>
+        <h2>{cat.label} you can rent</h2>
+        <ul class="rc-models">
+          {models.map((m) => (
+            <li>
+              <div class="rc-m-head">
+                <span class="rc-m-name">{m.name}</span>
+                <span class="rc-m-price">{money(m.price_per_day)}<small>/day</small></span>
+              </div>
+              <p class="rc-m-spec">
+                {[m.length_label, m.volume_l ? `${m.volume_l} L` : null, m.skill_level]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              {m.description && <p class="rc-m-desc">{m.description}</p>}
+              <a class="rc-m-go" href="#book">Reserve a {m.name} →</a>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
+  )}
+
+  <section class="section section-alt" id="book">
+    <Container>
+      <div class="rc-book-head">
+        <Eyebrow>Reserve a board</Eyebrow>
+        <h2>Check {cat.label.toLowerCase()} availability</h2>
+      </div>
+      {models.length > 0 ? (
+        <RentalWidget
+          client:visible
+          paypalClientId={paypalClientId}
+          categories={RENTAL_CATEGORIES.filter((c) => c.slug === cat.slug).map((c) => ({
+            slug: c.slug,
+            label: c.label,
+          }))}
+          whatsappNumber={BUSINESS.whatsapp.number}
+        />
+      ) : (
+        <div class="rc-fallback">
+          <p>No {cat.label.toLowerCase()} in the rental fleet right now. Message us — we may have one.</p>
+          <a class="rc-wa" href={waHref} target="_blank" rel="noopener noreferrer">WhatsApp us</a>
+        </div>
+      )}
+    </Container>
+  </section>
+
+  <FaqAccordion
+    faqs={surfboardRentalTamarindoFaqs}
+    title="Surfboard Rental Tamarindo: FAQ"
+    intro="Common questions about renting a board with us."
+  />
+</BaseLayout>
+
+<style>
+  .rc-hero {
+    padding: 4.5rem 0 2.5rem;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+  }
+  .rc-crumb {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+  .rc-crumb a {
+    color: var(--teal-dark);
+    text-decoration: none;
+  }
+  .rc-crumb span {
+    margin: 0 0.4rem;
+  }
+  .rc-lead {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    max-width: 620px;
+    margin: 1rem 0 1.75rem;
+  }
+  .rc-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .section {
+    padding: var(--section-pad) 0;
+  }
+  .section-alt {
+    background: var(--bg-alt);
+    border-top: 1px solid var(--border);
+  }
+  .rc-models {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .rc-models li {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .rc-m-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .rc-m-name {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--navy);
+  }
+  .rc-m-price {
+    font-weight: 700;
+    color: var(--teal-dark);
+  }
+  .rc-m-price small {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .rc-m-spec {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .rc-m-desc {
+    font-size: 0.88rem;
+    color: var(--text);
+    margin: 0.25rem 0 0;
+    flex: 1;
+  }
+  .rc-m-go {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--teal-dark);
+    text-decoration: none;
+    margin-top: 0.35rem;
+  }
+  .rc-book-head {
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto 2rem;
+  }
+  .rc-fallback {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+  }
+  .rc-wa {
+    display: inline-block;
+    margin-top: 1rem;
+    background: #25d366;
+    color: #fff;
+    padding: 0.7rem 1.4rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>

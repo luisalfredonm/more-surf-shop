@@ -61,11 +61,85 @@ export async function getBoardModels(category?: string): Promise<PublicBoardMode
   return shape(data ?? []).filter((m) => m.unit_count > 0);
 }
 
-export const RENTAL_CATEGORIES: { slug: string; label: string; blurb: string }[] = [
-  { slug: 'softtop', label: 'Soft-tops', blurb: 'Foam boards — the safe, stable choice for learning and small days.' },
-  { slug: 'longboard', label: 'Longboards', blurb: 'Glide and paddle power. Easy waves, cruisy sessions.' },
-  { slug: 'funboard', label: 'Funboards', blurb: 'The in-between — more agile than a longboard, more forgiving than a shortboard.' },
-  { slug: 'shortboard', label: 'Shortboards', blurb: 'For surfers who can already catch and turn.' },
-  { slug: 'fish', label: 'Fish', blurb: 'Extra volume and speed for weaker or smaller waves.' },
-  { slug: 'sup', label: 'SUP', blurb: 'Stand-up paddle boards for flat mornings and the estuary.' },
+export interface RentalCategory {
+  slug: string;
+  label: string;
+  blurb: string;
+  title: string; // <title>
+  description: string; // meta description
+  h1: string;
+  intro: string;
+}
+
+export const RENTAL_CATEGORIES: RentalCategory[] = [
+  {
+    slug: 'softtop',
+    label: 'Soft-tops',
+    blurb: 'Foam boards — the safe, stable choice for learning and small days.',
+    title: 'Soft-top Surfboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a soft-top surfboard in Tamarindo, Costa Rica. Stable foam boards for beginners and small days. Hourly, daily and weekly rates. Reserve online or walk in.',
+    h1: 'Soft-top Surfboard Rental in Tamarindo',
+    intro:
+      'Foam-top boards are the stable, forgiving choice for learning and for small, mushy days. They float well, they paddle easy, and they don\'t hurt when they hit you.',
+  },
+  {
+    slug: 'longboard',
+    label: 'Longboards',
+    blurb: 'Glide and paddle power. Easy waves, cruisy sessions.',
+    title: 'Longboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a longboard in Tamarindo, Costa Rica. Glide, paddle power and easy wave-catching for cruisy sessions. Daily and weekly rates. Reserve online or walk in.',
+    h1: 'Longboard Rental in Tamarindo',
+    intro:
+      'Longboards catch waves early, glide through flat sections, and turn a knee-high day into a fun one. The natural next step once you can stand up on a soft-top.',
+  },
+  {
+    slug: 'funboard',
+    label: 'Funboards',
+    blurb: 'The in-between — more agile than a longboard, more forgiving than a shortboard.',
+    title: 'Funboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a funboard in Tamarindo, Costa Rica. More agile than a longboard, more forgiving than a shortboard. Daily and weekly rates. Reserve online or walk in.',
+    h1: 'Funboard Rental in Tamarindo',
+    intro:
+      'Funboards (or mid-lengths) sit between a longboard and a shortboard: enough volume to paddle into most waves, short enough to actually turn.',
+  },
+  {
+    slug: 'shortboard',
+    label: 'Shortboards',
+    blurb: 'For surfers who can already catch and turn.',
+    title: 'Shortboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a shortboard in Tamarindo, Costa Rica. Performance boards for surfers who can already catch and turn. Daily and weekly rates. Reserve online or walk in.',
+    h1: 'Shortboard Rental in Tamarindo',
+    intro:
+      'Performance boards for surfers who already read the wave, catch it themselves, and want to turn. Tell us your height and weight and we\'ll match the volume.',
+  },
+  {
+    slug: 'fish',
+    label: 'Fish',
+    blurb: 'Extra volume and speed for weaker or smaller waves.',
+    title: 'Fish Surfboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a fish surfboard in Tamarindo, Costa Rica. Extra volume and speed for weaker, smaller waves. Daily and weekly rates. Reserve online or walk in.',
+    h1: 'Fish Surfboard Rental in Tamarindo',
+    intro:
+      'Fish boards carry speed through slow sections and paddle easier than a standard shortboard — a good pick for Tamarindo\'s smaller, weaker days.',
+  },
+  {
+    slug: 'sup',
+    label: 'SUP',
+    blurb: 'Stand-up paddle boards for flat mornings and the estuary.',
+    title: 'SUP / Paddleboard Rental in Tamarindo | More Surf Shop',
+    description:
+      'Rent a stand-up paddleboard (SUP) in Tamarindo, Costa Rica. Flat-water mornings and the estuary. Hourly and daily rates. Reserve online or walk in.',
+    h1: 'SUP & Paddleboard Rental in Tamarindo',
+    intro:
+      'Stand-up paddleboards for glassy mornings, the Tamarindo estuary, and cross-training on flat days.',
+  },
 ];
+
+export function getRentalCategory(slug: string): RentalCategory | undefined {
+  return RENTAL_CATEGORIES.find((c) => c.slug === slug);
+}
