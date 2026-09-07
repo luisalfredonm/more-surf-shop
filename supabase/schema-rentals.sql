@@ -91,6 +91,31 @@ create trigger trg_board_units_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============================================
+-- Catálogo público: specs de ficha + slug por unidad
+-- Las specs viven en el modelo (se comparten entre tablas iguales); lo que el
+-- cliente navega y reserva es la UNIDAD, con su foto y su slug propios.
+-- NO hay depósito en el sistema (garantía = copia de tarjeta en la tienda).
+-- ============================================
+alter table public.board_models add column if not exists width_in numeric(4, 2);
+alter table public.board_models add column if not exists thickness_in numeric(4, 2);
+alter table public.board_models add column if not exists fin_setup text;          -- Thruster, Quad, Twin…
+alter table public.board_models add column if not exists construction text;       -- Poliéster, Epoxi, Softtop…
+alter table public.board_models add column if not exists weight_min_kg integer;   -- peso recomendado (filtro)
+alter table public.board_models add column if not exists weight_max_kg integer;
+alter table public.board_models add column if not exists best_for text[] not null default '{}';   -- Beach break, Point break…
+alter table public.board_models add column if not exists features text[] not null default '{}';  -- "Quillas FCS II incluidas"…
+
+alter table public.board_units add column if not exists slug text;
+
+-- Backfill de slugs: <modelo>-<code>, sin caracteres raros.
+update public.board_units u
+set slug = trim(both '-' from regexp_replace(lower(m.name || '-' || u.code), '[^a-z0-9]+', '-', 'g'))
+from public.board_models m
+where m.id = u.model_id and coalesce(u.slug, '') = '';
+
+create unique index if not exists idx_board_units_slug on public.board_units (slug);
+
+-- ============================================
 -- Tabla: rentals (un alquiler de una unidad; pertenece a un booking_group)
 -- Flujo:
 --   web + paypal      -> pending_payment --(capturado)--> confirmed --> picked_up --> returned

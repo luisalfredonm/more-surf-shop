@@ -27,6 +27,14 @@ interface Model {
   image_urls: string[] | null;
   price_per_hour: number;
   price_per_day: number;
+  width_in: number | null;
+  thickness_in: number | null;
+  fin_setup: string | null;
+  construction: string | null;
+  weight_min_kg: number | null;
+  weight_max_kg: number | null;
+  best_for: string[] | null;
+  features: string[] | null;
   active: boolean;
   featured: boolean;
   sort_order: number;
@@ -35,13 +43,16 @@ interface Unit {
   id: string;
   model_id: string;
   code: string;
+  slug: string | null;
   nickname: string | null;
+  photo_url: string | null;
   default_fins: number;
   status: string;
 }
 
 const MODEL_COLS =
-  'id, name, slug, category, length_label, volume_l, skill_level, description, image_urls, price_per_hour, price_per_day, active, featured, sort_order';
+  'id, name, slug, category, length_label, volume_l, skill_level, description, image_urls, price_per_hour, price_per_day, width_in, thickness_in, fin_setup, construction, weight_min_kg, weight_max_kg, best_for, features, active, featured, sort_order';
+const UNIT_COLS = 'id, model_id, code, slug, nickname, photo_url, default_fins, status';
 
 export default function FleetView() {
   const [models, setModels] = useState<Model[]>([]);
@@ -55,7 +66,7 @@ export default function FleetView() {
     const sb = getBrowserSupabase();
     const [m, u] = await Promise.all([
       sb.from('board_models').select(MODEL_COLS).order('sort_order').order('name'),
-      sb.from('board_units').select('id, model_id, code, nickname, default_fins, status').order('code'),
+      sb.from('board_units').select(UNIT_COLS).order('code'),
     ]);
     setModels((m.data ?? []) as Model[]);
     setUnits((u.data ?? []) as Unit[]);
@@ -252,6 +263,14 @@ function ModelCard({
         image_urls: (form.image_urls ?? []).map((x) => x.trim()).filter(Boolean),
         price_per_hour: Number(form.price_per_hour) || 0,
         price_per_day: Number(form.price_per_day) || 0,
+        width_in: form.width_in == null ? null : Number(form.width_in),
+        thickness_in: form.thickness_in == null ? null : Number(form.thickness_in),
+        fin_setup: form.fin_setup?.trim() || null,
+        construction: form.construction?.trim() || null,
+        weight_min_kg: form.weight_min_kg == null ? null : Number(form.weight_min_kg),
+        weight_max_kg: form.weight_max_kg == null ? null : Number(form.weight_max_kg),
+        best_for: (form.best_for ?? []).map((x) => x.trim()).filter(Boolean),
+        features: (form.features ?? []).map((x) => x.trim()).filter(Boolean),
         active: form.active,
         featured: form.featured,
         sort_order: Number(form.sort_order) || 0,
@@ -358,6 +377,91 @@ function ModelCard({
               />
             </div>
           </div>
+
+          <p className="st-field-label" style={{ margin: '0.5rem 0 0' }}>Ficha del catálogo</p>
+          <div className="st-row">
+            <div className="st-field">
+              <label>Ancho (pulgadas)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.width_in ?? ''}
+                onChange={(e) => set('width_in', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="20.25"
+              />
+            </div>
+            <div className="st-field">
+              <label>Grosor (pulgadas)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.thickness_in ?? ''}
+                onChange={(e) => set('thickness_in', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="2.5"
+              />
+            </div>
+          </div>
+          <div className="st-row">
+            <div className="st-field">
+              <label>Quillas</label>
+              <input
+                value={form.fin_setup ?? ''}
+                onChange={(e) => set('fin_setup', e.target.value)}
+                placeholder="Thruster"
+              />
+            </div>
+            <div className="st-field">
+              <label>Construcción</label>
+              <input
+                value={form.construction ?? ''}
+                onChange={(e) => set('construction', e.target.value)}
+                placeholder="Poliéster"
+              />
+            </div>
+          </div>
+          <div className="st-row">
+            <div className="st-field">
+              <label>Peso recomendado — mín (kg)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.weight_min_kg ?? ''}
+                onChange={(e) => set('weight_min_kg', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="55"
+              />
+            </div>
+            <div className="st-field">
+              <label>Peso recomendado — máx (kg)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.weight_max_kg ?? ''}
+                onChange={(e) => set('weight_max_kg', e.target.value === '' ? null : Number(e.target.value))}
+                placeholder="95"
+              />
+            </div>
+          </div>
+          <div className="st-row">
+            <div className="st-field">
+              <label>Mejor en (uno por línea)</label>
+              <textarea
+                rows={2}
+                value={(form.best_for ?? []).join('\n')}
+                onChange={(e) => set('best_for', e.target.value.split('\n'))}
+                placeholder={'Beach break\nPoint break'}
+              />
+            </div>
+            <div className="st-field">
+              <label>Incluye (uno por línea)</label>
+              <textarea
+                rows={2}
+                value={(form.features ?? []).join('\n')}
+                onChange={(e) => set('features', e.target.value.split('\n'))}
+                placeholder={'Quillas FCS II incluidas\nIdeal Tamarindo'}
+              />
+            </div>
+          </div>
+
           <div className="st-row">
             <div className="st-field">
               <label>Orden</label>
@@ -452,9 +556,11 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
       return;
     }
     setBusy(true);
+    const model = models.find((m) => m.id === modelId);
     const { error } = await getBrowserSupabase().from('board_units').insert({
       model_id: modelId,
       code: code.trim(),
+      slug: slugify(`${model?.name ?? 'tabla'}-${code.trim()}`),
       default_fins: Math.max(0, Number(fins) || 0),
     });
     setBusy(false);
@@ -517,26 +623,59 @@ function UnitRow({
   onSaved: () => void;
   onHistory: () => void;
 }) {
-  const [fins, setFins] = useState(unit.default_fins);
-  const [status, setStatus] = useState(unit.status);
+  const [f, setF] = useState(unit);
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoWarn, setPhotoWarn] = useState(false);
 
-  useEffect(() => {
-    setFins(unit.default_fins);
-    setStatus(unit.status);
-  }, [unit]);
+  useEffect(() => setF(unit), [unit]);
 
-  const dirty = fins !== unit.default_fins || status !== unit.status;
+  function set<K extends keyof Unit>(k: K, v: Unit[K]) {
+    setF((p) => ({ ...p, [k]: v }));
+  }
+
+  const dirty =
+    f.default_fins !== unit.default_fins ||
+    f.status !== unit.status ||
+    (f.slug ?? '') !== (unit.slug ?? '') ||
+    (f.nickname ?? '') !== (unit.nickname ?? '') ||
+    (f.photo_url ?? '') !== (unit.photo_url ?? '');
 
   async function save() {
     setBusy(true);
     const { error } = await getBrowserSupabase()
       .from('board_units')
-      .update({ default_fins: Math.max(0, Number(fins) || 0), status })
+      .update({
+        default_fins: Math.max(0, Number(f.default_fins) || 0),
+        status: f.status,
+        slug: f.slug?.trim() ? slugify(f.slug) : null,
+        nickname: f.nickname?.trim() || null,
+        photo_url: f.photo_url?.trim() || null,
+      })
       .eq('id', unit.id);
     setBusy(false);
-    if (error) alert(error.message);
+    if (error) alert(error.code === '23505' ? 'Ese slug ya existe.' : error.message);
     else onSaved();
+  }
+
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoWarn(false);
+    try {
+      const sb = getBrowserSupabase();
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `catalog/${unit.code.replace(/\s+/g, '-')}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from('rental-photos').upload(path, file, { upsert: false });
+      if (up.error) setPhotoWarn(true);
+      else set('photo_url', sb.storage.from('rental-photos').getPublicUrl(path).data.publicUrl);
+    } catch {
+      setPhotoWarn(true);
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   async function remove() {
@@ -547,36 +686,103 @@ function UnitRow({
   }
 
   return (
-    <div className="st-slotlist-row">
-      <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}>{unit.code}</span>
-      <span className="st-note">fins</span>
-      <input
-        type="number"
-        min={0}
-        max={6}
-        value={fins}
-        onChange={(e) => setFins(Number(e.target.value))}
-        style={{ width: '3.5rem' }}
-      />
-      <select value={status} onChange={(e) => setStatus(e.target.value)}>
-        {UNIT_STATUS.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <span className="st-spacer" />
-      {dirty && (
-        <button className="st-btn st-btn-primary st-btn-sm" type="button" disabled={busy} onClick={save}>
-          {busy ? '…' : 'Guardar'}
+    <>
+      <div className="st-slotlist-row">
+        <button
+          type="button"
+          className="st-linkbtn"
+          style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, textDecoration: 'none' }}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? '▲' : '▼'} {unit.code}
         </button>
+        {unit.photo_url && (
+          <img
+            src={unit.photo_url}
+            alt=""
+            style={{ width: 34, height: 26, objectFit: 'cover', borderRadius: 4 }}
+          />
+        )}
+        {unit.nickname && <span className="st-note">{unit.nickname}</span>}
+        <span className="st-note">fins {unit.default_fins}</span>
+        <span className={`st-badge ${unit.status === 'available' ? 'confirmed' : 'unpaid'}`}>
+          {unit.status}
+        </span>
+        <span className="st-spacer" />
+        <button className="st-btn st-btn-ghost st-btn-sm" type="button" onClick={onHistory}>
+          Historial
+        </button>
+        <button className="st-btn st-btn-danger st-btn-sm" type="button" onClick={remove}>
+          Quitar
+        </button>
+      </div>
+
+      {open && (
+        <div className="st-svc-form">
+          <div className="st-row">
+            <div className="st-field">
+              <label>Apodo (opcional)</label>
+              <input
+                value={f.nickname ?? ''}
+                onChange={(e) => set('nickname', e.target.value)}
+                placeholder="la amarilla"
+              />
+            </div>
+            <div className="st-field">
+              <label>Slug (URL del detalle)</label>
+              <input value={f.slug ?? ''} onChange={(e) => set('slug', e.target.value)} />
+            </div>
+          </div>
+          <div className="st-row">
+            <div className="st-field">
+              <label>Fins por defecto</label>
+              <input
+                type="number"
+                min={0}
+                max={6}
+                value={f.default_fins}
+                onChange={(e) => set('default_fins', Number(e.target.value))}
+              />
+            </div>
+            <div className="st-field">
+              <label>Estado</label>
+              <select value={f.status} onChange={(e) => set('status', e.target.value)}>
+                {UNIT_STATUS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="st-field">
+            <label>Foto de esta tabla (la que ve el cliente)</label>
+            <input type="file" accept="image/*" onChange={onPhoto} disabled={photoBusy} />
+            {photoBusy && <span className="st-note">Subiendo…</span>}
+            {photoWarn && <span className="st-note">No se pudo subir. Revisá el bucket rental-photos.</span>}
+            <input
+              value={f.photo_url ?? ''}
+              onChange={(e) => set('photo_url', e.target.value)}
+              placeholder="o pegá una URL"
+            />
+            {f.photo_url && (
+              <img
+                src={f.photo_url}
+                alt=""
+                style={{ maxWidth: 220, borderRadius: 6, marginTop: '0.4rem' }}
+              />
+            )}
+          </div>
+          <button
+            className="st-btn st-btn-primary st-btn-sm"
+            type="button"
+            disabled={!dirty || busy}
+            onClick={save}
+          >
+            {busy ? 'Guardando…' : 'Guardar tabla'}
+          </button>
+        </div>
       )}
-      <button className="st-btn st-btn-ghost st-btn-sm" type="button" onClick={onHistory}>
-        Historial
-      </button>
-      <button className="st-btn st-btn-danger st-btn-sm" type="button" onClick={remove}>
-        Quitar
-      </button>
-    </div>
+    </>
   );
 }

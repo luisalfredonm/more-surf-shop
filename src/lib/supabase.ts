@@ -287,6 +287,15 @@ export interface DbBoardModel {
   image_urls: string[];
   price_per_hour: number;
   price_per_day: number;               // semana = price_per_day * 7 (calculado en la app)
+  // Ficha del catálogo público
+  width_in: number | null;
+  thickness_in: number | null;
+  fin_setup: string | null;            // Thruster, Quad, Twin…
+  construction: string | null;         // Poliéster, Epoxi, Softtop…
+  weight_min_kg: number | null;        // peso recomendado (se usa de filtro)
+  weight_max_kg: number | null;
+  best_for: string[];                  // Beach break, Point break…
+  features: string[];                  // "Quillas FCS II incluidas"…
   active: boolean;
   featured: boolean;
   sort_order: number;
@@ -298,8 +307,9 @@ export interface DbBoardUnit {
   id: string;
   model_id: string;
   code: string;                        // "6.2 Ap" — nº de tabla de la hoja + del QR
+  slug: string | null;                 // URL del detalle público
   nickname: string | null;
-  photo_url: string | null;
+  photo_url: string | null;            // foto propia de esta tabla
   default_fins: number;
   status: 'available' | 'maintenance' | 'retired';
   condition_notes: string | null;
