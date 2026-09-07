@@ -3,19 +3,12 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
 import { renderWaiverText, WAIVER_VERSION } from '@lib/waiver';
+import { computeEndAt, makeRentalRef, priceRental } from '@lib/rentals';
 
 export const prerender = false;
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
-
-const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function makeRef(prefix: string): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(5));
-  let s = '';
-  for (const b of bytes) s += REF_ALPHABET[b % REF_ALPHABET.length];
-  return `${prefix}-${s}`;
-}
 
 const Schema = z.object({
   unit_id: z.string().uuid(),
@@ -48,8 +41,6 @@ const Schema = z.object({
     }),
   staff_note: z.string().trim().max(1000).nullish(),
 });
-
-const MS = { hour: 3_600_000, day: 86_400_000, week: 7 * 86_400_000 };
 
 export const POST: APIRoute = async ({ request }) => {
   const staff = await requireStaff(request);
@@ -89,13 +80,13 @@ export const POST: APIRoute = async ({ request }) => {
   if (!model) return json({ error: 'La tabla no tiene modelo.' }, 409);
 
   const startAt = d.start_at ? new Date(d.start_at) : new Date();
-  const endAt = new Date(startAt.getTime() + d.units_billed * MS[d.rate_type]);
-
-  const perDay = Number(model.price_per_day) || 0;
-  const perHour = Number(model.price_per_hour) || 0;
-  const unitPrice =
-    d.rate_type === 'hour' ? perHour : d.rate_type === 'week' ? perDay * 7 : perDay;
-  const total = Math.round(unitPrice * d.units_billed * 100) / 100;
+  const endAt = computeEndAt(startAt, d.rate_type, d.units_billed);
+  const { unitPrice, total } = priceRental(
+    Number(model.price_per_hour) || 0,
+    Number(model.price_per_day) || 0,
+    d.rate_type,
+    d.units_billed,
+  );
 
   // --- Disponibilidad (guard de carrera) ---
   const { data: avail, error: aErr } = await supabase.rpc('is_unit_available', {
@@ -156,7 +147,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { data: g, error: gErr } = await supabase
       .from('booking_groups')
       .insert({
-        reference: makeRef('GRP'),
+        reference: makeRentalRef('GRP'),
         customer_id: customerId,
         total_amount: total,
         currency: 'USD',
@@ -218,7 +209,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { data: rental, error: rErr } = await supabase
     .from('rentals')
     .insert({
-      reference: makeRef('RNT'),
+      reference: makeRentalRef('RNT'),
       group_id: group.id,
       customer_id: customerId,
       unit_id: d.unit_id,

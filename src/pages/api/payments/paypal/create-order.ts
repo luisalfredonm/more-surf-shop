@@ -46,11 +46,14 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Monto inválido.', code: 'bad_amount' }, 409);
   }
 
-  const { count } = await supabase
-    .from('bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('group_id', group.id);
-  const description = `More Surf Shop — ${count ?? 1} clase(s) (${group.reference})`;
+  const [{ count: nLessons }, { count: nRentals }] = await Promise.all([
+    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('group_id', group.id),
+    supabase.from('rentals').select('id', { count: 'exact', head: true }).eq('group_id', group.id),
+  ]);
+  const parts: string[] = [];
+  if (nLessons) parts.push(`${nLessons} clase(s)`);
+  if (nRentals) parts.push(`${nRentals} alquiler(es)`);
+  const description = `More Surf Shop — ${parts.join(' + ') || 'reserva'} (${group.reference})`;
 
   try {
     const order = await createOrder({
