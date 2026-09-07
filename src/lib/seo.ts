@@ -99,6 +99,15 @@ export const seoData: Record<string, PageSeo> = {
     noindex: true,
   },
 
+  reserva: {
+    slug: '/reserva',
+    keyfocus: 'reserva alquiler tabla tamarindo',
+    title: 'Tu reserva | More Surf Shop',
+    description:
+      'Revisá las fechas y las tablas de tu alquiler antes de confirmar en More Surf Shop, Tamarindo.',
+    noindex: true, // paso del checkout
+  },
+
   booking: {
     slug: '/booking',
     keyfocus: 'check surf lesson booking tamarindo',

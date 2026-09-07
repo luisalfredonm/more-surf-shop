@@ -45,6 +45,41 @@ export function presetOverride(
   return hit && typeof hit.price === 'number' && hit.price >= 0 ? hit.price : null;
 }
 
+// ============================================
+// Rango por fechas (vía online). Costa Rica es UTC-6 todo el año.
+// El alquiler se cobra por días INCLUSIVOS: 9 jun → 9 jun = 1 día.
+// La franja horaria del día son las horas de tienda, así una tabla devuelta
+// el 9 queda libre para el 10.
+// ============================================
+
+/** Inicio del alquiler: la fecha a las 08:00 hora CR. */
+export function dayStart(dateISO: string): Date {
+  return new Date(`${dateISO}T08:00:00.000-06:00`);
+}
+
+/** Fin del alquiler: la fecha a las 18:00 hora CR. */
+export function dayEnd(dateISO: string): Date {
+  return new Date(`${dateISO}T18:00:00.000-06:00`);
+}
+
+/** Días inclusivos entre dos fechas YYYY-MM-DD (mínimo 1). */
+export function inclusiveDays(fromISO: string, toISO: string): number {
+  const a = Date.parse(`${fromISO}T00:00:00Z`);
+  const b = Date.parse(`${toISO}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.floor((b - a) / 86_400_000) + 1;
+}
+
+/**
+ * Convierte N días a la tarifa que corresponde. Múltiplos exactos de 7 van
+ * como semanas — neutro en precio (semana = día×7) salvo que el chip de
+ * semana tenga precio fijo, en cuyo caso ese gana.
+ */
+export function pickRate(days: number): { rateType: RentalRate; unitsBilled: number } {
+  if (days >= 7 && days % 7 === 0) return { rateType: 'week', unitsBilled: days / 7 };
+  return { rateType: 'day', unitsBilled: Math.max(1, days) };
+}
+
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function makeRentalRef(prefix: string): string {
   const bytes = crypto.getRandomValues(new Uint8Array(5));

@@ -43,6 +43,123 @@ function shape(rows: any[]): PublicBoardModel[] {
   }));
 }
 
+// ============================================
+// Catálogo público — se navega y se reserva la UNIDAD (la tabla física).
+// Las specs vienen del modelo; la foto, el apodo y el slug, de la unidad.
+// ============================================
+
+export interface CatalogUnit {
+  id: string;
+  code: string;
+  slug: string;
+  nickname: string | null;
+  image: string | null;
+  // del modelo
+  name: string;
+  category: string;
+  length_label: string | null;
+  volume_l: number | null;
+  skill_level: string;
+  description: string | null;
+  price_per_day: number;
+  price_per_hour: number;
+  width_in: number | null;
+  thickness_in: number | null;
+  fin_setup: string | null;
+  construction: string | null;
+  weight_min_kg: number | null;
+  weight_max_kg: number | null;
+  best_for: string[];
+  features: string[];
+  /** Si está alquilada ahora mismo, hasta cuándo (ISO). */
+  busy_until: string | null;
+}
+
+const UNIT_COLS =
+  'id, code, slug, nickname, photo_url, status, board_models ( name, category, length_label, volume_l, skill_level, description, image_urls, price_per_day, price_per_hour, width_in, thickness_in, fin_setup, construction, weight_min_kg, weight_max_kg, best_for, features, active, sort_order )';
+
+function shapeUnit(u: any, busyUntil: string | null): CatalogUnit | null {
+  const m = Array.isArray(u.board_models) ? u.board_models[0] : u.board_models;
+  if (!m || !m.active || !u.slug) return null;
+  return {
+    id: u.id,
+    code: u.code,
+    slug: u.slug,
+    nickname: u.nickname,
+    image: u.photo_url ?? (Array.isArray(m.image_urls) ? (m.image_urls[0] ?? null) : null),
+    name: m.name,
+    category: m.category,
+    length_label: m.length_label,
+    volume_l: m.volume_l == null ? null : Number(m.volume_l),
+    skill_level: m.skill_level,
+    description: m.description,
+    price_per_day: Number(m.price_per_day) || 0,
+    price_per_hour: Number(m.price_per_hour) || 0,
+    width_in: m.width_in == null ? null : Number(m.width_in),
+    thickness_in: m.thickness_in == null ? null : Number(m.thickness_in),
+    fin_setup: m.fin_setup,
+    construction: m.construction,
+    weight_min_kg: m.weight_min_kg,
+    weight_max_kg: m.weight_max_kg,
+    best_for: m.best_for ?? [],
+    features: m.features ?? [],
+    busy_until: busyUntil,
+  };
+}
+
+/** Para cada unit_id, hasta cuándo está ocupada ahora mismo (o null). */
+async function busyMap(unitIds: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (unitIds.length === 0) return map;
+  const nowISO = new Date().toISOString();
+  const { data } = await getSupabase()
+    .from('rentals')
+    .select('unit_id, end_at')
+    .in('unit_id', unitIds)
+    .in('status', ['confirmed', 'picked_up'])
+    .lte('start_at', nowISO)
+    .gte('end_at', nowISO);
+  for (const r of data ?? []) {
+    const prev = map.get(r.unit_id as string);
+    if (!prev || (r.end_at as string) > prev) map.set(r.unit_id as string, r.end_at as string);
+  }
+  return map;
+}
+
+/** Todas las tablas alquilables (unidades disponibles de modelos activos). */
+export async function getCatalogUnits(category?: string): Promise<CatalogUnit[]> {
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await getSupabase()
+    .from('board_units')
+    .select(UNIT_COLS)
+    .eq('status', 'available')
+    .order('code');
+  if (error) {
+    console.error('[getCatalogUnits]', error.message);
+    return [];
+  }
+  const rows = (data ?? []) as any[];
+  const busy = await busyMap(rows.map((u) => u.id));
+  return rows
+    .map((u) => shapeUnit(u, busy.get(u.id) ?? null))
+    .filter((u): u is CatalogUnit => !!u && (!category || u.category === category))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Una tabla por su slug, para la página de detalle. */
+export async function getCatalogUnit(slug: string): Promise<CatalogUnit | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await getSupabase()
+    .from('board_units')
+    .select(UNIT_COLS)
+    .eq('slug', slug)
+    .eq('status', 'available')
+    .maybeSingle();
+  if (error || !data) return null;
+  const busy = await busyMap([(data as any).id]);
+  return shapeUnit(data, busy.get((data as any).id) ?? null);
+}
+
 export async function getBoardModels(category?: string): Promise<PublicBoardModel[]> {
   if (!isSupabaseConfigured()) return [];
   let q = getSupabase()

@@ -1,0 +1,253 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+import BoardAvailability from '@components/rentals/BoardAvailability.tsx';
+import { getCatalogUnit } from '@lib/queries/rentals';
+import { SITE, absoluteUrl } from '@lib/constants';
+import type { PageSeo } from '@lib/seo';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const unit = slug ? await getCatalogUnit(slug) : null;
+if (!unit) return Astro.redirect('/surfboard-rental-tamarindo', 302);
+
+const CATEGORY_LABEL: Record<string, string> = {
+  softtop: 'Softtop',
+  longboard: 'Longboard',
+  funboard: 'Funboard',
+  shortboard: 'Shortboard',
+  fish: 'Fish',
+  sup: 'SUP',
+};
+const LEVEL_LABEL: Record<string, string> = {
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+  all: 'Todos los niveles',
+};
+
+const cat = CATEGORY_LABEL[unit.category] ?? unit.category;
+const path = `/surfboard-rental-tamarindo/tabla/${unit.slug}`;
+const url = absoluteUrl(path);
+const money = (n: number) => `$${Number(n).toFixed(0)}`;
+const week = Math.round(unit.price_per_day * 7);
+
+const seo: PageSeo = {
+  slug: path,
+  keyfocus: `alquiler ${unit.name} tamarindo`,
+  title: `${unit.name} en alquiler | More Surf Shop Tamarindo`,
+  description:
+    (unit.description ?? `Alquilá una ${unit.name} en Playa Tamarindo.`).slice(0, 150) +
+    ` ${money(unit.price_per_day)} por día.`,
+  ogImage: unit.image ?? undefined,
+  related: ['surfboard-rental-tamarindo'],
+};
+
+const allSpecs: [string, string][] = [
+  ['Largo', unit.length_label ?? '—'],
+  ['Ancho', unit.width_in != null ? `${unit.width_in}"` : '—'],
+  ['Grosor', unit.thickness_in != null ? `${unit.thickness_in}"` : '—'],
+  ['Volumen', unit.volume_l != null ? `${unit.volume_l} L` : '—'],
+  ['Quillas', unit.fin_setup ?? '—'],
+  ['Construcción', unit.construction ?? '—'],
+];
+const specs = allSpecs.filter(([, v]) => v !== '—');
+
+const productSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: unit.name,
+  category: cat,
+  ...(unit.description ? { description: unit.description } : {}),
+  ...(unit.image ? { image: unit.image } : {}),
+  offers: {
+    '@type': 'Offer',
+    price: unit.price_per_day,
+    priceCurrency: 'USD',
+    availability: unit.busy_until
+      ? 'https://schema.org/PreOrder'
+      : 'https://schema.org/InStock',
+    url,
+    seller: { '@id': `${SITE.url}/#business` },
+  },
+};
+
+const breadcrumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Surfboard Rental Tamarindo', path: '/surfboard-rental-tamarindo' },
+  { name: unit.name, path },
+];
+---
+
+<BaseLayout seo={seo}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+    <BreadcrumbSchema items={breadcrumbs} />
+  </Fragment>
+
+  <section class="bd">
+    <Container>
+      <a class="bd-back" href="/surfboard-rental-tamarindo">← Volver al catálogo</a>
+
+      <div class="bd-top">
+        <div class="bd-photo">
+          {unit.image ? (
+            <img src={unit.image} alt={unit.name} />
+          ) : (
+            <span class="bd-nophoto"><b>+</b>Foto en camino</span>
+          )}
+        </div>
+
+        <div class="bd-info">
+          <span class="bd-cat">{cat}</span>
+          <h1>{unit.name}</h1>
+          {unit.nickname && <p class="bd-nick">“{unit.nickname}” · tabla {unit.code}</p>}
+          <p class="bd-price">
+            <strong>{money(unit.price_per_day)}</strong> por día
+            <span> · {money(week)} por semana</span>
+          </p>
+          {unit.description && <p class="bd-desc">{unit.description}</p>}
+
+          <BoardAvailability
+            client:load
+            unit={{
+              unit_id: unit.id,
+              slug: unit.slug,
+              name: unit.name,
+              code: unit.code,
+              image: unit.image,
+              price_per_day: unit.price_per_day,
+            }}
+          />
+        </div>
+      </div>
+
+      <div class="bd-bottom">
+        {specs.length > 0 && (
+          <div>
+            <h2>Especificaciones</h2>
+            <dl class="bd-specs">
+              {specs.map(([k, v]) => (
+                <div>
+                  <dt>{k}</dt>
+                  <dd>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        <div>
+          <h2>¿Es esta tu tabla?</h2>
+          <ul class="bd-fit">
+            <li><strong>Nivel:</strong> {LEVEL_LABEL[unit.skill_level] ?? unit.skill_level}</li>
+            {unit.weight_min_kg && unit.weight_max_kg && (
+              <li><strong>Peso recomendado:</strong> {unit.weight_min_kg}–{unit.weight_max_kg} kg</li>
+            )}
+            {unit.best_for.length > 0 && (
+              <li><strong>Mejor en:</strong> {unit.best_for.join(', ')}</li>
+            )}
+            {unit.features.length > 0 && (
+              <li><strong>Incluye:</strong> {unit.features.join(', ')}</li>
+            )}
+          </ul>
+          <p class="bd-guar">
+            Al retirar dejás una copia de tarjeta como garantía y firmás el waiver en el mostrador.
+            Quillas y leash van incluidos.
+          </p>
+        </div>
+      </div>
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .bd { padding: 2.5rem 0 var(--section-pad); }
+  .bd-back {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--teal-dark);
+    text-decoration: none;
+  }
+  .bd-top {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .bd-top { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+  .bd-photo {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--bg-alt);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .bd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bd-nophoto {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .bd-nophoto b { font-size: 2.5rem; line-height: 1; color: var(--teal); }
+  .bd-cat {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .bd-info h1 { margin: 0.35rem 0 0.25rem; }
+  .bd-nick { color: var(--text-muted); font-size: 0.9rem; margin: 0 0 0.75rem; }
+  .bd-price { margin: 0.5rem 0 1rem; color: var(--text-muted); }
+  .bd-price strong {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 2rem;
+    color: var(--teal-dark);
+    margin-right: 0.3rem;
+  }
+  .bd-desc { color: var(--text); margin: 0 0 1.5rem; line-height: 1.6; }
+  .bd-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    margin-top: 3rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 860px) {
+    .bd-bottom { grid-template-columns: 1fr; gap: 2rem; }
+  }
+  .bd-bottom h2 { font-size: 1.25rem; margin: 0 0 1rem; }
+  .bd-specs { margin: 0; }
+  .bd-specs > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    font-size: 0.9rem;
+  }
+  .bd-specs > div:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .bd-specs > div:last-child { border-bottom: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+  .bd-specs > div:nth-child(odd) { background: var(--bg-alt); }
+  .bd-specs dt { color: var(--text-muted); margin: 0; }
+  .bd-specs dd { margin: 0; font-weight: 600; color: var(--navy); }
+  .bd-fit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  .bd-fit li { font-size: 0.95rem; color: var(--text-muted); }
+  .bd-fit strong { color: var(--navy); }
+  .bd-guar { margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+</style>

@@ -1,0 +1,43 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import CartCheckout from '@components/rentals/CartCheckout.tsx';
+import { getPageSeo } from '@lib/seo';
+import { BUSINESS } from '@lib/constants';
+
+export const prerender = false;
+
+const seo = getPageSeo('reserva')!;
+const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
+---
+
+<BaseLayout seo={seo}>
+  <section class="rv">
+    <Container>
+      <h1>Tu reserva</h1>
+      <p class="rv-lead">Revisá las fechas y las tablas antes de confirmar.</p>
+      <CartCheckout
+        client:load
+        paypalClientId={paypalClientId}
+        whatsappNumber={BUSINESS.whatsapp.number}
+      />
+      <noscript>
+        <p class="rv-lead">Necesitás JavaScript para completar la reserva online.</p>
+      </noscript>
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .rv {
+    padding: 3rem 0 var(--section-pad);
+    min-height: 60vh;
+  }
+  .rv h1 {
+    margin: 0 0 0.35rem;
+  }
+  .rv-lead {
+    color: var(--text-muted);
+    margin: 0 0 2rem;
+  }
+</style>

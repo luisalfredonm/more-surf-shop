@@ -3,18 +3,33 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { sendBookingGroupEmails } from '@lib/email';
 import { rateLimit, clientKey, tooMany } from '@lib/ratelimit';
-import { computeEndAt, durationDays, makeRentalRef, presetOverride, priceRental } from '@lib/rentals';
+import {
+  dayEnd,
+  dayStart,
+  inclusiveDays,
+  makeRentalRef,
+  pickRate,
+  presetOverride,
+  priceRental,
+} from '@lib/rentals';
 
 export const prerender = false;
+
+/**
+ * Reserva online. El carrito comparte un único rango de fechas y puede llevar
+ * varias tablas — un booking_group con N rentals. Sin waiver: se firma en el
+ * mostrador al retirar.
+ */
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 const Schema = z.object({
-  unit_id: z.string().uuid(),
-  start_at: z.string().datetime(),
-  rate_type: z.enum(['hour', 'day', 'week']),
-  units_billed: z.number().int().min(1).max(60),
+  from: z.string().regex(DATE),
+  to: z.string().regex(DATE),
+  items: z.array(z.object({ unit_id: z.string().uuid() })).min(1).max(6),
   contact: z.object({
     full_name: z.string().trim().min(2).max(120),
     email: z.string().trim().email().max(200),
@@ -24,6 +39,14 @@ const Schema = z.object({
   customer_note: z.string().trim().max(1000).nullish(),
   website: z.string().max(200).optional(), // honeypot
 });
+
+interface Priced {
+  unit_id: string;
+  model_id: string;
+  name: string;
+  unit_price: number;
+  total: number;
+}
 
 export const POST: APIRoute = async ({ request }) => {
   if (!rateLimit(`rbk:${clientKey(request)}`, 10, 10 * 60_000)) return tooMany();
@@ -51,75 +74,90 @@ export const POST: APIRoute = async ({ request }) => {
 
   const supabase = getSupabase();
 
-  // --- Settings: bordes de duración y antelación ---
+  // --- Rango ---
+  const days = inclusiveDays(d.from, d.to);
+  if (days < 1) return json({ error: 'La devolución es anterior al retiro.', code: 'bad_range' }, 409);
+
   const { data: settings } = await supabase
     .from('rental_settings')
-    .select('min_duration_hours, max_duration_days, min_lead_hours, duration_presets')
+    .select('max_duration_days, min_lead_hours, duration_presets')
     .eq('id', 1)
     .maybeSingle();
-  const minHours = settings?.min_duration_hours ?? 1;
   const maxDays = settings?.max_duration_days ?? 30;
   const minLead = settings?.min_lead_hours ?? 0;
 
-  const startAt = new Date(d.start_at);
-  const endAt = computeEndAt(startAt, d.rate_type, d.units_billed);
-  const totalHours = (endAt.getTime() - startAt.getTime()) / 3_600_000;
-
-  if (totalHours < minHours) {
-    return json({ error: `El alquiler mínimo es de ${minHours} h.`, code: 'too_short' }, 409);
-  }
-  if (durationDays(d.rate_type, d.units_billed) > maxDays) {
+  if (days > maxDays) {
     return json({ error: `El alquiler máximo es de ${maxDays} días.`, code: 'too_long' }, 409);
   }
-  if (startAt.getTime() < Date.now() + minLead * 3_600_000) {
-    return json(
-      { error: minLead > 0 ? `Reservá con al menos ${minLead} h de antelación.` : 'El retiro ya pasó.', code: 'too_soon' },
-      409,
+  const startAt = dayStart(d.from);
+  const endAt = dayEnd(d.to);
+  if (endAt.getTime() < Date.now()) {
+    return json({ error: 'Esas fechas ya pasaron.', code: 'past' }, 409);
+  }
+  if (minLead > 0 && startAt.getTime() < Date.now() + minLead * 3_600_000) {
+    return json({ error: `Reservá con al menos ${minLead} h de antelación.`, code: 'too_soon' }, 409);
+  }
+
+  const { rateType, unitsBilled } = pickRate(days);
+  const override = presetOverride(settings?.duration_presets as any, rateType, unitsBilled);
+
+  // --- Tasar y validar cada tabla ---
+  const priced: Priced[] = [];
+  const seen = new Set<string>();
+  for (const item of d.items) {
+    if (seen.has(item.unit_id)) continue; // misma tabla repetida en el carrito
+    seen.add(item.unit_id);
+
+    const { data: unit } = await supabase
+      .from('board_units')
+      .select('id, code, status, model_id, board_models ( name, price_per_hour, price_per_day, active )')
+      .eq('id', item.unit_id)
+      .maybeSingle();
+    const model = unit ? (Array.isArray(unit.board_models) ? unit.board_models[0] : unit.board_models) : null;
+    if (!unit || unit.status !== 'available' || !model || !model.active) {
+      return json({ error: 'Una de las tablas ya no está disponible.', code: 'unit_unavailable' }, 409);
+    }
+
+    const computed = priceRental(
+      Number(model.price_per_hour) || 0,
+      Number(model.price_per_day) || 0,
+      rateType,
+      unitsBilled,
     );
+    const total = override ?? computed.total;
+    if (!(total > 0)) {
+      return json(
+        { error: `"${model.name}" todavía no tiene tarifa. Escribinos por WhatsApp.`, code: 'no_price' },
+        409,
+      );
+    }
+
+    const { data: available, error: aErr } = await supabase.rpc('is_unit_available', {
+      p_unit_id: item.unit_id,
+      p_from: startAt.toISOString(),
+      p_to: endAt.toISOString(),
+    });
+    if (aErr) {
+      console.error('[rentals/book] availability:', aErr.message);
+      return json({ error: 'No se pudo verificar disponibilidad.' }, 500);
+    }
+    if (!available) {
+      return json(
+        { error: `"${model.name}" ya no está libre en esas fechas.`, code: 'unit_busy', unit_id: item.unit_id },
+        409,
+      );
+    }
+
+    priced.push({
+      unit_id: item.unit_id,
+      model_id: unit.model_id,
+      name: model.name,
+      unit_price: override != null ? Math.round((override / unitsBilled) * 100) / 100 : computed.unitPrice,
+      total,
+    });
   }
 
-  // --- Unidad + modelo ---
-  const { data: unit, error: uErr } = await supabase
-    .from('board_units')
-    .select('id, status, model_id, board_models ( name, price_per_hour, price_per_day, active )')
-    .eq('id', d.unit_id)
-    .maybeSingle();
-  if (uErr) {
-    console.error('[rentals/book] unit:', uErr.message);
-    return json({ error: 'No se pudo verificar la tabla.' }, 500);
-  }
-  const model = unit ? (Array.isArray(unit.board_models) ? unit.board_models[0] : unit.board_models) : null;
-  if (!unit || unit.status !== 'available' || !model || !model.active) {
-    return json({ error: 'Esa tabla no está disponible.', code: 'unit_unavailable' }, 409);
-  }
-
-  const override = presetOverride(settings?.duration_presets as any, d.rate_type, d.units_billed);
-  const computed = priceRental(
-    Number(model.price_per_hour) || 0,
-    Number(model.price_per_day) || 0,
-    d.rate_type,
-    d.units_billed,
-  );
-  const total = override ?? computed.total;
-  const unitPrice =
-    override != null ? Math.round((override / d.units_billed) * 100) / 100 : computed.unitPrice;
-  if (!(total > 0)) {
-    return json({ error: 'Ese modelo todavía no tiene tarifa. Escribinos por WhatsApp.', code: 'no_price' }, 409);
-  }
-
-  // --- Disponibilidad (guard de carrera) ---
-  const { data: avail, error: aErr } = await supabase.rpc('is_unit_available', {
-    p_unit_id: d.unit_id,
-    p_from: startAt.toISOString(),
-    p_to: endAt.toISOString(),
-  });
-  if (aErr) {
-    console.error('[rentals/book] availability:', aErr.message);
-    return json({ error: 'No se pudo verificar disponibilidad.' }, 500);
-  }
-  if (!avail) {
-    return json({ error: 'Esa tabla ya no está libre en ese rango.', code: 'unit_busy' }, 409);
-  }
+  const groupTotal = Math.round(priced.reduce((s, p) => s + p.total, 0) * 100) / 100;
 
   // --- Cliente (find-or-create por email) ---
   const email = d.contact.email.toLowerCase();
@@ -159,7 +197,7 @@ export const POST: APIRoute = async ({ request }) => {
       .insert({
         reference: makeRentalRef('GRP'),
         customer_id: customerId,
-        total_amount: total,
+        total_amount: groupTotal,
         currency: 'USD',
         payment_method: d.payment_method,
         status: isPaypal ? 'pending' : 'confirmed',
@@ -175,50 +213,49 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!group) return json({ error: 'No se pudo crear la reserva.' }, 500);
 
-  // --- Alquiler ---
-  const { data: rental, error: rErr } = await supabase
-    .from('rentals')
-    .insert({
-      reference: makeRentalRef('RNT'),
-      group_id: group.id,
-      customer_id: customerId,
-      unit_id: d.unit_id,
-      model_id: unit.model_id,
-      start_at: startAt.toISOString(),
-      end_at: endAt.toISOString(),
-      rate_type: d.rate_type,
-      units_billed: d.units_billed,
-      unit_price: unitPrice,
-      total_amount: total,
-      currency: 'USD',
-      status: isPaypal ? 'pending_payment' : 'confirmed',
-      payment_method: d.payment_method,
-      source: 'web',
-      customer_note: d.customer_note ?? null,
-    })
-    .select('id, reference')
-    .single();
-  if (rErr || !rental) {
-    console.error('[rentals/book] rental:', rErr?.message);
+  // --- Alquileres ---
+  const rows = priced.map((p) => ({
+    reference: makeRentalRef('RNT'),
+    group_id: group!.id,
+    customer_id: customerId,
+    unit_id: p.unit_id,
+    model_id: p.model_id,
+    start_at: startAt.toISOString(),
+    end_at: endAt.toISOString(),
+    rate_type: rateType,
+    units_billed: unitsBilled,
+    unit_price: p.unit_price,
+    total_amount: p.total,
+    currency: 'USD',
+    status: isPaypal ? 'pending_payment' : 'confirmed',
+    payment_method: d.payment_method,
+    source: 'web',
+    customer_note: d.customer_note ?? null,
+  }));
+
+  const { data: inserted, error: rErr } = await supabase.from('rentals').insert(rows).select('reference');
+  if (rErr || !inserted) {
+    console.error('[rentals/book] rentals:', rErr?.message);
     await supabase.from('booking_groups').delete().eq('id', group.id);
     return json({ error: 'No se pudo crear la reserva.' }, 500);
   }
 
-  if (!isPaypal) {
-    await sendBookingGroupEmails(group.id);
-  }
+  if (!isPaypal) await sendBookingGroupEmails(group.id);
 
   return json(
     {
       ok: true,
       group_id: group.id,
       group_reference: group.reference,
-      rental_reference: rental.reference,
-      total,
+      references: inserted.map((r) => r.reference),
+      boards: priced.length,
+      days,
+      total: groupTotal,
       currency: 'USD',
       payment_method: d.payment_method,
       confirmed: !isPaypal,
-      end_at: endAt.toISOString(),
+      from: d.from,
+      to: d.to,
     },
     201,
   );
