@@ -431,3 +431,36 @@ desde el primer release.
   `shortboard`, `fish`, `sup`, …).
 - Confirmar que **la tablet del mostrador tiene cámara** (para foto de condición y QR).
 - Datos de la flota real: `code` de cada tabla, modelo, fins default.
+
+---
+
+## 13. TODO — pendiente de decisión del dueño
+
+### T1. Entrega fuera de la fecha reservada
+
+**Problema:** una tabla reservada 10–12 sep entregada el 8 hoy se entrega tal cual
+— `start_at`/`end_at` siguen en 10–12, se cobran 2 días, pero la tabla está
+físicamente afuera desde el 8. Consecuencias: `is_unit_available` la ve libre del
+8 al 10 (riesgo de doble reserva), "Afuera ahora" no la marca vencida hasta el 12,
+y el cobro no refleja los días reales.
+
+**Opciones a plantearle al dueño:**
+
+| | Qué hace | Cuándo conviene |
+| - | -------- | --------------- |
+| A. Bloquear | "Entregar" deshabilitado si `now < start_at`; el staff edita la reserva primero | Máxima disciplina de datos |
+| **B. Re-anclar** *(recomendada)* | Al entregar: `start_at = ahora`, `end_at = ahora + duración original`. Precio sin cambio | El cliente llegó antes y quiere sus 2 días desde hoy |
+| C. Extender | `start_at = ahora`, `end_at` = fecha reservada original → cobra los días reales | El cliente quiere la tabla para todo su viaje |
+
+Recomendación: **B por default + un toggle "extender hasta la fecha reservada
+(+N días, +$X)" para el caso C.** Una sola regla en `/api/rentals/checkout`
+(`start_at = now`, `end_at = now + Δoriginal`) cubre entrega adelantada y atrasada
+y deja disponibilidad + vencidas siempre honestas.
+
+### T2. Recálculo de días extra al recibir
+
+La nota de §6 dice "si la traen más tarde, al recibir el sistema recalcula el
+cobro extra" — **no está implementado.** Hoy `ReturnRentalModal` /
+`/api/rentals/return` cobran daño y el saldo base, pero no cobran días de más si
+la tabla vuelve después de `end_at`. Falta: en Recibir, mostrar "estuvo X días de
+más · +$Y" y sumarlo al cobro. (Depende de qué se decida en T1.)
