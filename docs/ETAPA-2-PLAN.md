@@ -382,8 +382,9 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    de vida). *(commits `2307356`, `29ee733`)*
    *Falta correr `schema-rentals.sql` en Supabase y crear el bucket
    `rental-photos` (público) para que las fotos anden.*
-5. **QR de la flota (v1.1)**: generar/imprimir stickers + escaneo para entrega y
-   devolución. Si los stickers están listos, se adelanta al paso 4.
+5. ✅ **QR de la flota (v1.1)**: `QrStickersView` (hoja imprimible) +
+   `QrScanner` (cámara + jsQR) enganchado en `NewRentalForm` y `RentalsView`.
+   *(commit `f802647`)*
 6. **Vía online**: hub + páginas de categoría + widget + `availability` / `quote` /
    `create` + PayPal + `capture`/`refund` extendidos.
 7. **Cron** (recordatorio de retiro + devolución vencida) + quitar `noindex`.
