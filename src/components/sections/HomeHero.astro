@@ -4,7 +4,7 @@ import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
 import { whatsappUrl } from '@lib/constants';
 
 /**
- * Hero de la home — página "paraguas" de la marca.
+ * Hero de la home, la página "paraguas" de la marca.
  * Keyword objetivo: "surf shop tamarindo" (no "surf lessons").
  *
  * NOTE: la imagen se pasa por prop `image` para que coincida con el
@@ -31,18 +31,17 @@ const waMessage = "Hi! I'm planning a trip to Tamarindo and have a few questions
   />
   <div class="hero-inner">
     <div class="hero-content">
-      <span class="hero-tag">Local &middot; Family-run &middot; On Tamarindo Beach</span>
+      <span class="hero-tag">Family-run, on Tamarindo Beach</span>
       <h1>Your Local Surf Shop in Tamarindo, Costa Rica</h1>
       <p class="hero-sub">
-        Surf lessons, board rentals, surf trips, and Guanacaste tours — all under one roof,
-        run by locals who actually surf this beach every day. Walk in, message us on WhatsApp,
-        or plan your whole trip with us.
+        Surf lessons, board rentals, surf trips and Guanacaste tours, run by locals who surf
+        this beach every day.
       </p>
       <div class="hero-ctas">
         <Button variant="primary" size="lg" href="#services">See What We Do</Button>
         <Button variant="secondary" size="lg" href={whatsappUrl(waMessage)} target="_blank">
           <WhatsAppIcon size={20} />
-          WhatsApp us — we reply in minutes
+          WhatsApp us
         </Button>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
+import icon from 'astro-icon';
 import vercel from '@astrojs/vercel/serverless';
 
 // https://astro.build/config
@@ -17,6 +18,8 @@ export default defineConfig({
       applyBaseStyles: false, // usamos nuestro propio global.css con tokens
     }),
     react(),
+    // Phosphor (@iconify-json/ph). Una sola familia de iconos en todo el proyecto.
+    icon({ iconDir: 'src/icons' }),
   ],
   compressHTML: true,
   build: {

@@ -1,5 +1,5 @@
 /**
- * FAQs — Home (More Surf Shop, Tamarindo)
+ * FAQs de la home (More Surf Shop, Tamarindo)
  *
  * Fuente única para (a) render en el acordeón visible de la home,
  * (b) generación automática de JSON-LD FAQPage.
@@ -29,11 +29,11 @@ export const homeFaqs: FaqItem[] = [
   },
   {
     q: 'Can I rent a board without taking a lesson?',
-    a: `<p><strong>Yes, absolutely.</strong> Board rentals are open to anyone who's comfortable in the water — no lesson required. We ask a few questions about your level to match you with the right board (soft-top, funboard, or shortboard), and you're on your way.</p><p>If you're not sure about your level or the conditions that day, we'll give you an honest read before you rent. Better to steer you toward a lesson on day one and rentals for the rest of the week than to send you out on a board you're not ready for.</p>`,
+    a: `<p><strong>Yes, absolutely.</strong> Board rentals are open to anyone who's comfortable in the water, no lesson required. We ask a few questions about your level to match you with the right board (soft-top, funboard, or shortboard), and you're on your way.</p><p>If you're not sure about your level or the conditions that day, we'll give you an honest read before you rent. Better to steer you toward a lesson on day one and rentals for the rest of the week than to send you out on a board you're not ready for.</p>`,
   },
   {
     q: "What's the best way to contact you and how fast do you reply?",
-    a: `<p><strong>WhatsApp is fastest — usually a few minutes during shop hours.</strong> Email works too but expect a longer wait. Instagram DMs get seen, but WhatsApp is where we live.</p><p>If you're already in Tamarindo, walking into the shop is the easiest way to sort out anything complicated — bundle discounts, unusual requests, or last-minute changes are all faster face-to-face.</p>`,
+    a: `<p><strong>WhatsApp is fastest, usually a few minutes during shop hours.</strong> Email works too but expect a longer wait. Instagram DMs get seen, but WhatsApp is where we live.</p><p>If you're already in Tamarindo, walking into the shop is the easiest way to sort out anything complicated. Bundle discounts, unusual requests, or last-minute changes are all faster face-to-face.</p>`,
   },
   {
     q: 'Does your team speak English?',
@@ -41,18 +41,18 @@ export const homeFaqs: FaqItem[] = [
   },
   {
     q: 'Can I pay with a credit card, or do I need cash?',
-    a: `<p><strong>We accept credit and debit cards (Visa and Mastercard), SINPE Móvil for local transfers, PayPal for international payments, and cash in USD or colones.</strong> No hidden processing fees on card payments.</p><p>For online bookings ahead of your trip, we handle payment via secure Costa Rican payment processors or PayPal — whichever works better for your bank.</p>`,
+    a: `<p><strong>We accept credit and debit cards (Visa and Mastercard), SINPE Móvil for local transfers, PayPal for international payments, and cash in USD or colones.</strong> No hidden processing fees on card payments.</p><p>For online bookings ahead of your trip, we handle payment via secure Costa Rican payment processors or PayPal, whichever works better for your bank.</p>`,
   },
   {
     q: 'What are your hours and are you open year-round?',
-    a: `<p><strong>We're open every day, year-round, from [opening time] to [closing time].</strong> We only close for a couple of major holidays (Christmas Day and New Year's Day). The shop is busiest between 7 and 10 AM (lesson prime time) and 4 to 6 PM (sunset gear runs).</p><p>Lessons run throughout the day depending on tide — the best window varies by season. Message us with your dates and we'll recommend the best times to book.</p>`,
+    a: `<p><strong>We're open every day, year-round, from 7:00 AM to 6:00 PM.</strong> We only close for a couple of major holidays (Christmas Day and New Year's Day). The shop is busiest between 7 and 10 AM (lesson prime time) and 4 to 6 PM (sunset gear runs).</p><p>Lessons run throughout the day depending on tide, and the best window varies by season. Message us with your dates and we'll recommend the best times to book.</p>`,
   },
   {
     q: 'Do you offer discounts if I book multiple services or a longer trip?',
-    a: `<p><strong>Yes.</strong> Multi-lesson packages (3, 5, 7 days) save money versus booking single lessons. Weekly and monthly board rentals cost less per day than daily rentals. And if you're bundling lessons, rentals, and a tour, tell us and we'll build a custom trip package with a better all-in price.</p><p>Longer stays (digital nomads, month-long trips) get special monthly rental pricing on boards — ask us about that specifically.</p>`,
+    a: `<p><strong>Yes.</strong> Multi-lesson packages (3, 5, 7 days) save money versus booking single lessons. Weekly and monthly board rentals cost less per day than daily rentals. And if you're bundling lessons, rentals, and a tour, tell us and we'll build a custom trip package with a better all-in price.</p><p>Longer stays (digital nomads, month-long trips) get special monthly rental pricing on boards. Ask us about that specifically.</p>`,
   },
   {
     q: 'When is the best time to visit Tamarindo?',
-    a: `<p><strong>Any time of year is good — Tamarindo works year-round.</strong> <strong>Dry season (December–April)</strong> is sunniest, most popular, and has warmer air. <strong>Green season (May–November)</strong> brings bigger waves, quick afternoon rain showers, fewer crowds, and often cheaper hotels.</p><p>For beginner surfers, dry season is easier. For intermediates chasing bigger waves, green season is better. Water temperature stays 78–84°F (26–29°C) all year regardless.</p>`,
+    a: `<p><strong>Any time of year is good. Tamarindo works year-round.</strong> <strong>Dry season (December to April)</strong> is sunniest, most popular, and has warmer air. <strong>Green season (May to November)</strong> brings bigger waves, quick afternoon rain showers, fewer crowds, and often cheaper hotels.</p><p>For beginner surfers, dry season is easier. For intermediates chasing bigger waves, green season is better. Water temperature stays 78-84°F (26-29°C) all year regardless.</p>`,
   },
 ];

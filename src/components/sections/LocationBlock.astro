@@ -1,28 +1,37 @@
 ---
 import Container from '@components/ui/Container.astro';
-import Eyebrow from '@components/ui/Eyebrow.astro';
 import Button from '@components/ui/Button.astro';
 import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
 import { BUSINESS, whatsappUrl } from '@lib/constants';
 
-const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${BUSINESS.geo.latitude},${BUSINESS.geo.longitude}`;
+const { latitude: lat, longitude: lon } = BUSINESS.geo;
+const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+
+// Mapa real de OpenStreetMap (sin API key). Antes esto era un div con
+// gradiente y un emoji de pin, que no ubicaba a nadie.
+const d = 0.006;
+const bbox = [lon - d, lat - d * 0.75, lon + d, lat + d * 0.75].join('%2C');
+const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
+
+// TODO: confirmar horarios reales con el dueño antes de producción.
+const hours = '7:00 AM to 6:00 PM, every day';
 ---
 
 <section class="section" id="location">
   <Container>
     <div class="location">
-      <div
-        class="location-map"
-        role="img"
-        aria-label="Map showing More Surf Shop location on Tamarindo Beach"
-      >
-        <div class="pin" aria-hidden="true">📍</div>
+      <div class="location-map">
+        <iframe
+          src={mapSrc}
+          title="Map showing More Surf Shop on Tamarindo Beach"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        />
       </div>
       <div class="location-info">
-        <Eyebrow>Come see us</Eyebrow>
         <h2>Our Surf Shop in Tamarindo</h2>
         <p class="lead">
-          A real, physical shop on Tamarindo Beach — walk in, meet the team, see the boards,
+          A real, physical shop on Tamarindo Beach. Walk in, meet the team, see the boards,
           book on the spot.
         </p>
         <ul class="location-details">
@@ -32,7 +41,7 @@ const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${BUSI
           </li>
           <li>
             <strong>Hours</strong>
-            <span>7:00 AM – 6:00 PM (Mon – Sun) — TODO: confirmar horarios</span>
+            <span>{hours}</span>
           </li>
           <li>
             <strong>WhatsApp</strong>
@@ -67,18 +76,17 @@ const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${BUSI
   }
   .location-map {
     aspect-ratio: 4 / 3;
-    background: linear-gradient(135deg, var(--teal) 0%, var(--navy) 100%);
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    position: relative;
+    overflow: hidden;
     box-shadow: var(--shadow-lg);
   }
-  .pin {
-    font-size: 3rem;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  .location-map iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
   }
   .lead {
     color: var(--text-muted);

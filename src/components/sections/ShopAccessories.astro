@@ -28,18 +28,12 @@ const waMessage = 'Hi! I want to know what surf gear you have in stock.';
 <section class="section">
   <Container>
     <div class="accessories">
-      <div
-        class="accessories-visual"
-        role="img"
-        aria-label="Surf accessories and gear inside the More Surf Shop store"
-        style={`background-image: url('${shopImage}');`}
-      />
       <div class="accessories-content">
         <Eyebrow class="on-dark">In the shop</Eyebrow>
         <h2>Surf Gear &amp; Accessories</h2>
         <p>
           Forgot your reef-safe sunscreen? Snapped a leash on the last wave? Need a rash guard
-          for your kid? Walk in — we have it.
+          for your kid? Walk in, we have it.
         </p>
         <ul class="accessories-list">
           {items.map((item) => <li>{item}</li>)}
@@ -48,15 +42,23 @@ const waMessage = 'Hi! I want to know what surf gear you have in stock.';
           Ask what's in stock
         </Button>
       </div>
+      <div
+        class="accessories-visual"
+        role="img"
+        aria-label="Surf accessories and gear inside the More Surf Shop store"
+        style={`background-image: url('${shopImage}');`}
+      />
     </div>
   </Container>
 </section>
 
 <style>
   .section { padding: var(--section-pad) 0; }
+  /* Visual a la derecha: BrandStory y LocationBlock ya la llevan a la
+     izquierda, y tres secciones seguidas con el mismo lado se leen planas. */
   .accessories {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1.2fr 1fr;
     gap: 3rem;
     align-items: center;
     background: var(--navy);

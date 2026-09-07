@@ -1,40 +1,40 @@
 ---
 import Container from '@components/ui/Container.astro';
-import Eyebrow from '@components/ui/Eyebrow.astro';
+import { Icon } from 'astro-icon/components';
 
 /**
- * "Why choose More Surf Shop" — diferenciadores del negocio.
+ * "Why choose More Surf Shop": diferenciadores del negocio.
  * Distinto de WhyTamarindo.astro (que argumenta por qué Tamarindo es
  * buen lugar para aprender a surfear, y vive en la página de lecciones).
  */
 const reasons = [
   {
-    icon: '🏪',
+    icon: 'ph:storefront',
     title: 'A real physical shop',
     text: "Walk in, meet the team, see the boards. Not just a WhatsApp number or a meeting point on the beach. We have a locker, a shower, and a roof.",
   },
   {
-    icon: '🌊',
+    icon: 'ph:waves',
     title: 'One stop for your whole trip',
-    text: 'Surf lessons, board rentals, surf trips, tours, gear — bundled or à la carte. Fewer emails to send, fewer platforms to trust with your credit card.',
+    text: 'Surf lessons, board rentals, surf trips, tours and gear, bundled or à la carte. Fewer emails to send, fewer platforms to trust with your credit card.',
   },
   {
-    icon: '🗣️',
+    icon: 'ph:translate',
     title: 'Local team, fluent English',
-    text: 'Our staff grew up surfing this beach. They speak fluent English, know the tide charts by heart, and give straight recommendations — not sales pitches.',
+    text: 'Our staff grew up surfing this beach. They speak fluent English, know the tide charts by heart, and give straight recommendations instead of sales pitches.',
   },
   {
-    icon: '💬',
+    icon: 'ph:chat-circle-dots',
     title: 'WhatsApp booking, real replies',
     text: "Message us with a question at 8 PM and you'll get a real answer from a real person in minutes. Not a chatbot, not a form, not a 24-hour wait.",
   },
   {
-    icon: '🏷️',
+    icon: 'ph:tag',
     title: 'Straight prices, no hidden fees',
     text: 'What we quote is what you pay. Board, rash guard, and instructor included in every lesson. No mid-lesson upsells, no surprise "gear rental" charges.',
   },
   {
-    icon: '🧭',
+    icon: 'ph:compass',
     title: 'Personalized to your trip',
     text: "Four days in Tamarindo? First time in Costa Rica? Traveling with kids? Tell us and we'll build the mix of lessons, rentals, and tours that fits your dates and your group.",
   },
@@ -43,7 +43,6 @@ const reasons = [
 
 <section class="section section-alt" id="why">
   <Container>
-    <Eyebrow>Why us</Eyebrow>
     <h2>Why Choose More Surf Shop</h2>
     <p class="section-intro">
       There are plenty of surf shops in Tamarindo. Here's what makes ours different, and why
@@ -53,7 +52,7 @@ const reasons = [
     <div class="why-grid">
       {reasons.map((r) => (
         <div class="why-item">
-          <div class="why-icon" aria-hidden="true">{r.icon}</div>
+          <div class="why-icon"><Icon name={r.icon} aria-hidden="true" /></div>
           <h3>{r.title}</h3>
           <p>{r.text}</p>
         </div>
@@ -86,12 +85,17 @@ const reasons = [
     width: 44px;
     height: 44px;
     background: rgba(20, 184, 166, 0.12);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.35rem;
     margin-bottom: 1rem;
+    color: var(--teal-dark);
+  }
+  /* Phosphor: un solo grosor de trazo en todo el proyecto. */
+  .why-icon :global(svg) {
+    width: 24px;
+    height: 24px;
   }
   .why-item h3 {
     font-size: 1.1rem;

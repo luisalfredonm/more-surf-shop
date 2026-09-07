@@ -14,18 +14,26 @@ const {
     { num: BUSINESS.trust.bilingualInstructors, label: 'Bilingual instructors' },
   ],
 } = Astro.props;
+
+// Las métricas de BUSINESS.trust todavía son placeholders tipo "[X,XXX+]".
+// Mostrarlas es peor que no mostrarlas, así que se ocultan hasta que haya
+// datos reales. La barra entera desaparece si no queda ninguna.
+const isPlaceholder = (v: string) => /[\[\]]/.test(v);
+const shown = items.filter((item) => !isPlaceholder(item.num));
 ---
 
-<div class="trust-bar">
-  <div class="trust-inner">
-    {items.map((item) => (
-      <div class="trust-item">
-        <span class="num">{item.num}</span>
-        <span class="label">{item.label}</span>
-      </div>
-    ))}
+{shown.length > 0 && (
+  <div class="trust-bar">
+    <div class="trust-inner">
+      {shown.map((item) => (
+        <div class="trust-item">
+          <span class="num">{item.num}</span>
+          <span class="label">{item.label}</span>
+        </div>
+      ))}
+    </div>
   </div>
-</div>
+)}
 
 <style>
   .trust-bar {

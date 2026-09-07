@@ -18,7 +18,7 @@ interface Props {
 const {
   reviews,
   aggregate,
-  eyebrow = 'What students say',
+  eyebrow,
   title = 'Real Reviews from Our Surf Students',
 } = Astro.props;
 
@@ -37,7 +37,7 @@ function sourceLabel(source: string): string {
 
 <section class="section section-alt">
   <Container>
-    <Eyebrow>{eyebrow}</Eyebrow>
+    {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
     <h2>{title}</h2>
 
     <div class="reviews-grid">

@@ -21,7 +21,7 @@ export const seoData: Record<string, PageSeo> = {
     keyfocus: 'surf shop tamarindo',
     title: 'Surf Shop in Tamarindo, Costa Rica | More Surf Shop',
     description:
-      'Local surf shop on Tamarindo Beach — surf lessons, board rentals, surf trips, tours, and accessories. Bilingual staff, walk in or WhatsApp.',
+      'Local surf shop on Tamarindo Beach: surf lessons, board rentals, surf trips, tours, and accessories. Bilingual staff, walk in or WhatsApp.',
     synonyms: ['tamarindo surf shop', 'surf store tamarindo', 'surf gear tamarindo'],
     related: ['surf-lessons-tamarindo', 'surfboard-rental-tamarindo'],
   },
@@ -77,7 +77,7 @@ export const seoData: Record<string, PageSeo> = {
     keyfocus: 'tours tamarindo',
     title: 'Tours in Tamarindo & Guanacaste | More Surf Shop',
     description:
-      'Book tours in Tamarindo and Guanacaste — sport fishing, catamaran, estuary boat tours, surf trips, wildlife adventures. Local team, WhatsApp booking.',
+      'Book tours in Tamarindo and Guanacaste: sport fishing, catamaran, estuary boat tours, surf trips, wildlife adventures. Local team, WhatsApp booking.',
     synonyms: [
       'tours tamarindo',
       'things to do tamarindo',
@@ -113,7 +113,7 @@ export const seoData: Record<string, PageSeo> = {
     keyfocus: 'check surf lesson booking tamarindo',
     title: 'Check your booking | More Surf Shop',
     description:
-      'Look up your More Surf Shop booking with your code and email — date, time, status and payment.',
+      'Look up your More Surf Shop booking with your code and email. Date, time, status and payment.',
     noindex: true,
   },
 
