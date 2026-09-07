@@ -299,19 +299,24 @@ grant execute on function public.list_available_units(timestamptz, timestamptz, 
   to anon, authenticated, service_role;
 
 -- ============================================
--- Storage: bucket privado para las fotos de condición (salida/entrada).
--- Sólo el staff sube/lee. Ejecutar si el bucket no existe (o crearlo desde el
--- dashboard: Storage → New bucket → "rental-photos", Public = off).
+-- Storage: bucket para las fotos de condición (salida/entrada).
+-- v1: bucket PÚBLICO (las fotos de tablas no son sensibles) — el panel guarda
+-- la URL pública en condition_out/in_photo_url. Sube sólo el staff.
+-- Crear desde el dashboard: Storage → New bucket → "rental-photos", Public = ON.
+-- O ejecutar esto:
 -- ============================================
 /*
 insert into storage.buckets (id, name, public)
-values ('rental-photos', 'rental-photos', false)
-on conflict (id) do nothing;
+values ('rental-photos', 'rental-photos', true)
+on conflict (id) do update set public = true;
 
-drop policy if exists "rental_photos_staff_all" on storage.objects;
-create policy "rental_photos_staff_all" on storage.objects
-  for all using (bucket_id = 'rental-photos' and public.is_staff())
-  with check (bucket_id = 'rental-photos' and public.is_staff());
+-- Lectura pública (bucket público); escritura sólo staff.
+drop policy if exists "rental_photos_staff_write" on storage.objects;
+create policy "rental_photos_staff_write" on storage.objects
+  for insert to authenticated with check (bucket_id = 'rental-photos' and public.is_staff());
+drop policy if exists "rental_photos_staff_manage" on storage.objects;
+create policy "rental_photos_staff_manage" on storage.objects
+  for update using (bucket_id = 'rental-photos' and public.is_staff());
 */
 
 -- ============================================

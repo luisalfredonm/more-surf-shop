@@ -376,10 +376,12 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    `groupItems` en email, `cleanup` y `/booking` lookup con rentals. *(commit `fd69951`)*
 3. ✅ **Panel staff — Fleet + Rental settings**: CRUD de modelos (tarifas) y
    unidades; editor de `rental_settings`. *(commit `e55044e`)*
-4. **Panel staff — Rentals walk-in (v1)**: formulario de una pantalla + chips de
-   duración + autocompletar cliente + waiver `rental` + **foto de condición** +
-   registro de pago + lista "Afuera ahora" + devolución + hoja de vida digital.
-   *(digitaliza el cuaderno — valor inmediato)*
+4. ✅ **Panel staff — Rentals walk-in (v1)**: `/api/rentals/create` +
+   `/api/rentals/return`, `NewRentalForm` (una pantalla) + `RentalsView`
+   ("Afuera ahora" + "Agenda") + `ReturnRentalModal` + `UnitHistoryModal` (hoja
+   de vida). *(commits `2307356`, `29ee733`)*
+   *Falta correr `schema-rentals.sql` en Supabase y crear el bucket
+   `rental-photos` (público) para que las fotos anden.*
 5. **QR de la flota (v1.1)**: generar/imprimir stickers + escaneo para entrega y
    devolución. Si los stickers están listos, se adelanta al paso 4.
 6. **Vía online**: hub + páginas de categoría + widget + `availability` / `quote` /
