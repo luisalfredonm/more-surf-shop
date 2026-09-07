@@ -389,7 +389,9 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    `RentalWidget`, hub `surfboard-rental-tamarindo.astro` (sin `noindex`) +
    páginas de categoría `[category].astro` + sitemap. *(commits `7113299`,
    `d321851`, `966f708`)*
-7. **Cron** (recordatorio de retiro + devolución vencida).
+7. ✅ **Cron**: `sendDueRentalReminders` (recordatorio de retiro ~24h antes) +
+   `notifyOverdueRentals` (aviso de devolución vencida), colgados de
+   `/api/cron/reminders`. *(commit `9d2b2e9`)*
 8. Prueba E2E de las dos vías + commit.
 
 Arrancar por 3–4 da valor aunque la parte online tarde: el shop deja el cuaderno
