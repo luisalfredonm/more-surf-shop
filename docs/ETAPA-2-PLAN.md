@@ -369,11 +369,11 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
 
 ## 11. Orden de construcción
 
-1. **Schema** `schema-rentals.sql` (`board_models`, `board_units`, `rentals`,
+1. ✅ **Schema** `schema-rentals.sql` (`board_models`, `board_units`, `rentals`,
    `rental_settings`) + `is_unit_available` / `list_available_units` + bucket
-   Storage `rental-photos` + tipos en `src/lib/supabase.ts`.
-2. **Refactor transversal** (§7): `confirmGroupLines` / `cancelGroupLines` +
-   builder de email por tipo.
+   Storage `rental-photos` + tipos en `src/lib/supabase.ts`. *(commit `a123ae2`)*
+2. ✅ **Refactor transversal** (§7): `confirmGroupLines` / `cancelGroupLines`,
+   `groupItems` en email, `cleanup` y `/booking` lookup con rentals. *(commit `fd69951`)*
 3. **Panel staff — Fleet + Rental settings**: CRUD de modelos (tarifas) y unidades;
    editor de `rental_settings`. Sin esto no hay inventario ni tarifas.
 4. **Panel staff — Rentals walk-in (v1)**: formulario de una pantalla + chips de
@@ -384,7 +384,7 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    devolución. Si los stickers están listos, se adelanta al paso 4.
 6. **Vía online**: hub + páginas de categoría + widget + `availability` / `quote` /
    `create` + PayPal + `capture`/`refund` extendidos.
-7. **Cron** + `/booking` lookup + quitar `noindex`.
+7. **Cron** (recordatorio de retiro + devolución vencida) + quitar `noindex`.
 8. Prueba E2E de las dos vías + commit.
 
 Arrancar por 3–4 da valor aunque la parte online tarde: el shop deja el cuaderno
