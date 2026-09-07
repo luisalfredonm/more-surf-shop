@@ -7,7 +7,7 @@ export const prerender = false;
 
 /**
  * Cotiza una tabla para un rango de FECHAS (vía online, por días inclusivos).
- * Devuelve disponibilidad + precio calculado en el server.
+ * Returns availability plus the price computed on the server.
  */
 
 const json = (b: unknown, s = 200) =>
@@ -23,10 +23,10 @@ export const GET: APIRoute = async ({ request, url }) => {
   const to = url.searchParams.get('to') ?? '';
 
   if (!unitId || !DATE.test(from) || !DATE.test(to)) {
-    return json({ error: 'Parámetros inválidos (unit_id, from, to).' }, 400);
+    return json({ error: 'Invalid parameters (unit_id, from, to).' }, 400);
   }
   const days = inclusiveDays(from, to);
-  if (days < 1) return json({ error: 'La fecha de devolución es anterior al retiro.', code: 'bad_range' }, 400);
+  if (days < 1) return json({ error: 'The return date is before pickup.', code: 'bad_range' }, 400);
   if (!isSupabaseConfigured()) return json({ error: 'No disponible.', code: 'not_configured' }, 503);
 
   const supabase = getSupabase();
@@ -46,7 +46,7 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   const model = unit ? (Array.isArray(unit.board_models) ? unit.board_models[0] : unit.board_models) : null;
   if (!unit || unit.status !== 'available' || !model || !model.active) {
-    return json({ error: 'Esa tabla no está disponible.', code: 'unit_unavailable' }, 409);
+    return json({ error: 'That board is not available.', code: 'unit_unavailable' }, 409);
   }
 
   const maxDays = settings?.max_duration_days ?? 30;
@@ -58,7 +58,7 @@ export const GET: APIRoute = async ({ request, url }) => {
   const endAt = dayEnd(to);
   const minLead = settings?.min_lead_hours ?? 0;
   if (endAt.getTime() < Date.now()) {
-    return json({ available: false, days, error: 'Esas fechas ya pasaron.', code: 'past' });
+    return json({ available: false, days, error: 'Those dates are in the past.', code: 'past' });
   }
   if (startAt.getTime() < Date.now() + minLead * 3_600_000 && minLead > 0) {
     return json({
@@ -87,7 +87,7 @@ export const GET: APIRoute = async ({ request, url }) => {
   });
   if (aErr) {
     console.error('[rentals/quote]', aErr.message);
-    return json({ error: 'No se pudo verificar disponibilidad.' }, 500);
+    return json({ error: "Couldn't check availability." }, 500);
   }
 
   return json({
@@ -103,6 +103,6 @@ export const GET: APIRoute = async ({ request, url }) => {
     currency: 'USD',
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),
-    ...(available ? {} : { error: 'Esa tabla está ocupada en esas fechas.', code: 'unit_busy' }),
+    ...(available ? {} : { error: 'That board is booked for those dates.', code: 'unit_busy' }),
   });
 };

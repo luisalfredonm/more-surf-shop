@@ -68,26 +68,26 @@ const breadcrumbs = [
     <Container>
       <div class="rr-hero-in">
         <div class="rr-hero-copy">
-          <Eyebrow>Alquiler de tablas · Playa Tamarindo</Eyebrow>
-          <h1>Elegí tu tabla y llevátela hoy</h1>
+          <Eyebrow>Surfboard rental · Playa Tamarindo</Eyebrow>
+          <h1>Pick your board, take it out today</h1>
           <p class="rr-lead">
-            Softtops, longboards, funboards, shortboards y fish. Por hora, por día o por semana.
+            Soft-tops, longboards, funboards, shortboards and fish. By the hour, the day or the week.
           </p>
           <div class="rr-hero-cta">
-            <Button href="#tablas" size="lg">Ver las tablas</Button>
+            <Button href="#boards" size="lg">See the boards</Button>
             <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
               <WhatsAppIcon size={20} />
-              Preguntar por WhatsApp
+              Ask on WhatsApp
             </Button>
           </div>
         </div>
         <figure class="rr-hero-art">
-          <img src={heroImage} alt="Tablas de surf listas para alquilar en Playa Tamarindo" width="1200" height="900" fetchpriority="high" />
+          <img src={heroImage} alt="Surfboards ready to rent on Playa Tamarindo" width="1200" height="900" fetchpriority="high" />
           {units.length > 0 && (
             <figcaption>
-              <span>desde</span>
+              <span>from</span>
               <strong>${from}</strong>
-              <span>por día</span>
+              <span>per day</span>
             </figcaption>
           )}
         </figure>
@@ -98,25 +98,25 @@ const breadcrumbs = [
   <section class="rr-how">
     <Container>
       <ol class="rr-steps rr-reveal">
-        <li><strong>Elegí la tabla.</strong> Filtrá por tu peso, tu nivel y tu presupuesto.</li>
-        <li><strong>Mirá si está libre.</strong> Poné las fechas y la añadís a tu reserva.</li>
-        <li><strong>Retirala en la playa.</strong> Documento con foto, firmás el waiver y al agua.</li>
+        <li><strong>Pick the board.</strong> Filter by your weight, your level and your budget.</li>
+        <li><strong>Check it's free.</strong> Set your dates and add it to your reservation.</li>
+        <li><strong>Collect it at the beach.</strong> Photo ID, sign the waiver, and you're in the water.</li>
       </ol>
     </Container>
   </section>
 
-  <section class="rr-catalog" id="tablas">
+  <section class="rr-catalog" id="boards">
     <Container>
       <div class="rr-cat-head">
-        <h2>Todas nuestras tablas</h2>
-        <p>Filtrá por lo que importa: tu nivel, tu presupuesto y el volumen que necesitás.</p>
+        <h2>All our boards</h2>
+        <p>Filter by what matters: your level, your budget and the volume you need.</p>
       </div>
 
       {units.length > 0 ? (
         <CatalogGrid client:load units={units} />
       ) : (
         <div class="rr-fallback">
-          <p>Estamos cargando la flota. Escribinos y te decimos qué tenemos libre hoy.</p>
+          <p>We're still loading the fleet. Message us and we'll tell you what's free today.</p>
           <a class="rr-wa" href={waHref} target="_blank" rel="noopener noreferrer">WhatsApp</a>
         </div>
       )}
@@ -125,21 +125,21 @@ const breadcrumbs = [
 
   <FaqAccordion
     faqs={surfboardRentalTamarindoFaqs}
-    title="Alquiler de tablas en Tamarindo: preguntas frecuentes"
-    intro="Lo que más nos preguntan antes de alquilar. Si falta la tuya, escribinos por WhatsApp."
+    title="Surfboard rental in Tamarindo: FAQ"
+    intro="The questions we get most before a rental. If yours isn't here, message us on WhatsApp."
   />
 
   <section class="rr-final">
     <Container>
-      <h2>¿Preferís pasar por la tienda?</h2>
-      <p>Estamos en {BUSINESS.address.formatted}. Abierto todos los días.</p>
+      <h2>Rather walk into the shop?</h2>
+      <p>Find us at {BUSINESS.address.formatted}. Open every day.</p>
       <div class="rr-hero-cta">
         <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
           <WhatsAppIcon size={20} />
-          Escribinos por WhatsApp
+          Message us on WhatsApp
         </Button>
         <Button variant="outline" size="lg" href="/surf-lessons-tamarindo">
-          Mejor una clase de surf
+          Book a surf lesson instead
         </Button>
       </div>
     </Container>

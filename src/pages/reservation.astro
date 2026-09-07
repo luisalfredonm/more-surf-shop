@@ -7,22 +7,22 @@ import { BUSINESS } from '@lib/constants';
 
 export const prerender = false;
 
-const seo = getPageSeo('reserva')!;
+const seo = getPageSeo('reservation')!;
 const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
 ---
 
 <BaseLayout seo={seo}>
   <section class="rv">
     <Container>
-      <h1>Tu reserva</h1>
-      <p class="rv-lead">Revisá las fechas y las tablas antes de confirmar.</p>
+      <h1>Your reservation</h1>
+      <p class="rv-lead">Check your dates and boards before you confirm.</p>
       <CartCheckout
         client:load
         paypalClientId={paypalClientId}
         whatsappNumber={BUSINESS.whatsapp.number}
       />
       <noscript>
-        <p class="rv-lead">Necesitás JavaScript para completar la reserva online.</p>
+        <p class="rv-lead">You need JavaScript to complete the reservation online.</p>
       </noscript>
     </Container>
   </section>

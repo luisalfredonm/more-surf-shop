@@ -45,13 +45,13 @@ const itemList = {
       name: u.name,
       category: cat.label,
       ...(u.image ? { image: u.image } : {}),
-      url: absoluteUrl(`/surfboard-rental-tamarindo/tabla/${u.slug}`),
+      url: absoluteUrl(`/surfboard-rental-tamarindo/board/${u.slug}`),
       offers: {
         '@type': 'Offer',
         price: u.price_per_day,
         priceCurrency: 'USD',
         availability: 'https://schema.org/InStock',
-        url: absoluteUrl(`/surfboard-rental-tamarindo/tabla/${u.slug}`),
+        url: absoluteUrl(`/surfboard-rental-tamarindo/board/${u.slug}`),
         seller: { '@id': `${SITE.url}/#business` },
       },
     },
@@ -77,7 +77,7 @@ const breadcrumbs = [
   <section class="rc-hero">
     <Container>
       <nav class="rc-crumb">
-        <a href="/surfboard-rental-tamarindo">Alquiler de tablas</a> <span>/</span> {cat.label}
+        <a href="/surfboard-rental-tamarindo">Surfboard rental</a> <span>/</span> {cat.label}
       </nav>
       <h1>{cat.h1}</h1>
       <p class="rc-lead">{cat.intro}</p>
@@ -90,9 +90,9 @@ const breadcrumbs = [
         <CatalogGrid client:load units={units} initialCategory={cat.slug} />
       ) : (
         <div class="rc-fallback">
-          <p>No tenemos {cat.label.toLowerCase()} en la flota ahora mismo. Escribinos y quizá conseguimos una.</p>
+          <p>We don't have any {cat.label.toLowerCase()} in the fleet right now. Message us and we might get you one.</p>
           <div class="rc-cta">
-            <Button href="/surfboard-rental-tamarindo" size="lg">Ver todas las tablas</Button>
+            <Button href="/surfboard-rental-tamarindo" size="lg">See all boards</Button>
             <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
               <WhatsAppIcon size={20} />
               WhatsApp
@@ -105,8 +105,8 @@ const breadcrumbs = [
 
   <FaqAccordion
     faqs={surfboardRentalTamarindoFaqs}
-    title="Alquiler de tablas en Tamarindo: preguntas frecuentes"
-    intro="Lo que más nos preguntan antes de alquilar."
+    title="Surfboard rental in Tamarindo: FAQ"
+    intro="The questions we get most before a rental."
   />
 </BaseLayout>
 

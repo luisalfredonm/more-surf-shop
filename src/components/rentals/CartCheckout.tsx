@@ -13,7 +13,7 @@ const money = (n: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n));
 const crToday = () => new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10);
 const longDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('es-CR', {
+  new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -58,7 +58,7 @@ export default function CartCheckout({
   const [err, setErr] = useState<string | null>(null);
   const [booked, setBooked] = useState<Booked | null>(null);
 
-  const waHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola! Consulta sobre un alquiler de tabla.')}`;
+  const waHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hi! A question about a board rental.')}`;
 
   const price = useCallback(async (items: CartItem[], f: string, t: string) => {
     if (items.length === 0) {
@@ -78,10 +78,10 @@ export default function CartCheckout({
             ...it,
             available: !!q.available,
             total: Number(q.total) || 0,
-            note: q.available ? undefined : q.error || 'No disponible en esas fechas',
+            note: q.available ? undefined : q.error || 'Not available for those dates',
           } as Line;
         } catch {
-          return { ...it, available: false, total: 0, note: 'No se pudo consultar' } as Line;
+          return { ...it, available: false, total: 0, note: "Couldn't check" } as Line;
         }
       }),
     );
@@ -136,7 +136,7 @@ export default function CartCheckout({
       });
       const data = await res.json().catch(() => ({}));
       if (res.status !== 201 || !data.ok) {
-        setErr(data.error || 'No se pudo confirmar la reserva.');
+        setErr(data.error || "We couldn't confirm the reservation.");
         setBusy(false);
         return;
       }
@@ -144,7 +144,7 @@ export default function CartCheckout({
       if (data.confirmed) clearCart();
       setBusy(false);
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
       setBusy(false);
     }
   }
@@ -160,7 +160,7 @@ export default function CartCheckout({
 
       {booked && !booked.confirmed ? (
         <div className="rsv-pay">
-          <h2>Pagá para confirmar</h2>
+          <h2>Pay to confirm</h2>
           <p className="rsv-sub">
             {booked.group_reference} · {money(booked.total, booked.currency)}
           </p>
@@ -173,36 +173,36 @@ export default function CartCheckout({
             }}
             onFail={setErr}
           />
-          <p className="rsv-note">Guardamos las tablas ~20 minutos mientras pagás.</p>
+          <p className="rsv-note">We hold the boards for about 20 minutes while you pay.</p>
         </div>
       ) : (
         <div className="rsv-cols">
           <div>
             <section className="rsv-card">
-              <h2>Fechas del alquiler</h2>
+              <h2>Rental dates</h2>
               <div className="bav-dates">
                 <label>
-                  Desde
+                  From
                   <input type="date" min={today} value={from} onChange={(e) => setFrom(e.target.value)} />
                 </label>
                 <label>
-                  Hasta
+                  To
                   <input type="date" min={from} value={to} onChange={(e) => setTo(e.target.value)} />
                 </label>
               </div>
               <button className="bav-btn bav-btn-ghost" type="button" onClick={updateDates}>
-                Actualizar fechas
+                Update dates
               </button>
             </section>
 
-            <h2 className="rsv-h">Tablas seleccionadas</h2>
+            <h2 className="rsv-h">Selected boards</h2>
             {loading ? (
-              <p className="rsv-note">Consultando disponibilidad…</p>
+              <p className="rsv-note">Checking availability…</p>
             ) : lines.length === 0 ? (
               <div className="rsv-card rsv-empty">
-                <p>Todavía no elegiste ninguna tabla.</p>
+                <p>You haven't picked any boards yet.</p>
                 <a className="bav-btn" href="/surfboard-rental-tamarindo">
-                  Ver las tablas
+                  See the boards
                 </a>
               </div>
             ) : (
@@ -216,13 +216,13 @@ export default function CartCheckout({
                   <div className="rsv-line-main">
                     <strong>{l.name}</strong>
                     <span>
-                      {money(l.price_per_day)} por día
+                      {money(l.price_per_day)} per day
                       {l.note && <em> · {l.note}</em>}
                     </span>
                   </div>
                   <span className="rsv-line-total">{l.available ? money(l.total) : '-'}</span>
                   <button type="button" onClick={() => drop(l.unit_id)}>
-                    Quitar
+                    Remove
                   </button>
                 </div>
               ))
@@ -231,40 +231,40 @@ export default function CartCheckout({
 
           <aside>
             <section className="rsv-card">
-              <h2>Resumen</h2>
+              <h2>Summary</h2>
               <div className="rsv-row">
                 <span>
-                  {days} {days === 1 ? 'día' : 'días'} · {lines.filter((l) => l.available).length}{' '}
-                  {lines.filter((l) => l.available).length === 1 ? 'tabla' : 'tablas'}
+                  {days} {days === 1 ? 'day' : 'days'} · {lines.filter((l) => l.available).length}{' '}
+                  {lines.filter((l) => l.available).length === 1 ? 'board' : 'boards'}
                 </span>
                 <strong>{money(total)}</strong>
               </div>
               <div className="rsv-row rsv-total">
-                <span>Total del alquiler</span>
+                <span>Rental total</span>
                 <strong>{money(total)}</strong>
               </div>
               <p className="rsv-note">
-                Al retirar dejás una copia de tarjeta como garantía y firmás el waiver en el
-                mostrador. Traé un documento con foto.
+                At pickup you leave a card copy as our guarantee and sign the waiver at the
+                counter. Bring photo ID.
               </p>
             </section>
 
             <section className="rsv-card">
-              <h2>Tus datos</h2>
+              <h2>Your details</h2>
               <label className="rsv-field">
-                Nombre completo
+                Full name
                 <input value={c.full_name} onChange={(e) => setC({ ...c, full_name: e.target.value })} />
               </label>
               <label className="rsv-field">
-                Correo
+                Email
                 <input type="email" value={c.email} onChange={(e) => setC({ ...c, email: e.target.value })} />
               </label>
               <label className="rsv-field">
-                Teléfono o WhatsApp
+                Phone or WhatsApp
                 <input value={c.phone} onChange={(e) => setC({ ...c, phone: e.target.value })} />
               </label>
               <label className="rsv-field">
-                Algo que debamos saber (opcional)
+                Anything we should know (optional)
                 <textarea rows={3} value={c.note} onChange={(e) => setC({ ...c, note: e.target.value })} />
               </label>
 
@@ -276,7 +276,7 @@ export default function CartCheckout({
                       checked={payMethod === 'paypal'}
                       onChange={() => setPayMethod('paypal')}
                     />
-                    Pagar ahora (tarjeta / PayPal)
+                    Pay now (card / PayPal)
                   </label>
                 )}
                 <label className={payMethod === 'on_arrival' ? 'on' : ''}>
@@ -285,15 +285,15 @@ export default function CartCheckout({
                     checked={payMethod === 'on_arrival'}
                     onChange={() => setPayMethod('on_arrival')}
                   />
-                  Pagar en la tienda al retirar
+                  Pay at the shop on pickup
                 </label>
               </div>
 
               <button className="bav-btn" type="button" disabled={!canBook} onClick={confirm}>
-                {busy ? 'Confirmando…' : 'Confirmar reserva'}
+                {busy ? 'Confirming…' : 'Confirm reservation'}
               </button>
               {!allOk && lines.length > 0 && (
-                <p className="rsv-note">Quitá o cambiá las fechas de las tablas no disponibles.</p>
+                <p className="rsv-note">Remove the unavailable boards or change the dates.</p>
               )}
             </section>
           </aside>
@@ -307,38 +307,38 @@ function Done({ booked, waHref }: { booked: Booked; waHref: string }) {
   return (
     <div className="rsv-done">
       <p className="rsv-check">✓</p>
-      <h2>¡Reserva confirmada!</h2>
-      <p className="rsv-sub">Mostranos este código al llegar y te preparamos la tabla.</p>
+      <h2>Reservation confirmed</h2>
+      <p className="rsv-sub">Show us this code when you arrive and we'll have the board ready.</p>
       <p className="rsv-code">{booked.group_reference}</p>
       <dl className="rsv-done-grid">
         <div>
-          <dt>Fechas</dt>
+          <dt>Dates</dt>
           <dd>
             {longDate(booked.from)} → {longDate(booked.to)} ({booked.days}{' '}
-            {booked.days === 1 ? 'día' : 'días'})
+            {booked.days === 1 ? 'day' : 'days'})
           </dd>
         </div>
         <div>
-          <dt>Tablas</dt>
+          <dt>Boards</dt>
           <dd>{booked.boards}</dd>
         </div>
         <div>
-          <dt>Total del alquiler</dt>
+          <dt>Rental total</dt>
           <dd>{money(booked.total, booked.currency)}</dd>
         </div>
       </dl>
       <p className="rsv-note">
         {booked.payment_method === 'on_arrival'
-          ? 'Se paga en la tienda al retirar. No pedimos tarjeta ahora.'
-          : 'Pagado. Te mandamos una copia por correo.'}{' '}
-        Dejás una copia de tarjeta como garantía y firmás el waiver en el mostrador.
+          ? "You pay at the shop on pickup. We don't ask for a card now."
+          : 'Paid. We sent a copy to your email.'}{' '}
+        You leave a card copy as our guarantee and sign the waiver at the counter.
       </p>
       <div className="rsv-done-cta">
         <a className="bav-btn bav-btn-ghost" href="/booking">
-          Consultar mi reserva
+          Check my reservation
         </a>
         <a className="bav-back" href={waHref} target="_blank" rel="noopener noreferrer">
-          Escribinos por WhatsApp
+          Message us on WhatsApp
         </a>
       </div>
     </div>
@@ -386,15 +386,15 @@ function PayPalBox({
           });
           const d = await res.json().catch(() => ({}));
           if (res.ok && d.ok) onPaid();
-          else onFail(d.error || 'No pudimos confirmar el pago. Escribinos por WhatsApp.');
+          else onFail(d.error || "We couldn't confirm the payment. Message us on WhatsApp.");
         },
-        onError: () => onFail('PayPal tuvo un problema. Probá de nuevo.'),
-        onCancel: () => onFail('Pago cancelado. Podés intentar otra vez.'),
+        onError: () => onFail('PayPal had a problem. Try again.'),
+        onCancel: () => onFail('Payment cancelled. You can try again.'),
       })
       .render(ref.current)
-      .catch(() => onFail('No se pudo mostrar PayPal.'));
+      .catch(() => onFail("Couldn't load PayPal."));
   }, [status, groupId, onPaid, onFail]);
 
-  if (status === 'error') return <p className="rsv-note">El pago online no está disponible ahora.</p>;
+  if (status === 'error') return <p className="rsv-note">Online payment isn't available right now.</p>;
   return <div ref={ref} className="rsv-paypal" />;
 }

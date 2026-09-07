@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!isSupabaseConfigured()) {
     return json(
-      { error: 'El alquiler en línea todavía no está activo. Escribinos por WhatsApp.', code: 'not_configured' },
+      { error: 'Online rental is not live yet. Message us on WhatsApp.', code: 'not_configured' },
       503,
     );
   }
@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // --- Rango ---
   const days = inclusiveDays(d.from, d.to);
-  if (days < 1) return json({ error: 'La devolución es anterior al retiro.', code: 'bad_range' }, 409);
+  if (days < 1) return json({ error: 'Return is before pickup.', code: 'bad_range' }, 409);
 
   const { data: settings } = await supabase
     .from('rental_settings')
@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
   const startAt = dayStart(d.from);
   const endAt = dayEnd(d.to);
   if (endAt.getTime() < Date.now()) {
-    return json({ error: 'Esas fechas ya pasaron.', code: 'past' }, 409);
+    return json({ error: 'Those dates are in the past.', code: 'past' }, 409);
   }
   if (minLead > 0 && startAt.getTime() < Date.now() + minLead * 3_600_000) {
     return json({ error: `Reservá con al menos ${minLead} h de antelación.`, code: 'too_soon' }, 409);
@@ -115,7 +115,7 @@ export const POST: APIRoute = async ({ request }) => {
       .maybeSingle();
     const model = unit ? (Array.isArray(unit.board_models) ? unit.board_models[0] : unit.board_models) : null;
     if (!unit || unit.status !== 'available' || !model || !model.active) {
-      return json({ error: 'Una de las tablas ya no está disponible.', code: 'unit_unavailable' }, 409);
+      return json({ error: 'One of the boards is no longer available.', code: 'unit_unavailable' }, 409);
     }
 
     const computed = priceRental(
@@ -139,7 +139,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
     if (aErr) {
       console.error('[rentals/book] availability:', aErr.message);
-      return json({ error: 'No se pudo verificar disponibilidad.' }, 500);
+      return json({ error: "Couldn't check availability." }, 500);
     }
     if (!available) {
       return json(
@@ -182,7 +182,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
     if (cErr || !created) {
       console.error('[rentals/book] customer:', cErr?.message);
-      return json({ error: 'No se pudo procesar el cliente.' }, 500);
+      return json({ error: "Couldn't process the customer." }, 500);
     }
     customerId = created.id;
   }
@@ -207,11 +207,11 @@ export const POST: APIRoute = async ({ request }) => {
     if (gErr) {
       if ((gErr as { code?: string }).code === '23505' && attempt === 0) continue;
       console.error('[rentals/book] group:', gErr.message);
-      return json({ error: 'No se pudo crear la reserva.' }, 500);
+      return json({ error: "Couldn't create the reservation." }, 500);
     }
     group = g;
   }
-  if (!group) return json({ error: 'No se pudo crear la reserva.' }, 500);
+  if (!group) return json({ error: "Couldn't create the reservation." }, 500);
 
   // --- Alquileres ---
   const rows = priced.map((p) => ({
@@ -237,7 +237,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (rErr || !inserted) {
     console.error('[rentals/book] rentals:', rErr?.message);
     await supabase.from('booking_groups').delete().eq('id', group.id);
-    return json({ error: 'No se pudo crear la reserva.' }, 500);
+    return json({ error: "Couldn't create the reservation." }, 500);
   }
 
   if (!isPaypal) await sendBookingGroupEmails(group.id);

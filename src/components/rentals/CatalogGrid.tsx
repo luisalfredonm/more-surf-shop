@@ -19,7 +19,7 @@ export interface CatalogUnit {
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
-  softtop: 'Softtop',
+  softtop: 'Soft-top',
   longboard: 'Longboard',
   funboard: 'Funboard',
   shortboard: 'Shortboard',
@@ -27,12 +27,12 @@ const CATEGORY_LABEL: Record<string, string> = {
   sup: 'SUP',
 };
 const LEVEL_LABEL: Record<string, string> = {
-  beginner: 'Principiante',
-  intermediate: 'Intermedio',
-  advanced: 'Avanzado',
-  all: 'Todos los niveles',
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+  all: 'All levels',
 };
-// Un nivel "cubre" al surfista si la tabla es de ese nivel o para todos.
+// A level "covers" the surfer if the board is that level or for everyone.
 const LEVEL_MATCH: Record<string, string[]> = {
   beginner: ['beginner', 'all'],
   intermediate: ['intermediate', 'all'],
@@ -41,7 +41,7 @@ const LEVEL_MATCH: Record<string, string[]> = {
 
 const money = (n: number) => `$${Number(n).toFixed(0)}`;
 const shortDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-CR', { day: 'numeric', month: 'short' });
+  new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 
 type Sort = 'recommended' | 'price_asc' | 'price_desc' | 'volume_asc' | 'volume_desc';
 
@@ -140,22 +140,22 @@ export default function CatalogGrid({
           aria-expanded={openFilters}
           onClick={() => setOpenFilters((v) => !v)}
         >
-          {openFilters ? 'Menos filtros' : 'Más filtros'}
+          {openFilters ? 'Fewer filters' : 'More filters'}
           {activeCount > 0 && <span className="cat-badge">{activeCount}</span>}
         </button>
 
         <span className="cat-count">
-          {shown.length} {shown.length === 1 ? 'tabla' : 'tablas'}
+          {shown.length} {shown.length === 1 ? 'board' : 'boards'}
         </span>
 
         <label className="cat-sort">
-          <span>Ordenar</span>
+          <span>Sort</span>
           <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-            <option value="recommended">Recomendado</option>
-            <option value="price_asc">Precio: menor primero</option>
-            <option value="price_desc">Precio: mayor primero</option>
-            <option value="volume_asc">Volumen: menor primero</option>
-            <option value="volume_desc">Volumen: mayor primero</option>
+            <option value="recommended">Recommended</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="volume_asc">Volume: low to high</option>
+            <option value="volume_desc">Volume: high to low</option>
           </select>
         </label>
       </div>
@@ -163,8 +163,8 @@ export default function CatalogGrid({
       {openFilters && (
         <div className="cat-adv">
           <label>
-            ¿Cuánto pesás?
-            <span className="cat-hint">Te dejamos las tablas que te van</span>
+            How much do you weigh?
+            <span className="cat-hint">We'll show the boards that fit you</span>
             <input
               type="number"
               min={20}
@@ -175,17 +175,17 @@ export default function CatalogGrid({
             />
           </label>
           <label>
-            Tu nivel
+            Your level
             <span className="cat-hint">&nbsp;</span>
             <select value={level} onChange={(e) => setLevel(e.target.value)}>
-              <option value="">Cualquier nivel</option>
-              <option value="beginner">Principiante</option>
-              <option value="intermediate">Intermedio</option>
-              <option value="advanced">Avanzado</option>
+              <option value="">Any level</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
             </select>
           </label>
           <label>
-            Hasta {money(price)} por día
+            Up to {money(price)} per day
             <span className="cat-hint">&nbsp;</span>
             <input
               type="range"
@@ -197,27 +197,27 @@ export default function CatalogGrid({
             />
           </label>
           <label>
-            Volumen (litros)
-            <span className="cat-hint">Si ya sabés cuál buscás</span>
+            Volume (liters)
+            <span className="cat-hint">If you already know what you want</span>
             <span className="cat-range">
               <input
                 type="number"
                 value={volMin}
                 onChange={(e) => setVolMin(e.target.value)}
-                placeholder="mín"
+                placeholder="min"
               />
               <em>-</em>
               <input
                 type="number"
                 value={volMax}
                 onChange={(e) => setVolMax(e.target.value)}
-                placeholder="máx"
+                placeholder="max"
               />
             </span>
           </label>
           {activeCount > 0 && (
             <button type="button" className="cat-reset" onClick={reset}>
-              Limpiar filtros
+              Clear filters
             </button>
           )}
         </div>
@@ -226,19 +226,19 @@ export default function CatalogGrid({
       {shown.length === 0 ? (
         <div className="cat-empty">
           <b>+</b>
-          <strong>Ninguna tabla coincide</strong>
+          <strong>No boards match</strong>
           <p>
-            Probá aflojando el peso o el volumen. Si buscás algo puntual, escribinos y te decimos
-            qué tenemos libre hoy.
+            Try loosening the weight or volume. If you're after something specific, message us and
+            we'll tell you what's free today.
           </p>
           <button type="button" onClick={reset}>
-            Limpiar filtros
+            Clear filters
           </button>
         </div>
       ) : (
         <div className="cat-grid">
           {shown.map((u) => (
-            <a className="cat-card" key={u.id} href={`/surfboard-rental-tamarindo/tabla/${u.slug}`}>
+            <a className="cat-card" key={u.id} href={`/surfboard-rental-tamarindo/board/${u.slug}`}>
               <div className="cat-photo">
                 {u.image ? (
                   <img src={u.image} alt={u.name} loading="lazy" />
@@ -249,7 +249,7 @@ export default function CatalogGrid({
                   </span>
                 )}
                 {u.busy_until && (
-                  <span className="cat-busy">Ocupada hasta el {shortDate(u.busy_until)}</span>
+                  <span className="cat-busy">Booked until {shortDate(u.busy_until)}</span>
                 )}
               </div>
               <div className="cat-body">
@@ -260,19 +260,19 @@ export default function CatalogGrid({
                 </h3>
                 <dl className="cat-specs">
                   <div>
-                    <dt>Largo</dt>
+                    <dt>Length</dt>
                     <dd>{u.length_label ?? '-'}</dd>
                   </div>
                   <div>
-                    <dt>Volumen</dt>
+                    <dt>Volume</dt>
                     <dd>{u.volume_l != null ? `${u.volume_l} L` : '-'}</dd>
                   </div>
                   <div>
-                    <dt>Nivel</dt>
+                    <dt>Level</dt>
                     <dd>{LEVEL_LABEL[u.skill_level] ?? u.skill_level}</dd>
                   </div>
                   <div>
-                    <dt>Peso</dt>
+                    <dt>Weight</dt>
                     <dd>
                       {u.weight_min_kg && u.weight_max_kg
                         ? `${u.weight_min_kg}-${u.weight_max_kg} kg`
@@ -281,7 +281,7 @@ export default function CatalogGrid({
                   </div>
                 </dl>
                 <p className="cat-price">
-                  <strong>{money(u.price_per_day)}</strong> por día
+                  <strong>{money(u.price_per_day)}</strong> per day
                 </p>
               </div>
             </a>

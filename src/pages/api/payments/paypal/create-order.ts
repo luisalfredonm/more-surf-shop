@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isPayPalConfigured() || !isSupabaseConfigured()) {
-    return json({ error: 'El pago en línea todavía no está disponible.', code: 'not_configured' }, 503);
+    return json({ error: 'Online payment is not available yet.', code: 'not_configured' }, 503);
   }
 
   const supabase = getSupabase();
@@ -33,17 +33,17 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (error) {
     console.error('[paypal/create-order] group:', error.message);
-    return json({ error: 'No se pudo verificar la reserva' }, 500);
+    return json({ error: "Couldn't verify the reservation" }, 500);
   }
-  if (!group) return json({ error: 'Esa reserva no existe.', code: 'group_missing' }, 404);
+  if (!group) return json({ error: 'That reservation does not exist.', code: 'group_missing' }, 404);
   if (group.status === 'confirmed') {
-    return json({ error: 'Esa reserva ya está pagada.', code: 'already_paid' }, 409);
+    return json({ error: 'That reservation is already paid.', code: 'already_paid' }, 409);
   }
   if (group.status !== 'pending' || group.payment_method !== 'paypal') {
-    return json({ error: 'Esa reserva no admite pago con PayPal.', code: 'bad_status' }, 409);
+    return json({ error: 'That reservation cannot be paid with PayPal.', code: 'bad_status' }, 409);
   }
   if (!(Number(group.total_amount) > 0)) {
-    return json({ error: 'Monto inválido.', code: 'bad_amount' }, 409);
+    return json({ error: 'Invalid amount.', code: 'bad_amount' }, 409);
   }
 
   const [{ count: nLessons }, { count: nRentals }] = await Promise.all([
@@ -51,9 +51,9 @@ export const POST: APIRoute = async ({ request }) => {
     supabase.from('rentals').select('id', { count: 'exact', head: true }).eq('group_id', group.id),
   ]);
   const parts: string[] = [];
-  if (nLessons) parts.push(`${nLessons} clase(s)`);
-  if (nRentals) parts.push(`${nRentals} alquiler(es)`);
-  const description = `More Surf Shop — ${parts.join(' + ') || 'reserva'} (${group.reference})`;
+  if (nLessons) parts.push(`${nLessons} lesson(s)`);
+  if (nRentals) parts.push(`${nRentals} rental(s)`);
+  const description = `More Surf Shop: ${parts.join(' + ') || 'reservation'} (${group.reference})`;
 
   try {
     const order = await createOrder({
@@ -75,6 +75,6 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ id: order.id }, 201);
   } catch (e) {
     console.error('[paypal/create-order]', e);
-    return json({ error: 'No se pudo iniciar el pago' }, 502);
+    return json({ error: "Couldn't start the payment" }, 502);
   }
 };

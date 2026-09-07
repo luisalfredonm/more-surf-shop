@@ -17,11 +17,11 @@ export const GET: APIRoute = async ({ request, url }) => {
   const category = url.searchParams.get('category') || null;
 
   if (!ISO.test(from) || !ISO.test(to)) {
-    return json({ error: 'from/to inválidos (ISO).' }, 400);
+    return json({ error: 'Invalid from/to (ISO).' }, 400);
   }
   const fromD = new Date(from);
   const toD = new Date(to);
-  if (!(fromD < toD)) return json({ error: 'El retiro debe ser antes de la devolución.' }, 400);
+  if (!(fromD < toD)) return json({ error: 'Pickup must be before return.' }, 400);
 
   if (!isSupabaseConfigured()) {
     return json({ units: [], settings: null, dev: true });
@@ -44,7 +44,7 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   if (error) {
     console.error('[rentals/availability]', error.message);
-    return json({ error: 'No se pudo consultar disponibilidad.' }, 500);
+    return json({ error: "Couldn't check availability." }, 500);
   }
 
   return json({

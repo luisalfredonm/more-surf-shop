@@ -32,7 +32,7 @@ export const GET: APIRoute = async () => {
       if (cats.has(c.slug)) rentalUrls.push(entry(`/surfboard-rental-tamarindo/${c.slug}`, '0.6'));
     }
     for (const u of units) {
-      rentalUrls.push(entry(`/surfboard-rental-tamarindo/tabla/${u.slug}`, '0.5'));
+      rentalUrls.push(entry(`/surfboard-rental-tamarindo/board/${u.slug}`, '0.5'));
     }
   }
 

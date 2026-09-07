@@ -2,7 +2,7 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* ---- Barra de filtros (sticky, horizontal: sin columna muerta) ---- */
+/* ---- Filter bar (sticky, horizontal: no dead column) ---- */
 .cat-bar {
   position: sticky;
   top: 72px;
@@ -95,7 +95,7 @@
   color: var(--text);
 }
 
-/* ---- Filtros avanzados ---- */
+/* ---- Advanced filters ---- */
 .cat-adv {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -152,7 +152,7 @@
   padding: 0.4rem 0;
 }
 
-/* ---- Grilla ---- */
+/* ---- Grid ---- */
 .cat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -362,7 +362,7 @@
   }
 }
 
-/* ============ Detalle: consulta de disponibilidad ============ */
+/* ============ Detail: availability check ============ */
 .bav {
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--white);
@@ -481,7 +481,7 @@
   text-align: center;
 }
 
-/* ============ Carrito / checkout ============ */
+/* ============ Cart / checkout ============ */
 .rsv {
   font-family: 'Inter', system-ui, sans-serif;
 }

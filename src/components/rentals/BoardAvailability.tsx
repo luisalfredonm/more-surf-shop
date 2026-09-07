@@ -23,7 +23,7 @@ export default function BoardAvailability({ unit }: { unit: CartItem }) {
   const [added, setAdded] = useState(false);
   const [resetNote, setResetNote] = useState(false);
 
-  // Si ya hay un carrito, arrancamos con sus fechas.
+  // If a cart already exists, start from its dates.
   useEffect(() => {
     const c = readCart();
     if (c.from && c.to) {
@@ -45,14 +45,14 @@ export default function BoardAvailability({ unit }: { unit: CartItem }) {
       const res = await fetch(`/api/rentals/quote?${qs}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok && !data.available) {
-        setErr(data.error || 'No se pudo consultar la disponibilidad.');
+        setErr(data.error || "We couldn't check availability.");
         setBusy(false);
         return;
       }
       setQuote(data as Quote);
       if (data.error) setErr(data.error);
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
     } finally {
       setBusy(false);
     }
@@ -68,14 +68,14 @@ export default function BoardAvailability({ unit }: { unit: CartItem }) {
 
   return (
     <div className="bav">
-      <h2>Consultá disponibilidad</h2>
+      <h2>Check availability</h2>
       <div className="bav-dates">
         <label>
-          Desde
+          From
           <input type="date" min={today} value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label>
-          Hasta
+          To
           <input type="date" min={from} value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
       </div>
@@ -84,32 +84,32 @@ export default function BoardAvailability({ unit }: { unit: CartItem }) {
 
       {quote?.available && (
         <p className="bav-ok">
-          Libre · <strong>{quote.days}</strong> {quote.days === 1 ? 'día' : 'días'} ·{' '}
+          Free · <strong>{quote.days}</strong> {quote.days === 1 ? 'day' : 'days'} ·{' '}
           <strong>{money(quote.total)}</strong>
         </p>
       )}
 
       {!quote?.available ? (
         <button className="bav-btn bav-btn-ghost" type="button" disabled={busy} onClick={check}>
-          {busy ? 'Consultando…' : 'Ver si está libre'}
+          {busy ? 'Checking…' : 'Check if it\'s free'}
         </button>
       ) : added ? (
         <div className="bav-added">
-          <p>✓ Añadida a tu reserva{resetNote ? ' (cambiaste las fechas, empezamos de nuevo)' : ''}</p>
-          <a className="bav-btn" href="/reserva">
-            Ver mi reserva
+          <p>✓ Added to your reservation{resetNote ? ' (dates changed, we started over)' : ''}</p>
+          <a className="bav-btn" href="/reservation">
+            View my reservation
           </a>
           <a className="bav-back" href="/surfboard-rental-tamarindo">
-            Seguir mirando tablas
+            Keep browsing boards
           </a>
         </div>
       ) : (
         <button className="bav-btn" type="button" onClick={add}>
-          + Añadir a mi reserva
+          + Add to my reservation
         </button>
       )}
 
-      <p className="bav-note">Podés añadir varias tablas antes de confirmar.</p>
+      <p className="bav-note">You can add several boards before you confirm.</p>
     </div>
   );
 }

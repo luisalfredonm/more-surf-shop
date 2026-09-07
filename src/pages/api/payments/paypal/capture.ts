@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isPayPalConfigured() || !isSupabaseConfigured()) {
-    return json({ error: 'El pago en línea todavía no está disponible.', code: 'not_configured' }, 503);
+    return json({ error: 'Online payment is not available yet.', code: 'not_configured' }, 503);
   }
   const { order_id, group_id } = parsed.data;
 
@@ -39,14 +39,14 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (error) {
     console.error('[paypal/capture] group:', error.message);
-    return json({ error: 'No se pudo verificar la reserva' }, 500);
+    return json({ error: "Couldn't verify the reservation" }, 500);
   }
-  if (!group) return json({ error: 'Esa reserva no existe.', code: 'group_missing' }, 404);
+  if (!group) return json({ error: 'That reservation does not exist.', code: 'group_missing' }, 404);
   if (group.status === 'confirmed') {
     return json({ ok: true, already: true, group_reference: group.reference }, 200);
   }
   if (group.status !== 'pending') {
-    return json({ error: 'Esa reserva no admite pago.', code: 'bad_status' }, 409);
+    return json({ error: 'That reservation cannot be paid.', code: 'bad_status' }, 409);
   }
 
   let cap;
@@ -54,10 +54,10 @@ export const POST: APIRoute = async ({ request }) => {
     cap = await captureOrder(order_id);
   } catch (e) {
     console.error('[paypal/capture]', e);
-    return json({ error: 'No se pudo capturar el pago' }, 502);
+    return json({ error: "Couldn't capture the payment" }, 502);
   }
   if (cap.status !== 'COMPLETED') {
-    return json({ error: 'El pago no se completó.', code: 'not_completed', status: cap.status }, 409);
+    return json({ error: 'The payment did not complete.', code: 'not_completed', status: cap.status }, 409);
   }
 
   const expected = Number(group.total_amount).toFixed(2);
