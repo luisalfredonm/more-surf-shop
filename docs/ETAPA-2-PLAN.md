@@ -234,35 +234,35 @@ de tarjeta en el mostrador).
 
 ---
 
-## 6. Vía mostrador (walk-in) — recomendación
+## 6. Vía mostrador (walk-in) — 3 momentos
 
-El dueño quiere cambiarlo porque **el proceso actual es largo**: se escribe todo a
-mano en la hoja de cada tabla, el cliente completa varias columnas, y no hay forma
-de ver qué está afuera. La recomendación ataca esas tres cosas.
+El form "todo en uno" (buscar tabla + cliente + waiver del cliente + condición +
+pago, un submit) quedó sobrecargado. Se separó en **reservar / entregar /
+recibir**, igual que las lecciones (`create` → `checkin` → `completed`).
 
-### Los 3 cambios que recortan el tiempo
+```
+RESERVAR   (NewRentalForm + /api/rentals/create)      → rental status = confirmed
+  tabla (o QR) + FECHA/HORA de retiro + duración (chips) + cliente + nota
+  Botones: "Reservar"  ·  "Reservar y entregar"
 
-1. **QR en cada tabla.** Sticker laminado con el `code` de la unidad ("6.2 Ap").
-   El staff lo escanea con la tablet y la tabla queda seleccionada con su modelo,
-   tarifa y nº de fins por defecto ya cargados. Sirve igual para **entrega** y
-   **devolución**. Es el ahorro más grande. Fallback: tipear el código.
-2. **Todo con valor por defecto; el staff sólo toca la excepción.** Fins = default
-   de la tabla. Duración = chips configurables (`2h` `4h` `1 día` `2 días`
-   `1 semana`). Precio se calcula solo. Pago = un tap.
-3. **El cliente hace una sola cosa:** leer los términos, tocar "Acepto" y firmar
-   con el dedo en la tablet (~20 s). No escribe nombre ni duración.
+ENTREGAR   (RentalCheckoutModal + /api/rentals/checkout, staff-only)  → picked_up
+  pantalla enfocada, se le pasa la tablet al cliente:
+  - condición de salida: fins (default de la tabla) + FOTO + nota
+  - waiver: contacto de emergencia · ¿menor? → firma el tutor · texto + firma (SignaturePad) + "acepto"
+  - cobro en efectivo opcional (si no está pago)
+  → waiver_id, picked_up_at, checked_out_by
 
-### Entrega — objetivo < 1 minuto
+RECIBIR    (ReturnRentalModal + /api/rentals/return)  → returned
+  fins de entrada + foto + daño/cargo + cobro del saldo
+```
 
-| # | Quién | Detalle |
-| - | ----- | ------- |
-| 1. Escanear QR / buscar por nº de tabla | staff | carga modelo, tarifa, fins default. (o tocar la grilla de disponibles) |
-| 2. Duración | staff | tap en un chip (presets de `rental_settings`) → `end_at` previsto + precio al instante |
-| 3. Cliente | staff | tipear nombre → **autocompleta si es repetido** (trae tel, email, historial). Nuevo: nombre + teléfono; email opcional |
-| 4. Condición de salida | staff | fins pre-lleno = default → sólo toca si difiere. **Foto de la tabla** (una toma con la cámara) + nota opcional |
-| 5. Waiver + T&C | **cliente** | `CheckinModal` con `activity = 'rental'`, una persona (si es menor, firma el adulto). Repetido con misma versión firmada hace poco → "reusar firma anterior" |
-| 6. Pago | staff | `Efectivo` (monto, listo) / `Tarjeta` (datáfono externo → marcar pagado) / `PayPal` (QR para pagar en su celular) / `Pagar al devolver` |
-| 7. Listo | — | `status = 'picked_up'`, `picked_up_at`, `checked_out_by = staff`; fila en la hoja de vida digital; recibo por WhatsApp / email / impreso (los tres opcionales) |
+- **Walk-in "retira ahora"** = "Reservar y entregar" (crea el `confirmed` y abre
+  el modal de entrega de una).
+- **Reserva para otro día** = sólo "Reservar"; el staff hace "Entregar" cuando
+  viene a buscar la tabla (botón en la Agenda, o escaneando el QR).
+- El **escáner** enruta por estado: `confirmed` → entregar · `picked_up` → recibir.
+- Una **reserva online** (`confirmed`) aparece igual en la Agenda con "Entregar":
+  el mismo modal sirve para el retiro presencial de lo reservado por web.
 
 ### Devolución — objetivo < 20 segundos
 
@@ -297,14 +297,11 @@ de recibos opcional, o WhatsApp.
 
 ### Faseo de la vía mostrador
 
-- **v1:** formulario en una sola pantalla + chips de duración + autocompletar
-  cliente + T&C/firma digital + **foto de condición** salida/entrada + registro de
-  pago + lista "Afuera ahora" + devolución + hoja de vida digital. Tabla elegida
-  tocando la grilla de disponibles o buscando por nº de tabla.
-- **v1.1 (rápido):** stickers QR + escaneo para entrega y devolución. Poco código,
-  mucho tiempo ahorrado — si los stickers están listos, entra en v1.
+- **v1:** reservar (con fecha) + entregar (waiver + foto + cobro) + recibir +
+  "Afuera ahora" + hoja de vida digital + escaneo QR.
 - **Fase 3:** OCR de cédula/pasaporte, cobro automático de daño, depósito con
-  autorización PayPal.
+  autorización PayPal, "reusar firma anterior" para clientes repetidos, recibo
+  por WhatsApp.
 
 ---
 
@@ -376,12 +373,14 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
    `groupItems` en email, `cleanup` y `/booking` lookup con rentals. *(commit `fd69951`)*
 3. ✅ **Panel staff — Fleet + Rental settings**: CRUD de modelos (tarifas) y
    unidades; editor de `rental_settings`. *(commit `e55044e`)*
-4. ✅ **Panel staff — Rentals walk-in (v1)**: `/api/rentals/create` +
-   `/api/rentals/return`, `NewRentalForm` (una pantalla) + `RentalsView`
-   ("Afuera ahora" + "Agenda") + `ReturnRentalModal` + `UnitHistoryModal` (hoja
-   de vida). *(commits `2307356`, `29ee733`)*
-   *Falta correr `schema-rentals.sql` en Supabase y crear el bucket
-   `rental-photos` (público) para que las fotos anden.*
+4. ✅ **Panel staff — Rentals walk-in**: reservar / entregar / recibir (§6).
+   `NewRentalForm` (reserva + fecha) → `/api/rentals/create`;
+   `RentalCheckoutModal` (waiver + condición + cobro) → `/api/rentals/checkout`;
+   `ReturnRentalModal` → `/api/rentals/return`; `RentalsView` ("Afuera ahora" +
+   "Agenda" con "Entregar"/"Recibir") + `UnitHistoryModal` (hoja de vida).
+   *(commits `2307356`, `29ee733`, `1b8e86b`)*
+   *Falta correr `schema-rentals.sql` + la policy de `storage.objects` para las
+   fotos (el bucket `rental-photos` ya está).*
 5. ✅ **QR de la flota (v1.1)**: `QrStickersView` (hoja imprimible) +
    `QrScanner` (cámara + jsQR) enganchado en `NewRentalForm` y `RentalsView`.
    *(commit `f802647`)*
