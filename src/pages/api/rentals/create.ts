@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
-import { computeEndAt, makeRentalRef, priceRental } from '@lib/rentals';
+import { computeEndAt, makeRentalRef, presetOverride, priceRental } from '@lib/rentals';
 
 export const prerender = false;
 
@@ -69,12 +69,22 @@ export const POST: APIRoute = async ({ request }) => {
 
   const startAt = d.start_at ? new Date(d.start_at) : new Date();
   const endAt = computeEndAt(startAt, d.rate_type, d.units_billed);
-  const { unitPrice, total } = priceRental(
+
+  // Precio: si hay un chip de duración con precio fijo, gana; si no, tarifa del modelo.
+  const { data: settings } = await supabase
+    .from('rental_settings')
+    .select('duration_presets')
+    .eq('id', 1)
+    .maybeSingle();
+  const override = presetOverride(settings?.duration_presets as any, d.rate_type, d.units_billed);
+  const computed = priceRental(
     Number(model.price_per_hour) || 0,
     Number(model.price_per_day) || 0,
     d.rate_type,
     d.units_billed,
   );
+  const total = override ?? computed.total;
+  const unitPrice = override != null ? Math.round((override / d.units_billed) * 100) / 100 : computed.unitPrice;
 
   // --- Disponibilidad (guard de carrera) ---
   const { data: avail, error: aErr } = await supabase.rpc('is_unit_available', {

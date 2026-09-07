@@ -32,6 +32,19 @@ export function durationDays(rateType: string, qty: number): number {
   return (qty * (RENTAL_MS[rateType] ?? RENTAL_MS.day)) / RENTAL_MS.day;
 }
 
+/**
+ * Precio fijo del chip de duración que matchea (rate_type, qty), si el staff lo
+ * definió en rental_settings. Devuelve null si no hay chip o no tiene precio.
+ */
+export function presetOverride(
+  presets: { kind: string; qty: number; price?: number | null }[] | null | undefined,
+  rateType: string,
+  qty: number,
+): number | null {
+  const hit = (presets ?? []).find((p) => p.kind === rateType && p.qty === qty);
+  return hit && typeof hit.price === 'number' && hit.price >= 0 ? hit.price : null;
+}
+
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function makeRentalRef(prefix: string): string {
   const bytes = crypto.getRandomValues(new Uint8Array(5));

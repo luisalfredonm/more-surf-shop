@@ -21,6 +21,7 @@ interface Preset {
   label: string;
   kind: string;
   qty: number;
+  price?: number | null;
 }
 interface CustomerHit {
   id: string;
@@ -98,14 +99,19 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
 
   const unit = useMemo(() => units.find((u) => u.id === unitId) ?? null, [units, unitId]);
 
-  const unitPrice = unit
+  const computedUnit = unit
     ? rateType === 'hour'
       ? unit.price_per_hour
       : rateType === 'week'
         ? unit.price_per_day * 7
         : unit.price_per_day
     : 0;
-  const total = Math.round(unitPrice * qty * 100) / 100;
+  const activePreset = presets.find((p) => p.kind === rateType && p.qty === qty);
+  const chipPrice =
+    activePreset && typeof activePreset.price === 'number' && activePreset.price >= 0
+      ? activePreset.price
+      : null;
+  const total = chipPrice != null ? chipPrice : Math.round(computedUnit * qty * 100) / 100;
   const startAt = new Date(`${date}T${time}:00`);
   const endAt = new Date(startAt.getTime() + qty * (MS[rateType] ?? MS.day));
 
@@ -265,7 +271,16 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         </div>
         {unit && (
           <p className="st-note">
-            {money(unitPrice)} × {qty} = <strong>{money(total)}</strong> · devuelve{' '}
+            {chipPrice != null ? (
+              <>
+                <strong>{money(chipPrice)}</strong> (precio fijo del chip)
+              </>
+            ) : (
+              <>
+                {money(computedUnit)} × {qty} = <strong>{money(total)}</strong>
+              </>
+            )}{' '}
+            · devuelve{' '}
             {endAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
           </p>
         )}

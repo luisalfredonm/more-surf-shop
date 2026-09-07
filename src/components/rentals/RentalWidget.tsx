@@ -9,6 +9,7 @@ interface Preset {
   label: string;
   kind: 'hour' | 'day' | 'week';
   qty: number;
+  price?: number | null;
 }
 const DEFAULT_PRESETS: Preset[] = [
   { label: '2 hours', kind: 'hour', qty: 2 },
@@ -42,6 +43,7 @@ interface Booked {
 }
 
 function unitTotal(u: Unit, p: Preset): number {
+  if (typeof p.price === 'number' && p.price >= 0) return p.price; // chip con precio fijo
   const unit = p.kind === 'hour' ? u.price_per_hour : p.kind === 'week' ? u.price_per_day * 7 : u.price_per_day;
   return Math.round(unit * p.qty * 100) / 100;
 }

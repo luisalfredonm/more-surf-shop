@@ -7,6 +7,7 @@ interface Preset {
   label: string;
   kind: string;
   qty: number;
+  price?: number | null; // precio fijo; vacío = por tarifa del modelo
 }
 interface Settings {
   min_duration_hours: number;
@@ -74,7 +75,12 @@ export default function RentalSettingsView() {
     setSaving(true);
     setMsg(null);
     const presets = form!.duration_presets
-      .map((p) => ({ label: p.label.trim(), kind: p.kind, qty: Math.max(1, Number(p.qty) || 1) }))
+      .map((p) => {
+        const base = { label: p.label.trim(), kind: p.kind, qty: Math.max(1, Number(p.qty) || 1) };
+        return p.price != null && Number(p.price) >= 0
+          ? { ...base, price: Math.round(Number(p.price) * 100) / 100 }
+          : base;
+      })
       .filter((p) => p.label);
     const { error } = await getBrowserSupabase()
       .from('rental_settings')
@@ -145,6 +151,13 @@ export default function RentalSettingsView() {
 
         <div className="st-field">
           <label>Chips de duración</label>
+          <div className="st-slotlist-row" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span style={{ flex: 1 }}>Etiqueta</span>
+            <span style={{ width: '4rem' }}>Cant.</span>
+            <span style={{ width: '5.5rem' }}>Unidad</span>
+            <span style={{ width: '6rem' }}>Precio fijo $</span>
+            <span className="st-spacer" />
+          </div>
           {form.duration_presets.map((p, i) => (
             <div className="st-slotlist-row" key={i}>
               <input
@@ -160,13 +173,30 @@ export default function RentalSettingsView() {
                 onChange={(e) => setPreset(i, { qty: Number(e.target.value) })}
                 style={{ width: '4rem' }}
               />
-              <select value={p.kind} onChange={(e) => setPreset(i, { kind: e.target.value })}>
+              <select
+                value={p.kind}
+                onChange={(e) => setPreset(i, { kind: e.target.value })}
+                style={{ width: '5.5rem' }}
+              >
                 {RATE_KINDS.map((k) => (
                   <option key={k} value={k}>
                     {k}
                   </option>
                 ))}
               </select>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={p.price ?? ''}
+                onChange={(e) =>
+                  setPreset(i, { price: e.target.value === '' ? null : Number(e.target.value) })
+                }
+                placeholder="auto"
+                title="Precio fijo del chip. Vacío = se calcula con la tarifa/hora o /día del modelo."
+                style={{ width: '6rem' }}
+              />
+              <span className="st-spacer" />
               <button
                 className="st-btn st-btn-danger st-btn-sm"
                 type="button"
@@ -186,11 +216,18 @@ export default function RentalSettingsView() {
             type="button"
             style={{ marginTop: '0.5rem' }}
             onClick={() =>
-              set('duration_presets', [...form.duration_presets, { label: '', kind: 'day', qty: 1 }])
+              set('duration_presets', [
+                ...form.duration_presets,
+                { label: '', kind: 'day', qty: 1, price: null },
+              ])
             }
           >
             + Agregar chip
           </button>
+          <p className="st-note" style={{ marginTop: '0.4rem' }}>
+            <strong>Precio fijo</strong> vacío = el chip cobra la tarifa del modelo (hora/día, semana
+            = día×7). Con un número, ese chip cobra ese monto plano para cualquier tabla.
+          </p>
         </div>
 
         {msg && (

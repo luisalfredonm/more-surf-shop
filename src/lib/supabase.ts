@@ -352,6 +352,7 @@ export interface RentalDurationPreset {
   label: string;
   kind: RentalRateType;
   qty: number;
+  price?: number | null; // precio fijo del chip; ausente/null = calcular por tarifa del modelo
 }
 
 export interface DbRentalSettings {

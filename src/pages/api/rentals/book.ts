@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { sendBookingGroupEmails } from '@lib/email';
 import { rateLimit, clientKey, tooMany } from '@lib/ratelimit';
-import { computeEndAt, durationDays, makeRentalRef, priceRental } from '@lib/rentals';
+import { computeEndAt, durationDays, makeRentalRef, presetOverride, priceRental } from '@lib/rentals';
 
 export const prerender = false;
 
@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
   // --- Settings: bordes de duración y antelación ---
   const { data: settings } = await supabase
     .from('rental_settings')
-    .select('min_duration_hours, max_duration_days, min_lead_hours')
+    .select('min_duration_hours, max_duration_days, min_lead_hours, duration_presets')
     .eq('id', 1)
     .maybeSingle();
   const minHours = settings?.min_duration_hours ?? 1;
@@ -93,12 +93,16 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Esa tabla no está disponible.', code: 'unit_unavailable' }, 409);
   }
 
-  const { unitPrice, total } = priceRental(
+  const override = presetOverride(settings?.duration_presets as any, d.rate_type, d.units_billed);
+  const computed = priceRental(
     Number(model.price_per_hour) || 0,
     Number(model.price_per_day) || 0,
     d.rate_type,
     d.units_billed,
   );
+  const total = override ?? computed.total;
+  const unitPrice =
+    override != null ? Math.round((override / d.units_billed) * 100) / 100 : computed.unitPrice;
   if (!(total > 0)) {
     return json({ error: 'Ese modelo todavía no tiene tarifa. Escribinos por WhatsApp.', code: 'no_price' }, 409);
   }
