@@ -392,7 +392,11 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
 7. ✅ **Cron**: `sendDueRentalReminders` (recordatorio de retiro ~24h antes) +
    `notifyOverdueRentals` (aviso de devolución vencida), colgados de
    `/api/cron/reminders`. *(commit `9d2b2e9`)*
-8. Prueba E2E de las dos vías + commit.
+8. **Prueba E2E** — 🟡 rutas nuevas smoke-tested OK contra Supabase real
+   (`availability` 200, guards 401, páginas 200, redirect, sitemap). Falta la
+   prueba manual: walk-in con login de staff (foto → bucket, waiver, pago,
+   devolución, QR), online "pay at shop" + `/booking` lookup + email, cron con
+   `CRON_SECRET`. PayPal online pendiente del sandbox.
 
 Arrancar por 3–4 da valor aunque la parte online tarde: el shop deja el cuaderno
 desde el primer release.
