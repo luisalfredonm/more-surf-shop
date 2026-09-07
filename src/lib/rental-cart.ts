@@ -50,13 +50,13 @@ export function writeCart(c: Cart): Cart {
 
 export function addToCart(item: CartItem, from: string, to: string): Cart {
   const c = readCart();
-  // Si cambian las fechas, el carrito entero se reencuadra en el rango nuevo.
+  // Nunca se pierden tablas: se conservan las que ya estaban (sin duplicar) y
+  // el rango se reencuadra al nuevo. El checkout recotiza cada línea al cargar.
   const next: Cart = {
     from,
     to,
-    items: c.from === from && c.to === to ? c.items.filter((i) => i.unit_id !== item.unit_id) : [],
+    items: [...c.items.filter((i) => i.unit_id !== item.unit_id), item],
   };
-  next.items.push(item);
   return writeCart(next);
 }
 

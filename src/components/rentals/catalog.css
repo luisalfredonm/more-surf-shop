@@ -460,6 +460,22 @@
   font-size: 0.86rem;
   margin: 0 0 0.9rem;
 }
+.bav-locked {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.8rem;
+  margin: 0 0 0.9rem;
+}
+.bav-locked strong {
+  color: var(--navy);
+}
+.bav-locked a {
+  color: var(--teal-dark);
+  font-weight: 600;
+}
 .bav-added p {
   margin: 0 0 0.75rem;
   font-weight: 600;
