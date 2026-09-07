@@ -85,6 +85,11 @@ export default function RentalsView() {
     [rows, now],
   );
 
+  // Ventana para considerar una reserva "para ahora" al escanear: retiro entre
+  // 24 h atrás (cliente llega tarde a buscar) y 36 h adelante (retira hoy/mañana).
+  const DELIVER_BACK = 24 * 3_600_000;
+  const DELIVER_FWD = 36 * 3_600_000;
+
   function route(r: Rental) {
     setScanNote(null);
     setScanPick(null);
@@ -104,18 +109,35 @@ export default function RentalsView() {
       (r) => (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
     );
     if (matches.length === 0) {
-      setScanNote(`"${text}" no tiene un alquiler activo.`);
+      setScanNote(`"${text}" no tiene ningún alquiler activo.`);
       return;
     }
-    if (matches.length === 1) return route(matches[0]);
 
-    // Varios activos para el mismo código: si hay exactamente uno afuera, es ése.
+    // 1) Si está afuera → recibir (cualquier pestaña).
     const out = matches.filter((r) => r.status === 'picked_up');
     if (out.length === 1) return route(out[0]);
+    if (out.length > 1) return setScanPick(out);
 
-    // Ambiguo → que el staff elija.
-    setScanNote(null);
-    setScanPick(matches);
+    // 2) No está afuera. En "Afuera ahora" no hay nada que recibir.
+    if (tab === 'out') {
+      setScanNote(`"${text}" no está afuera.`);
+      return;
+    }
+
+    // 3) Agenda: entregar la(s) reserva(s) cuyo retiro es "para ahora".
+    const nowMs = Date.now();
+    const imminent = matches.filter((r) => {
+      const s = Date.parse(r.start_at);
+      return s >= nowMs - DELIVER_BACK && s <= nowMs + DELIVER_FWD;
+    });
+    if (imminent.length === 1) return route(imminent[0]);
+    if (imminent.length > 1) return setScanPick(imminent);
+
+    // 4) Hay reservas, pero ninguna para ahora.
+    const next = matches.find((r) => Date.parse(r.start_at) >= nowMs) ?? matches[matches.length - 1];
+    setScanNote(
+      `"${text}": ${matches.length} reserva(s), ninguna para hoy. Próxima: ${next.reference} · ${dt(next.start_at)}.`,
+    );
   }
 
   function openReturn(r: Rental) {
@@ -169,7 +191,11 @@ export default function RentalsView() {
         <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && setScanPick(null)}>
           <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Elegir alquiler">
             <div className="st-modal-hd">
-              <h3>Esta tabla tiene {scanPick.length} alquileres activos</h3>
+              <h3>
+                {scanPick.every((r) => r.status === 'picked_up')
+                  ? `${scanPick.length} alquileres afuera con esta tabla`
+                  : `${scanPick.length} reservas de esta tabla para ahora`}
+              </h3>
               <span className="st-modal-ref">
                 {one(scanPick[0].board_units)?.code} · {one(scanPick[0].board_models)?.name}
               </span>
