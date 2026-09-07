@@ -44,7 +44,7 @@ function shape(rows: any[]): PublicBoardModel[] {
 }
 
 // ============================================
-// Catálogo público — se navega y se reserva la UNIDAD (la tabla física).
+// Catálogo público: se navega y se reserva la UNIDAD (la tabla física).
 // Las specs vienen del modelo; la foto, el apodo y el slug, de la unidad.
 // ============================================
 
@@ -192,7 +192,7 @@ export const RENTAL_CATEGORIES: RentalCategory[] = [
   {
     slug: 'softtop',
     label: 'Soft-tops',
-    blurb: 'Foam boards — the safe, stable choice for learning and small days.',
+    blurb: 'Foam boards. The safe, stable choice for learning and for small days.',
     title: 'Soft-top Surfboard Rental in Tamarindo | More Surf Shop',
     description:
       'Rent a soft-top surfboard in Tamarindo, Costa Rica. Stable foam boards for beginners and small days. Hourly, daily and weekly rates. Reserve online or walk in.',
@@ -214,7 +214,7 @@ export const RENTAL_CATEGORIES: RentalCategory[] = [
   {
     slug: 'funboard',
     label: 'Funboards',
-    blurb: 'The in-between — more agile than a longboard, more forgiving than a shortboard.',
+    blurb: 'The in-between board: more agile than a longboard, more forgiving than a shortboard.',
     title: 'Funboard Rental in Tamarindo | More Surf Shop',
     description:
       'Rent a funboard in Tamarindo, Costa Rica. More agile than a longboard, more forgiving than a shortboard. Daily and weekly rates. Reserve online or walk in.',
@@ -242,7 +242,7 @@ export const RENTAL_CATEGORIES: RentalCategory[] = [
       'Rent a fish surfboard in Tamarindo, Costa Rica. Extra volume and speed for weaker, smaller waves. Daily and weekly rates. Reserve online or walk in.',
     h1: 'Fish Surfboard Rental in Tamarindo',
     intro:
-      'Fish boards carry speed through slow sections and paddle easier than a standard shortboard — a good pick for Tamarindo\'s smaller, weaker days.',
+      'Fish boards carry speed through slow sections and paddle easier than a standard shortboard, a good pick for Tamarindo\'s smaller, weaker days.',
   },
   {
     slug: 'sup',

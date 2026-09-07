@@ -22,13 +22,17 @@ const waHref = whatsappUrl('Hi! I want to rent a surfboard in Tamarindo.');
 const url = absoluteUrl('/surfboard-rental-tamarindo');
 const from = units.length ? Math.min(...units.map((u) => u.price_per_day)) : 0;
 
+// TODO: reemplazar por una foto real de la flota en la tienda.
+const heroImage =
+  'https://images.unsplash.com/photo-1533603208986-24fd819e718f?w=1200&q=80&auto=format&fit=crop';
+
 const serviceSchema = {
   '@context': 'https://schema.org',
   '@type': 'Service',
   '@id': `${url}#service`,
   name: 'Surfboard Rental in Tamarindo',
   description:
-    'Rent surfboards on Tamarindo Beach — soft-tops, longboards, funboards, shortboards and fish. Daily and weekly rates. Reserve online or walk in.',
+    'Rent surfboards on Tamarindo Beach: soft-tops, longboards, funboards, shortboards and fish. Daily and weekly rates. Reserve online or walk in.',
   serviceType: 'Surfboard Rental',
   url,
   provider: { '@id': `${SITE.url}/#business` },
@@ -63,13 +67,11 @@ const breadcrumbs = [
   <section class="rr-hero">
     <Container>
       <div class="rr-hero-in">
-        <div>
+        <div class="rr-hero-copy">
           <Eyebrow>Alquiler de tablas · Playa Tamarindo</Eyebrow>
           <h1>Elegí tu tabla y llevátela hoy</h1>
           <p class="rr-lead">
-            Softtops para aprender, longboards y funboards para pasarla bien, shortboards y fish
-            para el que ya lee la ola. Por hora, por día o por semana. Reservá la tabla exacta
-            desde acá o pasá por la tienda.
+            Softtops, longboards, funboards, shortboards y fish. Por hora, por día o por semana.
           </p>
           <div class="rr-hero-cta">
             <Button href="#tablas" size="lg">Ver las tablas</Button>
@@ -79,12 +81,27 @@ const breadcrumbs = [
             </Button>
           </div>
         </div>
-        <ol class="rr-steps">
-          <li><strong>Elegí la tabla.</strong> Filtrá por tu peso, tu nivel y tu presupuesto.</li>
-          <li><strong>Mirá si está libre.</strong> Poné las fechas y la añadís a tu reserva.</li>
-          <li><strong>Retirala en la playa.</strong> Documento con foto, firmás el waiver y al agua.</li>
-        </ol>
+        <figure class="rr-hero-art">
+          <img src={heroImage} alt="Tablas de surf listas para alquilar en Playa Tamarindo" width="1200" height="900" fetchpriority="high" />
+          {units.length > 0 && (
+            <figcaption>
+              <span>desde</span>
+              <strong>${from}</strong>
+              <span>por día</span>
+            </figcaption>
+          )}
+        </figure>
       </div>
+    </Container>
+  </section>
+
+  <section class="rr-how">
+    <Container>
+      <ol class="rr-steps rr-reveal">
+        <li><strong>Elegí la tabla.</strong> Filtrá por tu peso, tu nivel y tu presupuesto.</li>
+        <li><strong>Mirá si está libre.</strong> Poné las fechas y la añadís a tu reserva.</li>
+        <li><strong>Retirala en la playa.</strong> Documento con foto, firmás el waiver y al agua.</li>
+      </ol>
     </Container>
   </section>
 
@@ -117,7 +134,10 @@ const breadcrumbs = [
       <h2>¿Preferís pasar por la tienda?</h2>
       <p>Estamos en {BUSINESS.address.formatted}. Abierto todos los días.</p>
       <div class="rr-hero-cta">
-        <Button href="#tablas" size="lg">Reservar una tabla</Button>
+        <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+          <WhatsAppIcon size={20} />
+          Escribinos por WhatsApp
+        </Button>
         <Button variant="outline" size="lg" href="/surf-lessons-tamarindo">
           Mejor una clase de surf
         </Button>
@@ -128,20 +148,19 @@ const breadcrumbs = [
 
 <style>
   .rr-hero {
-    padding: 4rem 0 3rem;
+    padding: 4rem 0 3.5rem;
     background: var(--bg-alt);
-    border-bottom: 1px solid var(--border);
   }
   .rr-hero-in {
     display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 3rem;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 3.5rem;
     align-items: center;
   }
   .rr-lead {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     color: var(--text-muted);
-    max-width: 42ch;
+    max-width: 34ch;
     margin: 1.1rem 0 1.75rem;
   }
   .rr-hero-cta {
@@ -149,30 +168,83 @@ const breadcrumbs = [
     gap: 1rem;
     flex-wrap: wrap;
   }
+  /* Foto a sangre por el borde derecho: rompe la simetría del split 50/50. */
+  .rr-hero-art {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--border);
+  }
+  .rr-hero-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .rr-hero-art figcaption {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--navy);
+    color: #fff;
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .rr-hero-art figcaption strong {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.5rem;
+    color: var(--teal);
+  }
+  @media (max-width: 860px) {
+    .rr-hero-in {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    .rr-hero-art {
+      order: -1;
+      aspect-ratio: 16 / 9;
+    }
+    .rr-lead {
+      max-width: none;
+    }
+  }
+
+  .rr-how {
+    padding: 2.25rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
   .rr-steps {
     list-style: none;
     counter-reset: s;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
   }
   .rr-steps li {
     counter-increment: s;
     position: relative;
-    padding-left: 2.5rem;
+    padding-left: 2.6rem;
     font-size: 0.92rem;
     color: var(--text-muted);
-    line-height: 1.5;
+    line-height: 1.55;
   }
   .rr-steps li::before {
     content: counter(s);
     position: absolute;
     left: 0;
-    top: 0;
-    width: 1.75rem;
-    height: 1.75rem;
+    top: -0.1rem;
+    width: 1.85rem;
+    height: 1.85rem;
     display: grid;
     place-items: center;
     background: var(--teal);
@@ -182,17 +254,39 @@ const breadcrumbs = [
     font-size: 0.85rem;
   }
   .rr-steps strong {
+    display: block;
     color: var(--navy);
   }
-  @media (max-width: 860px) {
-    .rr-hero-in {
+  @media (max-width: 780px) {
+    .rr-steps {
       grid-template-columns: 1fr;
-      gap: 2rem;
+      gap: 1.25rem;
+    }
+  }
+
+  /* Solo se anima donde el navegador lo soporta; sin soporte, contenido visible. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .rr-reveal {
+        animation: rr-rise linear both;
+        animation-timeline: view();
+        animation-range: entry 15% cover 30%;
+      }
+    }
+  }
+  @keyframes rr-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 
   .rr-catalog {
-    padding: 2.5rem 0 var(--section-pad);
+    padding: 3rem 0 var(--section-pad);
   }
   .rr-cat-head {
     margin-bottom: 1.5rem;

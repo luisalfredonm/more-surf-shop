@@ -206,7 +206,7 @@ export default function CatalogGrid({
                 onChange={(e) => setVolMin(e.target.value)}
                 placeholder="mín"
               />
-              <em>–</em>
+              <em>-</em>
               <input
                 type="number"
                 value={volMax}
@@ -224,12 +224,17 @@ export default function CatalogGrid({
       )}
 
       {shown.length === 0 ? (
-        <p className="cat-empty">
-          Ninguna tabla coincide con esos filtros.{' '}
+        <div className="cat-empty">
+          <b>+</b>
+          <strong>Ninguna tabla coincide</strong>
+          <p>
+            Probá aflojando el peso o el volumen. Si buscás algo puntual, escribinos y te decimos
+            qué tenemos libre hoy.
+          </p>
           <button type="button" onClick={reset}>
-            Limpiar
+            Limpiar filtros
           </button>
-        </p>
+        </div>
       ) : (
         <div className="cat-grid">
           {shown.map((u) => (
@@ -256,11 +261,11 @@ export default function CatalogGrid({
                 <dl className="cat-specs">
                   <div>
                     <dt>Largo</dt>
-                    <dd>{u.length_label ?? '—'}</dd>
+                    <dd>{u.length_label ?? '-'}</dd>
                   </div>
                   <div>
                     <dt>Volumen</dt>
-                    <dd>{u.volume_l != null ? `${u.volume_l} L` : '—'}</dd>
+                    <dd>{u.volume_l != null ? `${u.volume_l} L` : '-'}</dd>
                   </div>
                   <div>
                     <dt>Nivel</dt>
@@ -270,8 +275,8 @@ export default function CatalogGrid({
                     <dt>Peso</dt>
                     <dd>
                       {u.weight_min_kg && u.weight_max_kg
-                        ? `${u.weight_min_kg}–${u.weight_max_kg} kg`
-                        : '—'}
+                        ? `${u.weight_min_kg}-${u.weight_max_kg} kg`
+                        : '-'}
                     </dd>
                   </div>
                 </dl>

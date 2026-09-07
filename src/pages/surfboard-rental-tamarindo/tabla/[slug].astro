@@ -46,14 +46,14 @@ const seo: PageSeo = {
 };
 
 const allSpecs: [string, string][] = [
-  ['Largo', unit.length_label ?? '—'],
-  ['Ancho', unit.width_in != null ? `${unit.width_in}"` : '—'],
-  ['Grosor', unit.thickness_in != null ? `${unit.thickness_in}"` : '—'],
-  ['Volumen', unit.volume_l != null ? `${unit.volume_l} L` : '—'],
-  ['Quillas', unit.fin_setup ?? '—'],
-  ['Construcción', unit.construction ?? '—'],
+  ['Largo', unit.length_label ?? '-'],
+  ['Ancho', unit.width_in != null ? `${unit.width_in}"` : '-'],
+  ['Grosor', unit.thickness_in != null ? `${unit.thickness_in}"` : '-'],
+  ['Volumen', unit.volume_l != null ? `${unit.volume_l} L` : '-'],
+  ['Quillas', unit.fin_setup ?? '-'],
+  ['Construcción', unit.construction ?? '-'],
 ];
-const specs = allSpecs.filter(([, v]) => v !== '—');
+const specs = allSpecs.filter(([, v]) => v !== '-');
 
 const productSchema = {
   '@context': 'https://schema.org',
@@ -144,7 +144,7 @@ const breadcrumbs = [
           <ul class="bd-fit">
             <li><strong>Nivel:</strong> {LEVEL_LABEL[unit.skill_level] ?? unit.skill_level}</li>
             {unit.weight_min_kg && unit.weight_max_kg && (
-              <li><strong>Peso recomendado:</strong> {unit.weight_min_kg}–{unit.weight_max_kg} kg</li>
+              <li><strong>Peso recomendado:</strong> {unit.weight_min_kg}-{unit.weight_max_kg} kg</li>
             )}
             {unit.best_for.length > 0 && (
               <li><strong>Mejor en:</strong> {unit.best_for.join(', ')}</li>
@@ -231,21 +231,36 @@ const breadcrumbs = [
     .bd-bottom { grid-template-columns: 1fr; gap: 2rem; }
   }
   .bd-bottom h2 { font-size: 1.25rem; margin: 0 0 1rem; }
-  .bd-specs { margin: 0; }
-  .bd-specs > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.7rem 0.9rem;
-    border: 1px solid var(--border);
-    border-bottom: none;
-    font-size: 0.9rem;
+  /* Fichas en grid, no una tabla con hairline por fila. */
+  .bd-specs {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
-  .bd-specs > div:first-child { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-  .bd-specs > div:last-child { border-bottom: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
-  .bd-specs > div:nth-child(odd) { background: var(--bg-alt); }
-  .bd-specs dt { color: var(--text-muted); margin: 0; }
-  .bd-specs dd { margin: 0; font-weight: 600; color: var(--navy); }
+  .bd-specs > div {
+    background: var(--bg-alt);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+  }
+  .bd-specs dt {
+    margin: 0 0 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .bd-specs dd {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    color: var(--navy);
+  }
+  @media (max-width: 420px) {
+    .bd-specs { grid-template-columns: 1fr; }
+  }
   .bd-fit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
   .bd-fit li { font-size: 0.95rem; color: var(--text-muted); }
   .bd-fit strong { color: var(--navy); }

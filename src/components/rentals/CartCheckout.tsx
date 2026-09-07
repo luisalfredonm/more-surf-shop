@@ -220,7 +220,7 @@ export default function CartCheckout({
                       {l.note && <em> · {l.note}</em>}
                     </span>
                   </div>
-                  <span className="rsv-line-total">{l.available ? money(l.total) : '—'}</span>
+                  <span className="rsv-line-total">{l.available ? money(l.total) : '-'}</span>
                   <button type="button" onClick={() => drop(l.unit_id)}>
                     Quitar
                   </button>
