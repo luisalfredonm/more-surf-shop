@@ -385,9 +385,11 @@ Nuevo: barrido diario que marca **devoluciones vencidas** (`end_at < now()` y
 5. ✅ **QR de la flota (v1.1)**: `QrStickersView` (hoja imprimible) +
    `QrScanner` (cámara + jsQR) enganchado en `NewRentalForm` y `RentalsView`.
    *(commit `f802647`)*
-6. **Vía online**: hub + páginas de categoría + widget + `availability` / `quote` /
-   `create` + PayPal + `capture`/`refund` extendidos.
-7. **Cron** (recordatorio de retiro + devolución vencida) + quitar `noindex`.
+6. ✅ **Vía online**: `/api/rentals/availability` + `/api/rentals/book`,
+   `RentalWidget`, hub `surfboard-rental-tamarindo.astro` (sin `noindex`) +
+   páginas de categoría `[category].astro` + sitemap. *(commits `7113299`,
+   `d321851`, `966f708`)*
+7. **Cron** (recordatorio de retiro + devolución vencida).
 8. Prueba E2E de las dos vías + commit.
 
 Arrancar por 3–4 da valor aunque la parte online tarde: el shop deja el cuaderno
