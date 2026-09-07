@@ -140,17 +140,20 @@ export interface DbCustomer {
 
 export interface DbWaiver {
   id: string;
-  customer_id: string;
+  customer_id: string;               // siempre el titular del booking_group
+  booking_participant_id: string | null;
   waiver_version: string;
   activity: 'lesson' | 'rental' | 'both';
   signed_at: string;
-  signer_name_typed: string;
+  signer_name_typed: string;         // adulto: su nombre. menor: nombre del tutor.
   accepted_terms: boolean;
   is_minor: boolean;
   guardian_name: string | null;
   ip: string | null;
   user_agent: string | null;
   rendered_text_snapshot: string;
+  signature_svg: string | null;
+  lang: string;                      // 'en' en v1
   created_at: string;
 }
 
@@ -228,6 +231,8 @@ export interface DbBooking {
   customer_note: string | null;
   staff_note: string | null;
   confirmation_sent_at: string | null;
+  checked_in_at: string | null;
+  checked_in_by: string | null;      // = profiles.id del staff que hizo el check-in
   created_at: string;
   updated_at: string;
 }
@@ -242,6 +247,8 @@ export interface DbBookingParticipant {
   height_cm: number | null;
   experience_level: 'first_time' | 'beginner' | 'intermediate' | 'advanced' | null;
   waiver_id: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
   notes: string | null;
   created_at: string;
 }

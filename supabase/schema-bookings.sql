@@ -293,6 +293,28 @@ create table if not exists public.booking_participants (
 create index if not exists idx_booking_participants_booking on public.booking_participants (booking_id);
 
 -- ============================================
+-- Check-in digital + waiver (v1)
+-- El waiver se firma en el mostrador al momento del check-in, persona por
+-- persona. El adulto firma por sí mismo; por un menor firma su adulto
+-- responsable (guardian_name). Todo pasa por /api/bookings/checkin (service_role).
+-- ============================================
+alter table public.bookings add column if not exists checked_in_at timestamptz;
+alter table public.bookings add column if not exists checked_in_by uuid references public.profiles(id) on delete set null;
+
+alter table public.booking_participants add column if not exists emergency_contact_name text;
+alter table public.booking_participants add column if not exists emergency_contact_phone text;
+
+-- Enlace directo waiver -> persona (evita sobrecargar waivers.customer_id, que
+-- apunta siempre al titular del grupo). Se agrega acá, no en el create de
+-- waivers, porque booking_participants se crea después en este archivo.
+alter table public.waivers add column if not exists booking_participant_id uuid
+  references public.booking_participants(id) on delete set null;
+alter table public.waivers add column if not exists signature_svg text;
+alter table public.waivers add column if not exists lang text not null default 'en';
+
+create index if not exists idx_waivers_participant on public.waivers (booking_participant_id);
+
+-- ============================================
 -- Row-Level Security
 -- Todo staff-only. Las interacciones públicas (crear reserva, consultar
 -- disponibilidad) pasan por API routes con service_role, que bypassa RLS.

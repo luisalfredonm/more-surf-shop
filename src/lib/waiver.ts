@@ -13,7 +13,7 @@
  * se guarda en waivers.rendered_text_snapshot.
  */
 
-export const WAIVER_VERSION = '2026-09-05';
+export const WAIVER_VERSION = '2026-09-06';
 
 export const WAIVER_RELEASEE = {
   legalName: 'EL TIEMPO DEL MAR MS SOCIEDAD ANONIMA',
@@ -44,10 +44,11 @@ export const WAIVER_ACKNOWLEDGEMENT =
 
 export interface WaiverRenderOpts {
   activity: string;
-  signerName: string;
+  signerName: string;           // adulto: su nombre. menor: nombre del tutor.
   signedAtISO: string;
   isMinor: boolean;
   guardianName?: string | null;
+  minorName?: string | null;    // nombre del menor cuando isMinor
 }
 
 /**
@@ -67,14 +68,33 @@ export function renderWaiverText(o: WaiverRenderOpts): string {
     lines.push(clause, '');
   }
   lines.push(WAIVER_ACKNOWLEDGEMENT, '', '- - -');
-  lines.push(`Accepted electronically by ${o.signerName} on ${o.signedAtISO}.`);
   if (o.isMinor) {
+    const guardian = o.guardianName?.trim() || o.signerName;
+    const minor = o.minorName?.trim() || '(name on file)';
     lines.push(
-      `Accepted on behalf of a minor by the parent or legal guardian: ${
-        o.guardianName?.trim() || o.signerName
-      }.`,
+      `Accepted electronically on ${o.signedAtISO} by ${guardian}, as the parent or legal guardian of the minor ${minor}, on the minor's behalf.`,
     );
+  } else {
+    lines.push(`Accepted electronically by ${o.signerName} on ${o.signedAtISO}.`);
   }
   lines.push(`Waiver version: ${WAIVER_VERSION}.`);
   return lines.join('\n');
+}
+
+/**
+ * Etiqueta del checkbox de aceptación que se muestra en el UI. Debe coincidir
+ * conceptualmente con el bloque de aceptación de renderWaiverText().
+ */
+export function acceptanceLabel(o: {
+  isMinor: boolean;
+  signerName: string;
+  guardianName?: string | null;
+  minorName?: string | null;
+}): string {
+  const guardian = o.guardianName?.trim() || o.signerName.trim() || '________';
+  const minor = o.minorName?.trim() || '________';
+  const signer = o.signerName.trim() || '________';
+  return o.isMinor
+    ? `I, ${guardian}, as the parent or legal guardian of ${minor}, have read and accept this Release and Waiver of Liability on their behalf.`
+    : `I, ${signer}, have read this Release and Waiver of Liability and accept it freely.`;
 }

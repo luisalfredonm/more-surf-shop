@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
 import NewBookingForm from './NewBookingForm';
+import CheckinModal from './CheckinModal';
+import WaiverModal from './WaiverModal';
 
 const crToday = () => new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10);
 const addDays = (iso: string, n: number) => {
@@ -39,9 +41,13 @@ interface Customer {
   country_of_residence: string | null;
 }
 interface Participant {
+  id: string;
   full_name: string;
   age: number | null;
   is_minor: boolean;
+  waiver_id: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
 }
 interface Booking {
   id: string;
@@ -55,6 +61,7 @@ interface Booking {
   group_id: string | null;
   slot_date: string;
   start_time: string;
+  checked_in_at: string | null;
   customer_note: string | null;
   staff_note: string | null;
   class_types: { name: string } | { name: string }[] | null;
@@ -83,6 +90,13 @@ export default function AgendaView() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [checkinBooking, setCheckinBooking] = useState<Booking | null>(null);
+  const [viewWaiver, setViewWaiver] = useState<{
+    id: string;
+    name: string;
+    ecName: string | null;
+    ecPhone: string | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,10 +107,10 @@ export default function AgendaView() {
       .from('bookings')
       .select(
         `id, reference, status, participants_count, total_amount, currency,
-         payment_method, payment_id, group_id, slot_date, start_time, customer_note, staff_note,
+         payment_method, payment_id, group_id, slot_date, start_time, checked_in_at, customer_note, staff_note,
          class_types ( name ),
          customers ( full_name, email, phone, country_of_residence ),
-         booking_participants ( full_name, age, is_minor ),
+         booking_participants ( id, full_name, age, is_minor, waiver_id, emergency_contact_name, emergency_contact_phone ),
          booking_groups ( reference )`,
       )
       .gte('slot_date', from)
@@ -362,17 +376,41 @@ export default function AgendaView() {
                       <dl>
                         {b.booking_participants && b.booking_participants.length > 0 && (
                           <>
-                            <dt>Participants</dt>
+                            <dt>Waivers</dt>
                             <dd>
-                              {b.booking_participants
-                                .map(
-                                  (p) =>
-                                    `${p.full_name}${p.age != null ? ` (${p.age})` : ''}${
-                                      p.is_minor ? ' · minor' : ''
-                                    }`,
-                                )
-                                .join(', ')}
+                              <div className="st-waiver-chips">
+                                {b.booking_participants.map((p, i) =>
+                                  p.waiver_id ? (
+                                    <button
+                                      key={p.id ?? i}
+                                      className="st-wchip ok is-btn"
+                                      onClick={() =>
+                                        setViewWaiver({
+                                          id: p.waiver_id!,
+                                          name: p.full_name,
+                                          ecName: p.emergency_contact_name,
+                                          ecPhone: p.emergency_contact_phone,
+                                        })
+                                      }
+                                    >
+                                      ✓ {p.full_name}
+                                      {p.is_minor ? ' · minor' : ''}
+                                    </button>
+                                  ) : (
+                                    <span key={p.id ?? i} className="st-wchip pending">
+                                      ⏳ {p.full_name}
+                                      {p.is_minor ? ' · minor' : ''}
+                                    </span>
+                                  ),
+                                )}
+                              </div>
                             </dd>
+                          </>
+                        )}
+                        {b.checked_in_at && (
+                          <>
+                            <dt>Checked in</dt>
+                            <dd>{new Date(b.checked_in_at).toLocaleString('en-US')}</dd>
                           </>
                         )}
                         {b.customer_note && (
@@ -418,8 +456,22 @@ export default function AgendaView() {
                               Refund (PayPal)
                             </button>
                           )}
+                        {b.status === 'confirmed' && !b.checked_in_at && (
+                          <button
+                            className="st-btn st-btn-primary st-btn-sm"
+                            onClick={() => setCheckinBooking(b)}
+                          >
+                            Check in + waivers
+                          </button>
+                        )}
+                        {b.checked_in_at && (
+                          <span className="st-badge confirmed">checked in</span>
+                        )}
                         {b.status === 'confirmed' && (
                           <>
+                            {!b.checked_in_at && (
+                              <span className="st-gate-warn">⚠ sin check-in</span>
+                            )}
                             <button
                               className="st-btn st-btn-ghost st-btn-sm"
                               disabled={busyId === b.id}
@@ -456,6 +508,32 @@ export default function AgendaView() {
           </div>
         );
       })}
+
+      {checkinBooking && (
+        <CheckinModal
+          booking={{
+            id: checkinBooking.id,
+            reference: checkinBooking.reference,
+            participants_count: checkinBooking.participants_count,
+            customer_name: one(checkinBooking.customers)?.full_name ?? '',
+          }}
+          onClose={() => setCheckinBooking(null)}
+          onDone={() => {
+            setCheckinBooking(null);
+            void load();
+          }}
+        />
+      )}
+
+      {viewWaiver && (
+        <WaiverModal
+          waiverId={viewWaiver.id}
+          participantName={viewWaiver.name}
+          emergencyName={viewWaiver.ecName}
+          emergencyPhone={viewWaiver.ecPhone}
+          onClose={() => setViewWaiver(null)}
+        />
+      )}
     </div>
   );
 }
