@@ -6,15 +6,19 @@ import AgendaView from './AgendaView';
 import WeeklyScheduleView from './WeeklyScheduleView';
 import DateOverridesView from './DateOverridesView';
 import PricesView from './PricesView';
+import FleetView from './FleetView';
+import RentalSettingsView from './RentalSettingsView';
 import './staff.css';
 
-type View = 'bookings' | 'weekly' | 'overrides' | 'prices';
+type View = 'bookings' | 'weekly' | 'overrides' | 'prices' | 'fleet' | 'rental_settings';
 
 const VIEW_TITLE: Record<View, string> = {
   bookings: 'Bookings',
   prices: 'Prices & Services',
   weekly: 'Weekly Schedule',
   overrides: 'Date Overrides',
+  fleet: 'Fleet',
+  rental_settings: 'Rental Settings',
 };
 
 function initials(name: string): string {
@@ -35,7 +39,10 @@ const NAV: { section: string; items: { key: View; label: string; disabled?: bool
   },
   {
     section: 'Board Rentals',
-    items: [{ key: 'bookings', label: 'Próximamente', disabled: true }],
+    items: [
+      { key: 'fleet', label: 'Fleet' },
+      { key: 'rental_settings', label: 'Rental Settings' },
+    ],
   },
 ];
 interface Profile {
@@ -167,6 +174,8 @@ export default function StaffApp() {
           {view === 'prices' && <PricesView />}
           {view === 'weekly' && <WeeklyScheduleView />}
           {view === 'overrides' && <DateOverridesView />}
+          {view === 'fleet' && <FleetView />}
+          {view === 'rental_settings' && <RentalSettingsView />}
         </main>
       </div>
     </div>
