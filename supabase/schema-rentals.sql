@@ -134,11 +134,15 @@ create table if not exists public.rentals (
   customer_note text,
   staff_note text,
   confirmation_sent_at timestamptz,
-  reminder_sent_at timestamptz,
+  reminder_sent_at timestamptz,          -- recordatorio de retiro enviado
+  overdue_notified_at timestamptz,       -- aviso de devolución vencida enviado
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint rentals_range_ok check (end_at > start_at)
 );
+
+-- Para bases creadas con una versión previa de este archivo.
+alter table public.rentals add column if not exists overdue_notified_at timestamptz;
 
 create index if not exists idx_rentals_unit_start on public.rentals (unit_id, start_at);
 create index if not exists idx_rentals_status_start on public.rentals (status, start_at);

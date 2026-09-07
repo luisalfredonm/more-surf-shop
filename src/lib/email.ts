@@ -362,3 +362,165 @@ export async function sendDueReminders(): Promise<{ processed: number }> {
   }
   return { processed: due.size };
 }
+
+// ============================================
+// Rentals — recordatorio de retiro + aviso de devolución vencida
+// ============================================
+
+const dtFull = (iso: string) =>
+  new Date(iso).toLocaleString('es-CR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+interface RentalCtx {
+  reference: string; // GRP-XXXXX
+  rentalRef: string; // RNT-XXXXX
+  customerName: string;
+  board: string; // "Longboard 9'0 #6.2 Ap"
+  startAt: string;
+  endAt: string;
+  total: number;
+  currency: string;
+  paid: boolean;
+}
+
+function rentalShell(title: string, body: string): string {
+  return `<!doctype html><html><body style="margin:0;background:#F5EEE0;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+  <div style="max-width:540px;margin:0 auto;padding:24px 16px">
+    <div style="background:#0A2540;color:#fff;padding:18px 22px;border-radius:12px 12px 0 0;font-family:Georgia,serif;font-size:18px;font-weight:600">
+      more<span style="color:#14B8A6">surf</span>shop
+    </div>
+    <div style="background:#fff;padding:24px 22px;border-radius:0 0 12px 12px">
+      <h1 style="margin:0 0 12px;font-family:Georgia,serif;font-size:20px;color:#0A2540">${esc(title)}</h1>
+      ${body}
+    </div>
+  </div></body></html>`;
+}
+
+function rentalReminderHtml(c: RentalCtx): string {
+  const wa = whatsappUrl(`Hola! Consulta sobre mi alquiler ${c.reference}.`);
+  const payLine = c.paid
+    ? `Ya está pagado (${esc(money(c.total, c.currency))}).`
+    : `Pagás <strong>${esc(money(c.total, c.currency))}</strong> al retirar — efectivo o tarjeta.`;
+  return rentalShell(
+    'Tu tabla te espera',
+    `<p style="margin:0 0 4px;color:#6B7280;font-size:14px">Recordatorio, ${esc(c.customerName)}. Código:</p>
+     <p style="margin:0 0 14px;font-family:Georgia,serif;font-size:22px;font-weight:600;color:#0A2540;letter-spacing:.04em">${esc(c.reference)}</p>
+     <p style="margin:0 0 6px;font-size:14px;color:#1F2937"><strong>${esc(c.board)}</strong></p>
+     <p style="margin:0 0 14px;font-size:14px;color:#6B7280">Retiro: ${esc(dtFull(c.startAt))} · devolución: ${esc(dtFull(c.endAt))}</p>
+     <p style="margin:0 0 16px;padding:10px 14px;background:#FDF6E3;border-left:3px solid #F97316;font-size:14px;color:#1F2937">${payLine}</p>
+     <ul style="margin:0 0 16px;padding-left:18px;color:#1F2937;font-size:14px;line-height:1.6">
+       <li>Traé un documento con foto y una tarjeta para el depósito.</li>
+       <li>Firmás el waiver de alquiler en el mostrador.</li>
+       <li>Quillas y leash van incluidos.</li>
+     </ul>
+     <p style="margin:0"><a href="${wa}" style="color:#0F9488;font-size:14px;font-weight:600">¿Necesitás cambiar el horario? Escribinos</a></p>`,
+  );
+}
+
+function rentalOverdueHtml(c: RentalCtx): string {
+  const wa = whatsappUrl(`Hola! Sobre la devolución de mi tabla ${c.reference}.`);
+  return rentalShell(
+    'Tu alquiler venció',
+    `<p style="margin:0 0 12px;font-size:14px;color:#1F2937">Hola ${esc(c.customerName)}, tu alquiler <strong>${esc(c.reference)}</strong> (${esc(c.board)}) tenía que volver el <strong>${esc(dtFull(c.endAt))}</strong>.</p>
+     <p style="margin:0 0 16px;padding:10px 14px;background:#FDECEA;border-left:3px solid #B3261E;font-size:14px;color:#1F2937">Traé la tabla a la tienda lo antes posible o escribinos para extender. El alquiler sigue corriendo hasta que la devolvés.</p>
+     <p style="margin:0"><a href="${wa}" style="color:#0F9488;font-size:14px;font-weight:600">Escribinos por WhatsApp</a></p>`,
+  );
+}
+
+const one = <T,>(v: T | T[] | null | undefined): T | null =>
+  Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+
+function rentalCtx(r: any): RentalCtx | null {
+  const cust = one<{ full_name?: string; email?: string }>(r.customers);
+  if (!cust?.email) return null;
+  const model = one<{ name?: string }>(r.board_models)?.name ?? 'Tabla';
+  const code = one<{ code?: string }>(r.board_units)?.code ?? '';
+  return {
+    reference: one<{ reference?: string }>(r.booking_groups)?.reference ?? r.reference,
+    rentalRef: r.reference,
+    customerName: cust.full_name || 'crack',
+    board: code ? `${model} #${code}` : model,
+    startAt: r.start_at,
+    endAt: r.end_at,
+    total: Number(r.total_amount),
+    currency: r.currency || 'USD',
+    paid: r.payment_method === 'paypal' || !!r.payment_id,
+  };
+}
+
+const RENTAL_EMAIL_COLS =
+  'id, reference, start_at, end_at, total_amount, currency, payment_id, payment_method, customers ( full_name, email ), board_models ( name ), board_units ( code ), booking_groups ( reference )';
+
+/** Rentals 'confirmed' con retiro ~10–34h en el futuro y sin recordatorio. */
+export async function sendDueRentalReminders(): Promise<{ processed: number }> {
+  if (!isEmailConfigured() || !isSupabaseConfigured()) return { processed: 0 };
+  const supabase = getSupabase();
+  const now = Date.now();
+  const { data } = await supabase
+    .from('rentals')
+    .select(RENTAL_EMAIL_COLS)
+    .eq('status', 'confirmed')
+    .is('reminder_sent_at', null)
+    .gte('start_at', new Date(now + 10 * 3_600_000).toISOString())
+    .lte('start_at', new Date(now + 34 * 3_600_000).toISOString());
+
+  let processed = 0;
+  for (const r of (data ?? []) as any[]) {
+    const { data: marked } = await supabase
+      .from('rentals')
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq('id', r.id)
+      .is('reminder_sent_at', null)
+      .select('id');
+    if (!marked || marked.length === 0) continue;
+    const ctx = rentalCtx(r);
+    if (!ctx) continue;
+    const cust = one<{ email?: string }>(r.customers);
+    await sendEmail({
+      to: cust!.email as string,
+      subject: `Recordatorio: tu alquiler de tabla — ${ctx.reference}`,
+      html: rentalReminderHtml(ctx),
+    });
+    processed++;
+  }
+  return { processed };
+}
+
+/** Rentals 'picked_up' vencidos (>2h) sin aviso: nudge al cliente. */
+export async function notifyOverdueRentals(): Promise<{ processed: number }> {
+  if (!isEmailConfigured() || !isSupabaseConfigured()) return { processed: 0 };
+  const supabase = getSupabase();
+  const cutoff = new Date(Date.now() - 2 * 3_600_000).toISOString();
+  const { data } = await supabase
+    .from('rentals')
+    .select(RENTAL_EMAIL_COLS)
+    .eq('status', 'picked_up')
+    .is('overdue_notified_at', null)
+    .lt('end_at', cutoff);
+
+  let processed = 0;
+  for (const r of (data ?? []) as any[]) {
+    const { data: marked } = await supabase
+      .from('rentals')
+      .update({ overdue_notified_at: new Date().toISOString() })
+      .eq('id', r.id)
+      .is('overdue_notified_at', null)
+      .select('id');
+    if (!marked || marked.length === 0) continue;
+    const ctx = rentalCtx(r);
+    if (!ctx) continue;
+    const cust = one<{ email?: string }>(r.customers);
+    await sendEmail({
+      to: cust!.email as string,
+      subject: `Tu alquiler venció — ${ctx.reference}`,
+      html: rentalOverdueHtml(ctx),
+    });
+    processed++;
+  }
+  return { processed };
+}

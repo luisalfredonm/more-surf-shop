@@ -342,7 +342,8 @@ export interface DbRental {
   customer_note: string | null;
   staff_note: string | null;
   confirmation_sent_at: string | null;
-  reminder_sent_at: string | null;
+  reminder_sent_at: string | null;       // recordatorio de retiro
+  overdue_notified_at: string | null;    // aviso de devolución vencida
   created_at: string;
   updated_at: string;
 }
