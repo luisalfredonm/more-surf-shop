@@ -55,9 +55,10 @@ export const seoData: Record<string, PageSeo> = {
       'rent a surfboard tamarindo',
       'longboard rental tamarindo',
       'softboard rental tamarindo',
+      'surfboard hire tamarindo',
+      'daily surfboard rental tamarindo',
     ],
     related: ['surf-lessons-tamarindo', 'surf-shop-tamarindo'],
-    noindex: true, // scaffold hasta que tenga contenido real
   },
 
   'surf-shop-tamarindo': {

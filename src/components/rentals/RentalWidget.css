@@ -1,0 +1,213 @@
+.rw {
+  max-width: 560px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.rw-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.rw-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+@media (max-width: 480px) {
+  .rw-row {
+    grid-template-columns: 1fr;
+  }
+}
+.rw-block {
+  display: block;
+  margin-top: 0.9rem;
+}
+.rw label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+.rw input,
+.rw select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+.rw input:focus,
+.rw select:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+.rw-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 0.4rem;
+}
+.rw-chips,
+.rw-pay {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.rw-chips button {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--navy);
+  cursor: pointer;
+}
+.rw-chips button.on {
+  border-color: var(--teal);
+  background: rgba(20, 184, 166, 0.14);
+  color: var(--teal-dark);
+}
+.rw-pay label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.rw-pay label.on {
+  border-color: var(--teal);
+  background: rgba(20, 184, 166, 0.08);
+}
+.rw-btn {
+  width: 100%;
+  margin-top: 1.25rem;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--sunset);
+  color: #fff;
+  cursor: pointer;
+}
+.rw-btn:hover {
+  background: var(--sunset-dark);
+}
+.rw-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.rw-back {
+  background: none;
+  border: none;
+  color: var(--teal-dark);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 0.75rem;
+}
+.rw-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0.75rem 0 0;
+}
+.rw-err {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid var(--sunset);
+  color: var(--sunset-dark);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+.rw-pick {
+  font-size: 0.95rem;
+  color: var(--navy);
+  margin: 0 0 1rem;
+}
+.rw-units {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.rw-units button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  align-items: center;
+  text-align: left;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+}
+.rw-units button:hover {
+  border-color: var(--teal);
+}
+.rw-u-name {
+  font-weight: 700;
+  color: var(--navy);
+}
+.rw-u-name em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+.rw-u-spec {
+  grid-row: 2;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.rw-u-price {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  font-weight: 700;
+  color: var(--teal-dark);
+}
+.rw-empty {
+  text-align: center;
+  padding: 1rem 0;
+}
+.rw-wa,
+.rw-empty .rw-wa {
+  display: inline-block;
+  margin-top: 0.75rem;
+  background: #25d366;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.rw-done {
+  text-align: center;
+}
+.rw-big {
+  font-size: 2rem;
+  color: #2f7a55;
+  margin: 0 0 0.35rem;
+}
+.rw-paypal {
+  margin-top: 1rem;
+  min-height: 46px;
+}
