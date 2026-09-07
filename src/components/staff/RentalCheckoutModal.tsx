@@ -13,11 +13,28 @@ import SignaturePad from './SignaturePad';
 const ACTIVITY = 'surfboard rental';
 const money = (n: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(Number(n));
+const dt = (iso: string) =>
+  new Date(iso).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+const RATE_LABEL: Record<string, [string, string]> = {
+  hour: ['hour', 'hours'],
+  day: ['day', 'days'],
+  week: ['week', 'weeks'],
+};
 
 interface Loaded {
   id: string;
   reference: string;
   status: string;
+  start_at: string;
+  end_at: string;
+  rate_type: string;
+  units_billed: number;
   total_amount: number;
   currency: string;
   payment_id: string | null;
@@ -30,7 +47,7 @@ const one = <T,>(v: T | T[] | null | undefined): T | null =>
   Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
 
 const COLS =
-  'id, reference, status, total_amount, currency, payment_id, board_units ( code, default_fins ), board_models ( name ), customers ( full_name )';
+  'id, reference, status, start_at, end_at, rate_type, units_billed, total_amount, currency, payment_id, board_units ( code, default_fins ), board_models ( name ), customers ( full_name )';
 
 export default function RentalCheckoutModal({
   rentalId,
@@ -85,6 +102,10 @@ export default function RentalCheckoutModal({
           id: d.id,
           reference: d.reference,
           status: d.status,
+          start_at: d.start_at,
+          end_at: d.end_at,
+          rate_type: d.rate_type,
+          units_billed: d.units_billed,
           total_amount: Number(d.total_amount),
           currency: d.currency || 'USD',
           payment_id: d.payment_id,
@@ -180,6 +201,25 @@ export default function RentalCheckoutModal({
             ×
           </button>
         </div>
+
+        {r && (
+          <div className="st-checkout-span">
+            <div>
+              <span className="st-cs-label">Retiro</span>
+              {dt(r.start_at)}
+            </div>
+            <span className="st-cs-arrow">→</span>
+            <div>
+              <span className="st-cs-label">Devolución</span>
+              {dt(r.end_at)}
+            </div>
+            <span className="st-cs-total">
+              {r.units_billed}{' '}
+              {(RATE_LABEL[r.rate_type] ?? ['', ''])[r.units_billed === 1 ? 0 : 1]} ·{' '}
+              {money(r.total_amount, r.currency)}
+            </span>
+          </div>
+        )}
 
         {loadErr && <div className="st-err">{loadErr}</div>}
         {err && <div className="st-err">{err}</div>}
