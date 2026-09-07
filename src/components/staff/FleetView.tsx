@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
+import UnitHistoryModal from './UnitHistoryModal';
 
 const CATEGORIES = ['softtop', 'longboard', 'funboard', 'shortboard', 'fish', 'sup'] as const;
 const SKILL_LEVELS = ['beginner', 'intermediate', 'advanced', 'all'] as const;
@@ -47,6 +48,7 @@ export default function FleetView() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [openModelId, setOpenModelId] = useState<string | null>(null);
+  const [histUnit, setHistUnit] = useState<{ id: string; code: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -107,12 +109,19 @@ export default function FleetView() {
           <div className="st-card" key={m.id}>
             <strong className="st-svc-title">{m.name}</strong>
             {mine.map((u) => (
-              <UnitRow key={u.id} unit={u} onSaved={load} />
+              <UnitRow
+                key={u.id}
+                unit={u}
+                onSaved={load}
+                onHistory={() => setHistUnit({ id: u.id, code: u.code })}
+              />
             ))}
           </div>
         );
       })}
       {units.length === 0 && <p className="st-empty">Sin unidades todavía.</p>}
+
+      {histUnit && <UnitHistoryModal unit={histUnit} onClose={() => setHistUnit(null)} />}
     </div>
   );
 }
@@ -499,7 +508,15 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
 
 // ---------- Unidad: fila editable ----------
 
-function UnitRow({ unit, onSaved }: { unit: Unit; onSaved: () => void }) {
+function UnitRow({
+  unit,
+  onSaved,
+  onHistory,
+}: {
+  unit: Unit;
+  onSaved: () => void;
+  onHistory: () => void;
+}) {
   const [fins, setFins] = useState(unit.default_fins);
   const [status, setStatus] = useState(unit.status);
   const [busy, setBusy] = useState(false);
@@ -554,6 +571,9 @@ function UnitRow({ unit, onSaved }: { unit: Unit; onSaved: () => void }) {
           {busy ? '…' : 'Guardar'}
         </button>
       )}
+      <button className="st-btn st-btn-ghost st-btn-sm" type="button" onClick={onHistory}>
+        Historial
+      </button>
       <button className="st-btn st-btn-danger st-btn-sm" type="button" onClick={remove}>
         Quitar
       </button>
