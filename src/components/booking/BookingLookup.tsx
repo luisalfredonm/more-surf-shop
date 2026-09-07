@@ -1,18 +1,6 @@
 import { useState } from 'react';
 import './BookingLookup.css';
 
-const fmtDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-const fmtTime = (t: string) => {
-  const [h, m] = t.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-};
 const money = (n: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(n);
 
@@ -31,7 +19,7 @@ interface Result {
   paid: boolean;
   total: number;
   currency: string;
-  items: { class_name: string; slot_date: string; start_time: string; guests: number; status: string }[];
+  items: { kind: string; title: string; detail: string; status: string }[];
 }
 
 export default function BookingLookup() {
@@ -108,8 +96,7 @@ export default function BookingLookup() {
           <ul className="bl-items">
             {result.items.map((it, i) => (
               <li key={i}>
-                <strong>{it.class_name}</strong> — {fmtDate(it.slot_date)} · {fmtTime(it.start_time)} ·{' '}
-                {it.guests} pers
+                <strong>{it.title}</strong> — {it.detail}
                 {it.status !== result.status && (
                   <em> ({STATUS_ES[it.status] ?? it.status})</em>
                 )}

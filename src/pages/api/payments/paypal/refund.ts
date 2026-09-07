@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { isPayPalConfigured, refundCapture } from '@lib/paypal';
 import { requireStaff } from '@lib/staff-auth';
+import { cancelGroupLines } from '@lib/group-lines';
 
 export const prerender = false;
 
@@ -77,7 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   await supabase.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
-  await supabase.from('bookings').update({ status: 'cancelled' }).eq('group_id', group.id);
+  await cancelGroupLines(supabase, group.id);
   await supabase.from('booking_groups').update({ status: 'cancelled' }).eq('id', group.id);
 
   return json({ ok: true, refund_id: result.id, group_reference: group.reference }, 200);

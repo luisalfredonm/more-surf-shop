@@ -4,6 +4,7 @@
  * "pagar al llegar"). Resiliente: nunca lanza, solo loguea. Guard contra
  * doble envío con booking_groups.confirmation_sent_at.
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import { BUSINESS, SITE, whatsappUrl } from './constants';
 
@@ -42,6 +43,20 @@ const dateLabel = (iso: string) =>
     month: 'long',
   });
 
+const dtLabel = (iso: string) =>
+  new Date(iso).toLocaleString('es-CR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+const RATE_ES: Record<string, [string, string]> = {
+  hour: ['hora', 'horas'],
+  day: ['día', 'días'],
+  week: ['semana', 'semanas'],
+};
+
 function kvRow(label: string, value: string): string {
   return `<tr>
     <td style="padding:6px 0;color:#6B7280;font-size:14px">${esc(label)}</td>
@@ -50,10 +65,8 @@ function kvRow(label: string, value: string): string {
 }
 
 interface Item {
-  class_name: string;
-  slot_date: string;
-  start_time: string;
-  participants_count: number;
+  title: string;
+  detail: string;
   total_amount: number;
 }
 interface GroupCtx {
@@ -71,8 +84,8 @@ function itemLines(c: GroupCtx): string {
     .map(
       (it) => `<tr>
         <td style="padding:8px 0;border-top:1px solid #E5DECD;font-size:14px;color:#1F2937">
-          <strong>${esc(it.class_name)}</strong><br>
-          <span style="color:#6B7280">${esc(dateLabel(it.slot_date))} · ${esc(it.start_time.slice(0, 5))} · ${it.participants_count} pers</span>
+          <strong>${esc(it.title)}</strong><br>
+          <span style="color:#6B7280">${esc(it.detail)}</span>
         </td>
         <td style="padding:8px 0;border-top:1px solid #E5DECD;font-size:14px;font-weight:600;text-align:right;color:#1F2937">
           ${esc(money(it.total_amount, c.currency))}
@@ -80,6 +93,57 @@ function itemLines(c: GroupCtx): string {
       </tr>`,
     )
     .join('');
+}
+
+/** Líneas de un grupo (lecciones + alquileres) en el shape común de Item. */
+async function groupItems(supabase: SupabaseClient, groupId: string): Promise<Item[]> {
+  const [{ data: bookings }, { data: rentals }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('slot_date, start_time, participants_count, total_amount, class_types(name)')
+      .eq('group_id', groupId)
+      .order('slot_date'),
+    supabase
+      .from('rentals')
+      .select('start_at, end_at, units_billed, rate_type, total_amount, board_models(name)')
+      .eq('group_id', groupId)
+      .order('start_at'),
+  ]);
+
+  const lessons: Item[] = (bookings ?? []).map((b: any) => ({
+    title:
+      (Array.isArray(b.class_types) ? b.class_types[0]?.name : b.class_types?.name) ?? 'Surf lesson',
+    detail: `${dateLabel(b.slot_date)} · ${String(b.start_time).slice(0, 5)} · ${b.participants_count} pers`,
+    total_amount: Number(b.total_amount),
+  }));
+
+  const boards: Item[] = (rentals ?? []).map((r: any) => {
+    const [one, many] = RATE_ES[r.rate_type as string] ?? ['', ''];
+    return {
+      title:
+        (Array.isArray(r.board_models) ? r.board_models[0]?.name : r.board_models?.name) ??
+        'Alquiler de tabla',
+      detail: `${dtLabel(r.start_at)} → ${dtLabel(r.end_at)} · ${r.units_billed} ${r.units_billed === 1 ? one : many}`,
+      total_amount: Number(r.total_amount),
+    };
+  });
+
+  return [...lessons, ...boards];
+}
+
+/** true = el grupo ya está pagado (PayPal, o todas las líneas con payment_id). */
+async function groupIsPaid(
+  supabase: SupabaseClient,
+  groupId: string,
+  paymentMethod: string | null,
+): Promise<boolean> {
+  if (paymentMethod === 'paypal') return true;
+  const [{ data: b }, { data: r }] = await Promise.all([
+    supabase.from('bookings').select('payment_id').eq('group_id', groupId),
+    supabase.from('rentals').select('payment_id').eq('group_id', groupId),
+  ]);
+  const lines = [...(b ?? []), ...(r ?? [])];
+  return lines.length > 0 && lines.every((x: any) => x.payment_id);
 }
 
 function customerHtml(c: GroupCtx): string {
@@ -182,23 +246,11 @@ export async function sendBookingGroupEmails(groupId: string): Promise<void> {
       .select('id');
     if (!marked || marked.length === 0) return;
 
-    const [{ data: cust }, { data: bookings }] = await Promise.all([
+    const [{ data: cust }, items] = await Promise.all([
       supabase.from('customers').select('full_name, email').eq('id', g.customer_id).maybeSingle(),
-      supabase
-        .from('bookings')
-        .select('slot_date, start_time, participants_count, total_amount, class_types(name)')
-        .eq('group_id', groupId)
-        .order('slot_date'),
+      groupItems(supabase, groupId),
     ]);
     if (!cust?.email) return;
-
-    const items: Item[] = (bookings ?? []).map((b: any) => ({
-      class_name: (Array.isArray(b.class_types) ? b.class_types[0]?.name : b.class_types?.name) ?? 'Surf lesson',
-      slot_date: b.slot_date,
-      start_time: String(b.start_time),
-      participants_count: b.participants_count,
-      total_amount: Number(b.total_amount),
-    }));
 
     const ctx: GroupCtx = {
       reference: g.reference,
@@ -251,26 +303,12 @@ export async function sendBookingGroupReminder(groupId: string): Promise<void> {
       .select('id');
     if (!marked || marked.length === 0) return;
 
-    const [{ data: cust }, { data: bookings }] = await Promise.all([
+    const [{ data: cust }, items, paid] = await Promise.all([
       supabase.from('customers').select('full_name, email').eq('id', g.customer_id).maybeSingle(),
-      supabase
-        .from('bookings')
-        .select('slot_date, start_time, participants_count, total_amount, payment_id, class_types(name)')
-        .eq('group_id', groupId)
-        .order('slot_date'),
+      groupItems(supabase, groupId),
+      groupIsPaid(supabase, groupId, g.payment_method),
     ]);
     if (!cust?.email) return;
-
-    const items: Item[] = (bookings ?? []).map((b: any) => ({
-      class_name: (Array.isArray(b.class_types) ? b.class_types[0]?.name : b.class_types?.name) ?? 'Surf lesson',
-      slot_date: b.slot_date,
-      start_time: String(b.start_time),
-      participants_count: b.participants_count,
-      total_amount: Number(b.total_amount),
-    }));
-    const paid =
-      g.payment_method === 'paypal' ||
-      ((bookings ?? []).length > 0 && (bookings ?? []).every((b: any) => b.payment_id));
 
     const ctx: GroupCtx = {
       reference: g.reference,

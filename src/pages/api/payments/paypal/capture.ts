@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { isPayPalConfigured, captureOrder } from '@lib/paypal';
 import { sendBookingGroupEmails } from '@lib/email';
+import { confirmGroupLines } from '@lib/group-lines';
 
 export const prerender = false;
 
@@ -95,11 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
     paymentId = newPay?.id ?? null;
   }
 
-  await supabase
-    .from('bookings')
-    .update({ status: 'confirmed', payment_id: paymentId })
-    .eq('group_id', group.id)
-    .eq('status', 'pending_payment');
+  await confirmGroupLines(supabase, group.id, paymentId);
 
   await supabase.from('booking_groups').update({ status: 'confirmed' }).eq('id', group.id);
 
