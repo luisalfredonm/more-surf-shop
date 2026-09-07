@@ -1,27 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
-import {
-  acceptanceLabel,
-  getWaiverClauses,
-  WAIVER_ACKNOWLEDGEMENT,
-  WAIVER_RELEASEE,
-  WAIVER_SUBTITLE,
-  WAIVER_TITLE,
-} from '@lib/waiver';
-import SignaturePad from './SignaturePad';
 import QrScanner from './QrScanner';
+import RentalCheckoutModal from './RentalCheckoutModal';
 
-const ACTIVITY = 'surfboard rental';
 const money = (n: number, c = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: c }).format(n);
 const MS: Record<string, number> = { hour: 3_600_000, day: 86_400_000, week: 7 * 86_400_000 };
+const crNow = () => new Date(Date.now() - 6 * 3_600_000);
+const nowDate = () => crNow().toISOString().slice(0, 10);
+const nowTime = () => `${String(crNow().getUTCHours()).padStart(2, '0')}:00`;
 
 interface UnitOpt {
   id: string;
   code: string;
-  default_fins: number;
   model_name: string;
-  category: string;
   price_per_hour: number;
   price_per_day: number;
 }
@@ -41,6 +33,8 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   const [units, setUnits] = useState<UnitOpt[]>([]);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [unitId, setUnitId] = useState('');
+  const [date, setDate] = useState(nowDate());
+  const [time, setTime] = useState(nowTime());
   const [rateType, setRateType] = useState<'hour' | 'day' | 'week'>('day');
   const [qty, setQty] = useState(1);
 
@@ -49,26 +43,14 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   const [cEmail, setCEmail] = useState('');
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [hits, setHits] = useState<CustomerHit[]>([]);
+  const [note, setNote] = useState('');
 
-  const [fins, setFins] = useState(3);
-  const [photoOut, setPhotoOut] = useState<string | null>(null);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const [photoWarn, setPhotoWarn] = useState(false);
-  const [condNotes, setCondNotes] = useState('');
-
-  const [isMinor, setIsMinor] = useState(false);
-  const [guardian, setGuardian] = useState('');
-  const [ecName, setEcName] = useState('');
-  const [ecPhone, setEcPhone] = useState('');
-  const [signature, setSignature] = useState<string | null>(null);
-  const [accepted, setAccepted] = useState(false);
-
-  const [payment, setPayment] = useState<'cash' | 'on_return'>('cash');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [scan, setScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
 
   function onScan(text: string) {
     setScan(false);
@@ -86,23 +68,22 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
     const sb = getBrowserSupabase();
     void sb
       .from('board_units')
-      .select('id, code, default_fins, board_models ( name, category, price_per_hour, price_per_day )')
+      .select('id, code, board_models ( name, price_per_hour, price_per_day )')
       .eq('status', 'available')
       .order('code')
       .then(({ data }) => {
-        const list: UnitOpt[] = (data ?? []).map((u: any) => {
-          const m = Array.isArray(u.board_models) ? u.board_models[0] : u.board_models;
-          return {
-            id: u.id,
-            code: u.code,
-            default_fins: u.default_fins,
-            model_name: m?.name ?? '—',
-            category: m?.category ?? '',
-            price_per_hour: Number(m?.price_per_hour) || 0,
-            price_per_day: Number(m?.price_per_day) || 0,
-          };
-        });
-        setUnits(list);
+        setUnits(
+          (data ?? []).map((u: any) => {
+            const m = Array.isArray(u.board_models) ? u.board_models[0] : u.board_models;
+            return {
+              id: u.id,
+              code: u.code,
+              model_name: m?.name ?? '—',
+              price_per_hour: Number(m?.price_per_hour) || 0,
+              price_per_day: Number(m?.price_per_day) || 0,
+            };
+          }),
+        );
       });
     void sb
       .from('rental_settings')
@@ -117,10 +98,6 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
 
   const unit = useMemo(() => units.find((u) => u.id === unitId) ?? null, [units, unitId]);
 
-  useEffect(() => {
-    if (unit) setFins(unit.default_fins);
-  }, [unit]);
-
   const unitPrice = unit
     ? rateType === 'hour'
       ? unit.price_per_hour
@@ -129,14 +106,12 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         : unit.price_per_day
     : 0;
   const total = Math.round(unitPrice * qty * 100) / 100;
-  const endAt = new Date(Date.now() + qty * (MS[rateType] ?? MS.day));
+  const startAt = new Date(`${date}T${time}:00`);
+  const endAt = new Date(startAt.getTime() + qty * (MS[rateType] ?? MS.day));
 
   // --- autocomplete cliente ---
   const searchCustomers = useCallback((q: string) => {
-    if (q.trim().length < 2) {
-      setHits([]);
-      return;
-    }
+    if (q.trim().length < 2) return setHits([]);
     void getBrowserSupabase()
       .from('customers')
       .select('id, full_name, phone, email')
@@ -146,7 +121,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   }, []);
 
   useEffect(() => {
-    if (customerId) return; // ya elegido
+    if (customerId) return;
     const t = setTimeout(() => searchCustomers(cName), 300);
     return () => clearTimeout(t);
   }, [cName, customerId, searchCustomers]);
@@ -159,37 +134,9 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
     setHits([]);
   }
 
-  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoBusy(true);
-    setPhotoWarn(false);
-    try {
-      const sb = getBrowserSupabase();
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `${(unit?.code || 'unit').replace(/\s+/g, '-')}/${Date.now()}-out.${ext}`;
-      const up = await sb.storage.from('rental-photos').upload(path, file, { upsert: false });
-      if (up.error) {
-        setPhotoWarn(true);
-      } else {
-        setPhotoOut(sb.storage.from('rental-photos').getPublicUrl(path).data.publicUrl);
-      }
-    } catch {
-      setPhotoWarn(true);
-    } finally {
-      setPhotoBusy(false);
-    }
-  }
+  const valid = unitId && qty >= 1 && cName.trim().length >= 2;
 
-  const valid =
-    unitId &&
-    qty >= 1 &&
-    cName.trim().length >= 2 &&
-    accepted &&
-    signature &&
-    (!isMinor || guardian.trim().length >= 2);
-
-  async function submit() {
+  async function submit(deliver: boolean) {
     if (!valid) return;
     setBusy(true);
     setErr(null);
@@ -204,6 +151,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         },
         body: JSON.stringify({
           unit_id: unitId,
+          start_at: startAt.toISOString(),
           rate_type: rateType,
           units_billed: qty,
           customer: {
@@ -212,29 +160,22 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
             phone: cPhone.trim() || null,
             email: cEmail.trim() || null,
           },
-          payment,
-          fins_out: fins,
-          condition_out_photo_url: photoOut,
-          condition_out_notes: condNotes.trim() || null,
-          waiver: {
-            signer_name: cName.trim(),
-            is_minor: isMinor,
-            guardian_name: isMinor ? guardian.trim() : null,
-            emergency_contact_name: ecName.trim() || null,
-            emergency_contact_phone: ecPhone.trim() || null,
-            accepted_terms: true,
-            signature_svg: signature,
-          },
+          staff_note: note.trim() || null,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status !== 201 || !data.ok) {
-        setErr(data.error || 'No se pudo registrar el alquiler.');
+        setErr(data.error || 'No se pudo crear la reserva.');
         setBusy(false);
         return;
       }
-      setMsg(`Alquiler ${data.reference} registrado.`);
-      onCreated();
+      if (deliver) {
+        setCheckoutId(data.rental_id);
+      } else {
+        setMsg(`Reserva ${data.reference} creada.`);
+        onCreated();
+      }
+      setBusy(false);
     } catch {
       setErr('Falló la conexión.');
       setBusy(false);
@@ -278,26 +219,35 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       </div>
       {scan && <QrScanner onScan={onScan} onClose={() => setScan(false)} />}
 
+      {/* Retiro */}
+      <div className="st-row">
+        <div className="st-field">
+          <label>Fecha de retiro</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="st-field">
+          <label>Hora</label>
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+      </div>
+
       {/* Duración */}
       <div className="st-field">
         <label>Duración</label>
         <div className="st-chiprow">
-          {presets.map((p, i) => {
-            const on = rateType === p.kind && qty === p.qty;
-            return (
-              <button
-                key={i}
-                type="button"
-                className={`st-dchip ${on ? 'on' : ''}`}
-                onClick={() => {
-                  setRateType(p.kind as 'hour' | 'day' | 'week');
-                  setQty(p.qty);
-                }}
-              >
-                {p.label}
-              </button>
-            );
-          })}
+          {presets.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`st-dchip ${rateType === p.kind && qty === p.qty ? 'on' : ''}`}
+              onClick={() => {
+                setRateType(p.kind as 'hour' | 'day' | 'week');
+                setQty(p.qty);
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
         <div className="st-row" style={{ marginTop: '0.5rem' }}>
           <div className="st-field">
@@ -349,107 +299,55 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           <input value={cPhone} onChange={(e) => setCPhone(e.target.value)} />
         </div>
       </div>
-      <div className="st-field">
-        <label>Email (opcional)</label>
-        <input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} />
-      </div>
-
-      {/* Condición de salida */}
       <div className="st-row">
         <div className="st-field">
-          <label>Fins entregadas</label>
-          <input type="number" min={0} max={6} value={fins} onChange={(e) => setFins(Number(e.target.value))} />
+          <label>Email (opcional)</label>
+          <input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} />
         </div>
         <div className="st-field">
-          <label>Foto de la tabla</label>
-          <input type="file" accept="image/*" capture="environment" onChange={onPhoto} disabled={photoBusy} />
-          {photoBusy && <span className="st-note">Subiendo…</span>}
-          {photoOut && <span className="st-note">✓ foto cargada</span>}
-          {photoWarn && <span className="st-note">No se pudo subir (falta el bucket) — seguí sin foto.</span>}
+          <label>Nota (opcional)</label>
+          <input value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
-      <div className="st-field">
-        <label>Nota de condición (opcional)</label>
-        <input value={condNotes} onChange={(e) => setCondNotes(e.target.value)} placeholder="ej. ding chico en el nose" />
+
+      <div className="st-modal-actions">
+        <button
+          className="st-btn st-btn-ghost st-btn-sm"
+          type="button"
+          disabled={!valid || busy}
+          onClick={() => submit(false)}
+        >
+          {busy ? '…' : 'Reservar'}
+        </button>
+        <button
+          className="st-btn st-btn-primary st-btn-sm"
+          type="button"
+          disabled={!valid || busy}
+          onClick={() => submit(true)}
+        >
+          {busy ? '…' : `Reservar y entregar · ${money(total)}`}
+        </button>
       </div>
-
-      {/* Waiver */}
-      <div className="st-field">
-        <label>Waiver — lo firma {isMinor ? 'el tutor' : 'el cliente'}</label>
-        <div className="st-row">
-          <div className="st-field">
-            <label>Contacto de emergencia — nombre</label>
-            <input value={ecName} onChange={(e) => setEcName(e.target.value)} />
-          </div>
-          <div className="st-field">
-            <label>Teléfono</label>
-            <input value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} />
-          </div>
-        </div>
-        <div className="st-row">
-          <div className="st-field">
-            <label>¿Es menor de edad?</label>
-            <select value={isMinor ? 'yes' : 'no'} onChange={(e) => setIsMinor(e.target.value === 'yes')}>
-              <option value="no">No</option>
-              <option value="yes">Sí</option>
-            </select>
-          </div>
-          {isMinor && (
-            <div className="st-field">
-              <label>Nombre del tutor</label>
-              <input value={guardian} onChange={(e) => setGuardian(e.target.value)} />
-            </div>
-          )}
-        </div>
-
-        <div className="st-waiver">
-          <h4>{WAIVER_TITLE}</h4>
-          <p className="st-waiver-sub">{WAIVER_SUBTITLE}</p>
-          <p>
-            <strong>Releasee:</strong> {WAIVER_RELEASEE.legalName} ({WAIVER_RELEASEE.commercialName}),
-            corporate ID {WAIVER_RELEASEE.idNumber}.
-          </p>
-          {getWaiverClauses(ACTIVITY).map((c, i) => (
-            <p key={i}>{c}</p>
-          ))}
-          <p>{WAIVER_ACKNOWLEDGEMENT}</p>
-        </div>
-
-        <SignaturePad key={`${unitId}-${isMinor}`} onChange={setSignature} />
-
-        <label className="st-check">
-          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
-          <span>
-            {acceptanceLabel({
-              isMinor,
-              signerName: cName,
-              guardianName: guardian,
-              minorName: cName,
-            })}
-          </span>
-        </label>
-      </div>
-
-      {/* Pago */}
-      <div className="st-field">
-        <label>Pago</label>
-        <select value={payment} onChange={(e) => setPayment(e.target.value as 'cash' | 'on_return')}>
-          <option value="cash">Efectivo — cobrado ahora ({money(total)})</option>
-          <option value="on_return">Pagar al devolver</option>
-        </select>
-      </div>
-
-      <button className="st-btn st-btn-primary" type="button" disabled={!valid || busy} onClick={submit}>
-        {busy ? 'Registrando…' : `Registrar alquiler · ${money(total)}`}
-      </button>
       {!valid && !busy && (
         <p className="st-note" style={{ marginTop: '0.5rem' }}>
           Falta: {!unitId && 'tabla · '}
-          {cName.trim().length < 2 && 'nombre · '}
-          {isMinor && guardian.trim().length < 2 && 'tutor · '}
-          {!signature && 'firma · '}
-          {!accepted && 'aceptar términos'}
+          {cName.trim().length < 2 && 'nombre'}
         </p>
+      )}
+
+      {checkoutId && (
+        <RentalCheckoutModal
+          rentalId={checkoutId}
+          onClose={() => {
+            setCheckoutId(null);
+            setMsg('Reserva creada (sin entregar).');
+            onCreated();
+          }}
+          onDone={() => {
+            setCheckoutId(null);
+            onCreated();
+          }}
+        />
       )}
     </div>
   );

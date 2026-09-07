@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
 import NewRentalForm from './NewRentalForm';
 import ReturnRentalModal, { type OutRental } from './ReturnRentalModal';
+import RentalCheckoutModal from './RentalCheckoutModal';
 import WaiverModal from './WaiverModal';
 import QrScanner from './QrScanner';
 
@@ -55,6 +56,7 @@ export default function RentalsView() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [returnFor, setReturnFor] = useState<OutRental | null>(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
   const [viewWaiver, setViewWaiver] = useState<{ id: string; name: string } | null>(null);
   const [scan, setScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -82,18 +84,24 @@ export default function RentalsView() {
     [rows, now],
   );
 
-  function onScan(text: string) {
+  async function onScan(text: string) {
     setScan(false);
     const norm = text.trim().toLowerCase();
-    const hit = rows.find(
-      (r) => r.status === 'picked_up' && (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
+    const { data } = await getBrowserSupabase()
+      .from('rentals')
+      .select(COLS)
+      .in('status', ['confirmed', 'picked_up'])
+      .order('start_at', { ascending: false });
+    const hit = ((data ?? []) as unknown as Rental[]).find(
+      (r) => (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
     );
-    if (hit) {
-      setScanNote(null);
-      openReturn(hit);
-    } else {
-      setScanNote(`"${text}" no está entre las tablas afuera.`);
+    if (!hit) {
+      setScanNote(`"${text}" no tiene un alquiler activo.`);
+      return;
     }
+    setScanNote(null);
+    if (hit.status === 'picked_up') openReturn(hit);
+    else setCheckoutId(hit.id); // 'confirmed' -> entregar
   }
 
   function openReturn(r: Rental) {
@@ -129,7 +137,7 @@ export default function RentalsView() {
             setScan(true);
           }}
         >
-          📷 Escanear devolución
+          📷 Escanear
         </button>
         {tab === 'agenda' && (
           <button
@@ -201,6 +209,11 @@ export default function RentalsView() {
                     Waiver
                   </button>
                 )}
+                {r.status === 'confirmed' && (
+                  <button className="st-btn st-btn-primary st-btn-sm" onClick={() => setCheckoutId(r.id)}>
+                    Entregar
+                  </button>
+                )}
                 {r.status === 'picked_up' && (
                   <button className="st-btn st-btn-primary st-btn-sm" onClick={() => openReturn(r)}>
                     Recibir
@@ -212,6 +225,16 @@ export default function RentalsView() {
         })
       )}
 
+      {checkoutId && (
+        <RentalCheckoutModal
+          rentalId={checkoutId}
+          onClose={() => setCheckoutId(null)}
+          onDone={() => {
+            setCheckoutId(null);
+            void load();
+          }}
+        />
+      )}
       {returnFor && (
         <ReturnRentalModal
           rental={returnFor}

@@ -2,17 +2,22 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
-import { renderWaiverText, WAIVER_VERSION } from '@lib/waiver';
 import { computeEndAt, makeRentalRef, priceRental } from '@lib/rentals';
 
 export const prerender = false;
+
+/**
+ * Reserva de alquiler desde el panel (walk-in o reserva para después).
+ * Crea el `rental` en estado 'confirmed' — sin waiver ni condición de salida.
+ * El waiver + la foto + el cobro van en /api/rentals/checkout (la entrega).
+ */
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 
 const Schema = z.object({
   unit_id: z.string().uuid(),
-  start_at: z.string().datetime().optional(),
+  start_at: z.string().datetime().optional(), // retiro previsto; default = ahora
   rate_type: z.enum(['hour', 'day', 'week']),
   units_billed: z.number().int().min(1).max(60),
   customer: z.object({
@@ -21,24 +26,7 @@ const Schema = z.object({
     phone: z.string().trim().max(40).nullish(),
     email: z.string().trim().email().max(200).nullish(),
   }),
-  payment: z.enum(['cash', 'on_return']),
-  fins_out: z.number().int().min(0).max(6),
-  condition_out_photo_url: z.string().trim().max(500).nullish(),
-  condition_out_notes: z.string().trim().max(1000).nullish(),
-  waiver: z
-    .object({
-      signer_name: z.string().trim().min(2).max(120),
-      is_minor: z.boolean(),
-      guardian_name: z.string().trim().min(2).max(120).nullish(),
-      emergency_contact_name: z.string().trim().max(120).nullish(),
-      emergency_contact_phone: z.string().trim().max(40).nullish(),
-      accepted_terms: z.literal(true),
-      signature_svg: z.string().max(200_000).nullish(),
-    })
-    .refine((w) => !w.is_minor || (w.guardian_name?.length ?? 0) >= 2, {
-      message: 'guardian_name required for a minor',
-      path: ['guardian_name'],
-    }),
+  customer_note: z.string().trim().max(1000).nullish(),
   staff_note: z.string().trim().max(1000).nullish(),
 });
 
@@ -102,7 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Esa tabla no está libre en ese rango.', code: 'unit_busy' }, 409);
   }
 
-  // --- Cliente ---
+  // --- Cliente (find-or-create) ---
   let customerId = d.customer.id ?? null;
   if (!customerId) {
     const email = d.customer.email?.toLowerCase() || null;
@@ -134,10 +122,7 @@ export const POST: APIRoute = async ({ request }) => {
   } else {
     await supabase
       .from('customers')
-      .update({
-        full_name: d.customer.full_name,
-        phone: d.customer.phone ?? undefined,
-      })
+      .update({ full_name: d.customer.full_name, phone: d.customer.phone ?? undefined })
       .eq('id', customerId);
   }
 
@@ -165,47 +150,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!group) return json({ error: 'No se pudo crear la reserva.' }, 500);
 
-  // --- Waiver ---
-  const w = d.waiver;
-  const signerName = w.is_minor ? (w.guardian_name as string) : w.signer_name;
-  const signedAtISO = new Date().toISOString();
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    null;
-  const snapshot = renderWaiverText({
-    activity: 'surfboard rental',
-    signerName,
-    signedAtISO,
-    isMinor: w.is_minor,
-    guardianName: w.is_minor ? (w.guardian_name as string) : null,
-    minorName: w.is_minor ? w.signer_name : null,
-  });
-  const { data: waiver, error: wErr } = await supabase
-    .from('waivers')
-    .insert({
-      customer_id: customerId,
-      waiver_version: WAIVER_VERSION,
-      activity: 'rental',
-      signed_at: signedAtISO,
-      signer_name_typed: signerName,
-      accepted_terms: true,
-      is_minor: w.is_minor,
-      guardian_name: w.is_minor ? (w.guardian_name as string) : null,
-      ip,
-      user_agent: request.headers.get('user-agent')?.slice(0, 400) ?? null,
-      rendered_text_snapshot: snapshot,
-      signature_svg: w.signature_svg ?? null,
-      lang: 'en',
-    })
-    .select('id')
-    .single();
-  if (wErr || !waiver) {
-    console.error('[rentals/create] waiver:', wErr?.message);
-    return json({ error: 'No se pudo guardar el waiver.' }, 500);
-  }
-
-  // --- Alquiler (sale de una: picked_up) ---
+  // --- Alquiler: reservado (confirmed). El retiro/waiver va en /checkout. ---
   const { data: rental, error: rErr } = await supabase
     .from('rentals')
     .insert({
@@ -221,40 +166,18 @@ export const POST: APIRoute = async ({ request }) => {
       unit_price: unitPrice,
       total_amount: total,
       currency: 'USD',
-      status: 'picked_up',
-      payment_method: d.payment === 'cash' ? 'cash' : 'on_arrival',
-      waiver_id: waiver.id,
+      status: 'confirmed',
+      payment_method: 'on_arrival',
       source: 'walk_in',
-      fins_out: d.fins_out,
-      condition_out_photo_url: d.condition_out_photo_url ?? null,
-      condition_out_notes: d.condition_out_notes ?? null,
-      picked_up_at: signedAtISO,
-      checked_out_by: staff.userId,
+      customer_note: d.customer_note ?? null,
       staff_note: d.staff_note ?? null,
     })
     .select('id, reference')
     .single();
   if (rErr || !rental) {
     console.error('[rentals/create] rental:', rErr?.message);
-    return json({ error: 'No se pudo crear el alquiler.' }, 500);
-  }
-
-  // --- Pago en efectivo cobrado ahora ---
-  if (d.payment === 'cash') {
-    const { data: pay } = await supabase
-      .from('payments')
-      .insert({
-        provider: 'cash',
-        amount: total,
-        currency: 'USD',
-        status: 'paid',
-        paid_at: signedAtISO,
-        related_type: 'rental_reservation',
-        related_id: rental.id,
-      })
-      .select('id')
-      .single();
-    if (pay) await supabase.from('rentals').update({ payment_id: pay.id }).eq('id', rental.id);
+    await supabase.from('booking_groups').delete().eq('id', group.id);
+    return json({ error: 'No se pudo crear la reserva.' }, 500);
   }
 
   return json(
@@ -265,6 +188,7 @@ export const POST: APIRoute = async ({ request }) => {
       group_reference: group.reference,
       total,
       currency: 'USD',
+      start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
     },
     201,
