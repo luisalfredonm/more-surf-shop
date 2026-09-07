@@ -36,7 +36,7 @@ const columns = [
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <div class="logo">more<span>surf</span>shop</div>
+      <img src="/logo.png" alt="More Surf Shop" class="footer-logo" />
       <p>{BUSINESS.description}</p>
     </div>
 
@@ -85,14 +85,13 @@ const columns = [
     margin-top: 1rem;
     line-height: 1.6;
   }
-  .logo {
-    font-family: 'Fraunces', serif;
-    font-size: 1.375rem;
-    font-weight: 600;
-    color: var(--white);
-    letter-spacing: -0.02em;
+  .footer-logo {
+    height: 34px;
+    width: auto;
+    display: block;
+    /* wordmark negro → blanco sobre el footer navy */
+    filter: brightness(0) invert(1);
   }
-  .logo span { color: var(--teal); }
   h4 {
     color: var(--white);
     font-family: 'Inter', sans-serif;
