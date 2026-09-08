@@ -35,14 +35,15 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
   const [time, setTime] = useState('');
   const [guests, setGuests] = useState(1);
   const [c, setC] = useState({ full_name: '', email: '', phone: '', country: '' });
-  const [pay, setPay] = useState<'on_arrival' | 'cash_now'>('on_arrival');
+  const [pay, setPay] = useState<'on_arrival' | 'cash_now' | 'card_now'>('on_arrival');
+  const [hasShift, setHasShift] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    getBrowserSupabase()
-      .from('class_types')
+    const sb = getBrowserSupabase();
+    sb.from('class_types')
       .select('id, name, price_per_person, min_guests, max_guests')
       .eq('active', true)
       .eq('category', 'lesson')
@@ -52,6 +53,17 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
         setServices(list);
         if (list.length && !svcId) setSvcId(list[0].id);
       });
+    void sb.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!uid) return setHasShift(false);
+      void sb
+        .from('cash_shifts')
+        .select('id')
+        .eq('profile_id', uid)
+        .eq('status', 'open')
+        .maybeSingle()
+        .then(({ data: s }) => setHasShift(!!s));
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,7 +96,9 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
   }, [svc]);
 
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email.trim());
-  const valid = svcId && time && c.full_name.trim().length >= 2 && emailOk;
+  const payNow = pay === 'cash_now' || pay === 'card_now';
+  const valid =
+    svcId && time && c.full_name.trim().length >= 2 && emailOk && (!payNow || hasShift === true);
 
   async function submit() {
     if (!valid || !svc) return;
@@ -114,23 +128,22 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
         return;
       }
 
-      if (pay === 'cash_now' && Array.isArray(data.booking_ids)) {
-        const sb = getBrowserSupabase();
+      if (payNow && Array.isArray(data.booking_ids)) {
+        const { data: sess } = await getBrowserSupabase().auth.getSession();
+        const authz = `Bearer ${sess.session?.access_token ?? ''}`;
+        const method = pay === 'card_now' ? 'card' : 'cash';
         for (const bid of data.booking_ids) {
-          const { data: p } = await sb
-            .from('payments')
-            .insert({
-              provider: 'cash',
-              amount: svc.price_per_person * guests,
-              currency: 'USD',
-              status: 'paid',
-              paid_at: new Date().toISOString(),
-              related_type: 'booking',
-              related_id: bid,
-            })
-            .select('id')
-            .single();
-          if (p) await sb.from('bookings').update({ payment_id: p.id }).eq('id', bid);
+          const pr = await fetch('/api/payments/counter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: authz },
+            body: JSON.stringify({ related_type: 'booking', related_id: bid, method }),
+          });
+          const pd = await pr.json().catch(() => ({}));
+          if (!pr.ok || !pd.ok) {
+            setErr(
+              `Reserva ${data.group_reference} creada, pero el cobro falló: ${pd.error ?? ''} — registralo desde la agenda.`,
+            );
+          }
         }
       }
 
@@ -240,13 +253,20 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
           <select
             id="nb-pay"
             value={pay}
-            onChange={(e) => setPay(e.target.value as 'on_arrival' | 'cash_now')}
+            onChange={(e) => setPay(e.target.value as 'on_arrival' | 'cash_now' | 'card_now')}
           >
             <option value="on_arrival">Cobrar al llegar</option>
             <option value="cash_now">Efectivo — cobrado ahora</option>
+            <option value="card_now">Tarjeta — cobrado ahora</option>
           </select>
         </div>
       </div>
+
+      {payNow && hasShift === false && (
+        <div className="st-err">
+          Para cobrar ahora necesitás un turno de caja abierto (Caja → Cierre de caja).
+        </div>
+      )}
 
       <button className="st-btn st-btn-primary" type="button" disabled={!valid || busy} onClick={submit}>
         {busy ? 'Creando…' : 'Crear reserva'}

@@ -177,26 +177,28 @@ export default function AgendaView() {
     await load();
   }
 
-  async function registerCash(b: Booking) {
+  async function registerCounterPayment(b: Booking, method: 'cash' | 'card') {
     setBusyId(b.id);
-    const sb = getBrowserSupabase();
-    const { data: pay, error } = await sb
-      .from('payments')
-      .insert({
-        provider: 'cash',
-        amount: b.total_amount,
-        currency: b.currency,
-        status: 'paid',
-        paid_at: new Date().toISOString(),
-        related_type: 'booking',
-        related_id: b.id,
-      })
-      .select('id')
-      .single();
-    if (!error && pay) await sb.from('bookings').update({ payment_id: pay.id }).eq('id', b.id);
+    const { data: sess } = await getBrowserSupabase().auth.getSession();
+    const res = await fetch('/api/payments/counter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sess.session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify({ related_type: 'booking', related_id: b.id, method }),
+    });
+    const data = await res.json().catch(() => ({}));
     setBusyId(null);
-    if (error) alert(error.message);
-    else await load();
+    if (!res.ok || !data.ok) {
+      alert(
+        data.code === 'no_open_shift'
+          ? 'Abrí tu turno de caja (Caja → Cierre de caja) antes de cobrar.'
+          : data.error || 'No se pudo registrar el cobro.',
+      );
+      return;
+    }
+    await load();
   }
 
   const stats = useMemo(() => {
@@ -437,13 +439,22 @@ export default function AgendaView() {
                           </button>
                         )}
                         {b.status === 'confirmed' && !b.payment_id && (
-                          <button
-                            className="st-btn st-btn-ghost st-btn-sm"
-                            disabled={busyId === b.id}
-                            onClick={() => registerCash(b)}
-                          >
-                            Register cash payment
-                          </button>
+                          <>
+                            <button
+                              className="st-btn st-btn-ghost st-btn-sm"
+                              disabled={busyId === b.id}
+                              onClick={() => registerCounterPayment(b, 'cash')}
+                            >
+                              Cobrar efectivo
+                            </button>
+                            <button
+                              className="st-btn st-btn-ghost st-btn-sm"
+                              disabled={busyId === b.id}
+                              onClick={() => registerCounterPayment(b, 'card')}
+                            >
+                              Cobrar tarjeta
+                            </button>
+                          </>
                         )}
                         {b.payment_id &&
                           b.payment_method === 'paypal' &&
