@@ -157,7 +157,7 @@ export interface DbWaiver {
   created_at: string;
 }
 
-export type PaymentProvider = 'paypal' | 'sinpe' | 'cash' | 'tilopay';
+export type PaymentProvider = 'paypal' | 'sinpe' | 'cash' | 'tilopay' | 'card';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface DbPayment {
@@ -168,9 +168,11 @@ export interface DbPayment {
   currency: string;              // ISO 4217, 'USD' por defecto
   status: PaymentStatus;
   paid_at: string | null;
-  related_type: 'booking' | 'rental_reservation' | 'order';
+  related_type: 'booking' | 'booking_group' | 'rental_reservation' | 'order';
   related_id: string;            // FK blanda según related_type
   notes: string | null;
+  collected_by: string | null;   // = profiles.id del staff que cobró (null = pago online)
+  shift_id: string | null;       // = cash_shifts.id del turno abierto al cobrar
   created_at: string;
   updated_at: string;
 }
@@ -224,7 +226,7 @@ export interface DbBooking {
   total_amount: number;
   currency: string;
   status: BookingStatus;
-  payment_method: PaymentMethod | null;
+  payment_method: PaymentMethod | 'cash' | 'card' | null;
   payment_id: string | null;
   waiver_id: string | null;
   source: 'web' | 'walk_in' | 'whatsapp' | 'phone';
@@ -333,9 +335,10 @@ export interface DbRental {
   total_amount: number;
   currency: string;
   status: RentalStatus;
-  payment_method: 'paypal' | 'on_arrival' | 'cash' | null;
+  payment_method: 'paypal' | 'on_arrival' | 'cash' | 'card' | null;
   payment_id: string | null;
   waiver_id: string | null;
+  reserved_by: string | null;          // = profiles.id del staff que creó la reserva (null = web)
   source: 'web' | 'walk_in' | 'whatsapp' | 'phone';
   fins_out: number | null;
   condition_out_photo_url: string | null;
@@ -372,5 +375,30 @@ export interface DbRentalSettings {
   min_lead_hours: number;
   min_charge_unit: 'hour' | 'day';
   duration_presets: RentalDurationPreset[];
+  updated_at: string;
+}
+
+// ============================================
+// T4 — Cierre de caja (rentals + lecciones)
+// Espejo de supabase/schema-cash.sql
+// ============================================
+
+export type CounterPaymentMethod = 'cash' | 'card';
+export type CashShiftStatus = 'open' | 'closed' | 'reopened';
+
+export interface DbCashShift {
+  id: string;
+  profile_id: string;            // de quién es el turno
+  opened_at: string;
+  opening_float: number;         // fondo inicial — lo fija el empleado
+  closed_at: string | null;
+  closed_by: string | null;      // = profiles.id (normal: el mismo; el dueño puede cerrar por otro)
+  expected_cash: number | null;  // snapshot: opening_float + Σ efectivo del turno
+  counted_cash: number | null;   // lo ingresa el empleado al cerrar
+  difference: number | null;     // counted_cash - expected_cash
+  card_total: number | null;     // Σ tarjeta del turno (informativo)
+  status: CashShiftStatus;
+  notes: string | null;
+  created_at: string;
   updated_at: string;
 }
