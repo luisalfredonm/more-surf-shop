@@ -16,6 +16,17 @@ const dt = (iso: string | null) =>
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const one = <T,>(v: T | T[] | null | undefined): T | null =>
   Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+const hhmm = (iso: string) =>
+  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+function since(iso: string): string {
+  const ms = Date.now() - Date.parse(iso);
+  if (ms < 60_000) return 'recién';
+  const min = Math.floor(ms / 60_000);
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `hace ${h} h ${m} min` : `hace ${h} h`;
+}
 
 interface Shift {
   id: string;
@@ -54,6 +65,12 @@ interface Refund {
   provider: string;
   notes: string | null;
 }
+interface OpenShift {
+  profile_id: string;
+  display_name: string;
+  opened_at: string;
+  status: string;
+}
 
 // profile_id y closed_by apuntan ambos a profiles: hay que desambiguar el embed.
 const COLS =
@@ -65,6 +82,8 @@ export default function CashView() {
   const [totals, setTotals] = useState<Totals | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [openShifts, setOpenShifts] = useState<OpenShift[]>([]);
+  const [, setNowTick] = useState(0);
   const [history, setHistory] = useState<Shift[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,6 +124,9 @@ export default function CashView() {
     const { data: prof } = await sb.from('profiles').select('role').eq('id', uid).maybeSingle();
     const role = (prof?.role as string) ?? 'staff';
     setMe({ id: uid, role });
+
+    const { data: openRpc } = await sb.rpc('open_cash_shifts');
+    setOpenShifts((openRpc ?? []) as OpenShift[]);
 
     const { data: openRows, error: oErr } = await sb
       .from('cash_shifts')
@@ -157,6 +179,12 @@ export default function CashView() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Mantiene fresco el "hace X min" de la leyenda sin recargar todo.
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   async function openShift() {
     setBusy(true);
@@ -356,19 +384,59 @@ export default function CashView() {
         </div>
       )}
 
+      {/* Leyenda: quién tiene la caja abierta ahora */}
       <div
-        className="st-note"
         style={{
-          marginBottom: '0.75rem',
-          fontWeight: 700,
-          color: current ? '#15803d' : 'var(--text-muted)',
+          display: 'flex',
+          gap: '0.7rem',
+          alignItems: 'flex-start',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          borderRadius: 'var(--radius-sm, 8px)',
+          border: '1px solid var(--border, #e5e7eb)',
+          borderLeft: `4px solid ${openShifts.length ? '#15803d' : 'var(--text-muted, #9ca3af)'}`,
+          background: openShifts.length ? 'rgba(21,128,61,0.06)' : 'var(--bg-alt, #f9fafb)',
         }}
       >
-        {current
-          ? `● Caja ABIERTA — desde ${dt(current.opened_at)} · fondo ${money(current.opening_float)}${
-              current.status === 'reopened' ? ' · reabierto por el dueño' : ''
-            }`
-          : '○ Caja CERRADA — no hay turno abierto'}
+        <span
+          aria-hidden="true"
+          style={{
+            marginTop: '0.15rem',
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            flexShrink: 0,
+            background: openShifts.length ? '#15803d' : 'var(--text-muted, #9ca3af)',
+            boxShadow: openShifts.length ? '0 0 0 4px rgba(21,128,61,0.15)' : 'none',
+          }}
+        />
+        <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
+          {openShifts.length === 0 ? (
+            <>
+              <strong>Nadie tiene la caja abierta.</strong>{' '}
+              <span className="st-note">Abrí tu turno para poder cobrar.</span>
+            </>
+          ) : (
+            <>
+              <strong>
+                {openShifts.length === 1 ? 'Caja abierta' : `${openShifts.length} cajas abiertas`}
+              </strong>
+              <div style={{ marginTop: '0.15rem' }}>
+                {openShifts.map((s) => (
+                  <div key={s.profile_id}>
+                    <strong>{s.display_name}</strong>
+                    {s.profile_id === me?.id && (
+                      <span className="st-note"> (vos)</span>
+                    )}{' '}
+                    · desde {hhmm(s.opened_at)}{' '}
+                    <span className="st-note">({since(s.opened_at)})</span>
+                    {s.status === 'reopened' && <span className="st-note"> · reabierto</span>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Turno actual */}

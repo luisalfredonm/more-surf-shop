@@ -222,3 +222,31 @@ $$;
 
 revoke all on function public.cash_shift_totals(uuid) from public;
 grant execute on function public.cash_shift_totals(uuid) to authenticated, service_role;
+
+-- ============================================
+-- Función: open_cash_shifts — quién tiene la caja abierta ahora (nombre + desde).
+-- Cualquier staff la puede llamar (RLS de cash_shifts sólo deja ver los propios).
+-- No devuelve montos, sólo persona + hora.
+-- ============================================
+create or replace function public.open_cash_shifts()
+returns table (
+  profile_id uuid,
+  display_name text,
+  opened_at timestamptz,
+  status text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select s.profile_id, p.display_name, s.opened_at, s.status
+  from public.cash_shifts s
+  join public.profiles p on p.id = s.profile_id
+  where s.status in ('open', 'reopened')
+    and public.is_staff()
+  order by s.opened_at;
+$$;
+
+revoke all on function public.open_cash_shifts() from public;
+grant execute on function public.open_cash_shifts() to authenticated, service_role;
