@@ -4,11 +4,14 @@ import Container from '@components/ui/Container.astro';
 import CartCheckout from '@components/rentals/CartCheckout.tsx';
 import { getPageSeo } from '@lib/seo';
 import { BUSINESS } from '@lib/constants';
+import { getPayPalConfig } from '@lib/paypal';
 
 export const prerender = false;
 
 const seo = getPageSeo('reservation')!;
-const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
+// El client_id (público) sale de la config del panel; el secret nunca llega acá.
+const pp = await getPayPalConfig();
+const paypalClientId = pp.enabled ? pp.clientId : '';
 ---
 
 <BaseLayout seo={seo}>

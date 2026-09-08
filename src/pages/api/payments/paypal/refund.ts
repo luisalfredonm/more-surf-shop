@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed' }, 400);
-  if (!isPayPalConfigured() || !isSupabaseConfigured()) {
+  if (!(await isPayPalConfigured()) || !isSupabaseConfigured()) {
     return json({ error: 'PayPal no está configurado.', code: 'not_configured' }, 503);
   }
 

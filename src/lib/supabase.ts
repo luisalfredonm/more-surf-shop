@@ -412,3 +412,18 @@ export interface DbCashExpense {
   created_by: string | null;
   created_at: string;
 }
+
+// ============================================
+// Configuración del proveedor de pago online
+// Espejo de supabase/schema-payment-settings.sql
+// ============================================
+
+export interface DbPaymentSettings {
+  id: 1;
+  paypal_enabled: boolean;
+  paypal_env: 'sandbox' | 'live';
+  paypal_client_id: string | null;
+  paypal_secret: string | null;
+  paypal_webhook_id: string | null;
+  updated_at: string;
+}

@@ -11,6 +11,7 @@ import FleetView from './FleetView';
 import RentalSettingsView from './RentalSettingsView';
 import QrStickersView from './QrStickersView';
 import CashView from './CashView';
+import PaymentSettingsView from './PaymentSettingsView';
 import './staff.css';
 
 type View =
@@ -22,7 +23,8 @@ type View =
   | 'fleet'
   | 'rental_settings'
   | 'qr_stickers'
-  | 'cash';
+  | 'cash'
+  | 'payments';
 
 const VIEW_TITLE: Record<View, string> = {
   bookings: 'Bookings',
@@ -34,6 +36,7 @@ const VIEW_TITLE: Record<View, string> = {
   rental_settings: 'Rental Settings',
   qr_stickers: 'QR Stickers',
   cash: 'Cierre de caja',
+  payments: 'Pagos',
 };
 
 function initials(name: string): string {
@@ -42,7 +45,10 @@ function initials(name: string): string {
   return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
 }
 
-const NAV: { section: string; items: { key: View; label: string; disabled?: boolean }[] }[] = [
+const NAV: {
+  section: string;
+  items: { key: View; label: string; disabled?: boolean; ownerOnly?: boolean }[];
+}[] = [
   {
     section: 'Surf Lessons',
     items: [
@@ -63,7 +69,10 @@ const NAV: { section: string; items: { key: View; label: string; disabled?: bool
   },
   {
     section: 'Caja',
-    items: [{ key: 'cash', label: 'Cierre de caja' }],
+    items: [
+      { key: 'cash', label: 'Cierre de caja' },
+      { key: 'payments', label: 'Pagos', ownerOnly: true },
+    ],
   },
 ];
 interface Profile {
@@ -152,21 +161,25 @@ export default function StaffApp() {
           more<span>surf</span>shop
         </span>
         <nav className="st-side-nav">
-          {NAV.map((group) => (
-            <div className="st-side-group" key={group.section}>
-              <span className="st-side-section">{group.section}</span>
-              {group.items.map((item, i) => (
-                <button
-                  key={`${item.key}-${i}`}
-                  className={!item.disabled && view === item.key ? 'is-active' : ''}
-                  disabled={item.disabled}
-                  onClick={() => !item.disabled && setView(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
+          {NAV.map((group) => {
+            const items = group.items.filter((it) => !it.ownerOnly || profile.role === 'owner');
+            if (items.length === 0) return null;
+            return (
+              <div className="st-side-group" key={group.section}>
+                <span className="st-side-section">{group.section}</span>
+                {items.map((item, i) => (
+                  <button
+                    key={`${item.key}-${i}`}
+                    className={!item.disabled && view === item.key ? 'is-active' : ''}
+                    disabled={item.disabled}
+                    onClick={() => !item.disabled && setView(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </nav>
         <div className="st-side-foot">
           <span className="st-side-user">
@@ -200,6 +213,7 @@ export default function StaffApp() {
           {view === 'qr_stickers' && <QrStickersView />}
           {view === 'rental_settings' && <RentalSettingsView />}
           {view === 'cash' && <CashView />}
+          {view === 'payments' && profile.role === 'owner' && <PaymentSettingsView />}
         </main>
       </div>
     </div>

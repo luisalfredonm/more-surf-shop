@@ -647,27 +647,31 @@ moverlo a un endpoint para atribución consistente.
 11. ✅ **PayPal online para rentals**: `create-order` / `capture` / `refund` ya
     eran rental-aware (`confirmGroupLines` / `cancelGroupLines`). Se arregló el
     **webhook** (sólo tocaba `bookings`) para confirmar/cancelar también
-    `rentals`. `CartCheckout`: si `PUBLIC_PAYPAL_CLIENT_ID` está seteado, la
-    reserva online es **sólo pago inmediato** (se saca "pagar al retirar").
+    `rentals`. `CartCheckout`: si PayPal está activo, la reserva online es
+    **sólo pago inmediato** (se saca "pagar al retirar").
+12. ✅ **Config de PayPal en el panel** (Settings → Pagos, sólo el dueño): tabla
+    `payment_settings` (fila única, owner-only RLS — tiene el secret) +
+    `/api/payments/settings` (GET sin secret / POST). `lib/paypal.ts` pasa a
+    `getPayPalConfig()` async (DB → fallback env, cache 30 s). `reservation.astro`
+    sirve el client_id desde ahí. `PaymentSettingsView` con Client ID, Secret
+    (no se re-muestra), modo sandbox/live, Webhook ID.
 
-#### Encender PayPal (config — lo hace el usuario)
+#### Encender PayPal (lo hace el dueño, sin tocar `.env`)
 
 1. App sandbox en developer.paypal.com → Client ID + Secret.
-2. `.env`: `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
-   `PUBLIC_PAYPAL_CLIENT_ID` (= el mismo client id).
+2. Panel → **Pagos** → pegar Client ID + Secret, modo Sandbox, Estado = Activo →
+   Guardar. (Toma efecto en ~30 s.)
 3. Webhook en la app PayPal → `https://<dominio>/api/payments/paypal/webhook`,
-   eventos `PAYMENT.CAPTURE.COMPLETED` / `.REFUNDED` / `.REVERSED` / `.DENIED`.
-   Copiar el Webhook ID → `PAYPAL_WEBHOOK_ID`.
-4. Reiniciar el dev server. En local el webhook no llega sin túnel, pero
-   `capture.ts` confirma en el callback del cliente; el webhook es respaldo de prod.
-5. Al encender PayPal, `RENTALS_ASSUME_ONLINE_PAID` deja de tener efecto online
-   (ya no hay reservas `on_arrival` por web). Se puede dejar o quitar.
+   eventos `PAYMENT.CAPTURE.COMPLETED` / `.REFUNDED` / `.REVERSED` / `.DENIED` →
+   pegar el Webhook ID en el mismo form. En local el webhook no llega sin túnel,
+   pero `capture.ts` confirma en el callback del cliente; el webhook es respaldo de prod.
+4. Con PayPal activo, `RENTALS_ASSUME_ONLINE_PAID` deja de tener efecto online.
 
 #### Pendiente
 
-- **Correr `schema-cash.sql`** en Supabase (reejecutar — la firma de
-  `cash_shift_totals` cambió otra vez: `refunds_cash` / `refunds_card`).
-- **Cargar credenciales PayPal sandbox** y probar el flujo online completo.
+- **Correr `schema-cash.sql`** (firma de `cash_shift_totals`) y
+  **`schema-payment-settings.sql`** (tabla `payment_settings`) en Supabase.
+- **Cargar credenciales PayPal sandbox** en el panel y probar el flujo online completo.
 - Reembolso: no se puede **deshacer** desde la UI (hay que borrar el `payments`
   a mano). Suficiente para v1.
 - Prueba E2E con dos logins de staff: abrir turno → reservar+cobrar → entregar →

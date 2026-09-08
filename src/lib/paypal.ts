@@ -1,30 +1,96 @@
 /**
  * Cliente PayPal (Orders v2) para uso en server (API routes).
- * Config vía env: PAYPAL_ENV, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID.
- * El client_id también se expone al browser como PUBLIC_PAYPAL_CLIENT_ID para el SDK JS.
+ *
+ * Config: se lee de la tabla `payment_settings` (la edita el dueño en el panel).
+ * Si esa fila no existe o está vacía, cae a las env vars PAYPAL_ENV /
+ * PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET / PAYPAL_WEBHOOK_ID.
+ * El client_id (público) lo sirve el server a `/reservation` para el SDK JS.
  */
+import { getSupabase } from './supabase';
 
-const ENV = import.meta.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
-const BASE =
-  ENV === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
-const CLIENT_ID = import.meta.env.PAYPAL_CLIENT_ID ?? '';
-const CLIENT_SECRET = import.meta.env.PAYPAL_CLIENT_SECRET ?? '';
-const WEBHOOK_ID = import.meta.env.PAYPAL_WEBHOOK_ID ?? '';
-
-export function isPayPalConfigured(): boolean {
-  return Boolean(CLIENT_ID && CLIENT_SECRET);
+export interface PayPalConfig {
+  clientId: string;
+  secret: string;
+  webhookId: string;
+  env: 'sandbox' | 'live';
+  base: string;
+  enabled: boolean;
 }
 
-let cachedToken: { value: string; exp: number } | null = null;
+interface PayPalSettingsRow {
+  paypal_enabled: boolean;
+  paypal_env: string | null;
+  paypal_client_id: string | null;
+  paypal_secret: string | null;
+  paypal_webhook_id: string | null;
+}
+
+let cachedCfg: { value: PayPalConfig; exp: number } | null = null;
+
+export function clearPayPalConfigCache(): void {
+  cachedCfg = null;
+  cachedToken = null;
+}
+
+/** Config efectiva de PayPal (DB → fallback env). Cacheada 30 s. */
+export async function getPayPalConfig(): Promise<PayPalConfig> {
+  const now = Date.now();
+  if (cachedCfg && cachedCfg.exp > now) return cachedCfg.value;
+
+  let row: PayPalSettingsRow | null = null;
+  try {
+    const { data } = await getSupabase()
+      .from('payment_settings')
+      .select('paypal_enabled, paypal_env, paypal_client_id, paypal_secret, paypal_webhook_id')
+      .eq('id', 1)
+      .maybeSingle();
+    row = (data as PayPalSettingsRow | null) ?? null;
+  } catch {
+    /* tabla aún no creada → sólo env */
+  }
+
+  const envRaw = row?.paypal_env ?? import.meta.env.PAYPAL_ENV;
+  const env: 'sandbox' | 'live' = envRaw === 'live' ? 'live' : 'sandbox';
+  const clientId = (row?.paypal_client_id || import.meta.env.PAYPAL_CLIENT_ID || '').trim();
+  const secret = (row?.paypal_secret || import.meta.env.PAYPAL_CLIENT_SECRET || '').trim();
+  const webhookId = (row?.paypal_webhook_id || import.meta.env.PAYPAL_WEBHOOK_ID || '').trim();
+
+  // Con fila: respeta el toggle del panel. Sin fila: "configurado" = hay creds en env.
+  const enabled = row
+    ? !!row.paypal_enabled && !!clientId && !!secret
+    : !!(clientId && secret);
+
+  const cfg: PayPalConfig = {
+    clientId,
+    secret,
+    webhookId,
+    env,
+    base: env === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com',
+    enabled,
+  };
+  cachedCfg = { value: cfg, exp: now + 30_000 };
+  return cfg;
+}
+
+export async function isPayPalConfigured(): Promise<boolean> {
+  const c = await getPayPalConfig();
+  return c.enabled && !!c.clientId && !!c.secret;
+}
+
+let cachedToken: { value: string; exp: number; key: string } | null = null;
 
 async function accessToken(): Promise<string> {
+  const cfg = await getPayPalConfig();
+  const key = `${cfg.env}:${cfg.clientId}`;
   const now = Date.now();
-  if (cachedToken && cachedToken.exp > now + 60_000) return cachedToken.value;
+  if (cachedToken && cachedToken.key === key && cachedToken.exp > now + 60_000) {
+    return cachedToken.value;
+  }
 
-  const res = await fetch(`${BASE}/v1/oauth2/token`, {
+  const res = await fetch(`${cfg.base}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+      Authorization: `Basic ${btoa(`${cfg.clientId}:${cfg.secret}`)}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',
@@ -33,13 +99,14 @@ async function accessToken(): Promise<string> {
     throw new Error(`PayPal token ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
   const data = await res.json();
-  cachedToken = { value: data.access_token, exp: now + data.expires_in * 1000 };
+  cachedToken = { value: data.access_token, exp: now + data.expires_in * 1000, key };
   return cachedToken.value;
 }
 
 async function api(path: string, init: RequestInit = {}): Promise<any> {
+  const cfg = await getPayPalConfig();
   const token = await accessToken();
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${cfg.base}${path}`, {
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -131,7 +198,8 @@ export interface WebhookVerifyInput {
 }
 
 export async function verifyWebhook(i: WebhookVerifyInput): Promise<boolean> {
-  if (!WEBHOOK_ID) return false;
+  const cfg = await getPayPalConfig();
+  if (!cfg.webhookId) return false;
   try {
     const res = await api('/v1/notifications/verify-webhook-signature', {
       method: 'POST',
@@ -141,7 +209,7 @@ export async function verifyWebhook(i: WebhookVerifyInput): Promise<boolean> {
         transmission_sig: i.transmissionSig,
         cert_url: i.certUrl,
         auth_algo: i.authAlgo,
-        webhook_id: WEBHOOK_ID,
+        webhook_id: cfg.webhookId,
         webhook_event: JSON.parse(i.body),
       }),
     });

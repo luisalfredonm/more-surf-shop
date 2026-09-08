@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!parsed.success) {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
-  if (!isPayPalConfigured() || !isSupabaseConfigured()) {
+  if (!(await isPayPalConfigured()) || !isSupabaseConfigured()) {
     return json({ error: 'Online payment is not available yet.', code: 'not_configured' }, 503);
   }
 
