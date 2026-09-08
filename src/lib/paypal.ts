@@ -77,6 +77,51 @@ export async function isPayPalConfigured(): Promise<boolean> {
   return c.enabled && !!c.clientId && !!c.secret;
 }
 
+/**
+ * Prueba las credenciales guardadas contra el OAuth de PayPal (no depende del
+ * toggle `enabled`). Devuelve ok:true si PayPal entregó un token.
+ */
+export async function testCredentials(): Promise<{
+  ok: boolean;
+  env: 'sandbox' | 'live';
+  error?: string;
+}> {
+  clearPayPalConfigCache();
+  const cfg = await getPayPalConfig();
+  if (!cfg.clientId || !cfg.secret) {
+    return { ok: false, env: cfg.env, error: 'Faltan Client ID o Secret.' };
+  }
+  try {
+    const res = await fetch(`${cfg.base}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${btoa(`${cfg.clientId}:${cfg.secret}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+    if (res.ok) return { ok: true, env: cfg.env };
+    let detail = '';
+    try {
+      const j = (await res.json()) as { error_description?: string; error?: string };
+      detail = j.error_description || j.error || '';
+    } catch {
+      detail = (await res.text().catch(() => '')).slice(0, 160);
+    }
+    const hint =
+      res.status === 401
+        ? 'Client ID o Secret inválidos para este modo.'
+        : `PayPal respondió ${res.status}.`;
+    return { ok: false, env: cfg.env, error: `${hint}${detail ? ` (${detail})` : ''}` };
+  } catch (e) {
+    return {
+      ok: false,
+      env: cfg.env,
+      error: e instanceof Error ? e.message : 'No se pudo conectar con PayPal.',
+    };
+  }
+}
+
 let cachedToken: { value: string; exp: number; key: string } | null = null;
 
 async function accessToken(): Promise<string> {

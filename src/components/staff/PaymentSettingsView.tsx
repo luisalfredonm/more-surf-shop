@@ -16,6 +16,9 @@ export default function PaymentSettingsView() {
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testRes, setTestRes] = useState<{ ok: boolean; env: string; error?: string } | null>(null);
 
   const token = useCallback(async () => {
     const { data } = await getBrowserSupabase().auth.getSession();
@@ -53,6 +56,27 @@ export default function PaymentSettingsView() {
   function set<K extends keyof Loaded>(k: K, v: Loaded[K]) {
     setForm((f) => (f ? { ...f, [k]: v } : f));
     setMsg(null);
+    setDirty(true);
+    setTestRes(null);
+  }
+
+  async function runTest() {
+    setTesting(true);
+    setTestRes(null);
+    try {
+      const res = await fetch('/api/payments/paypal/test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTestRes({ ok: false, env: data.env ?? '', error: data.error || `HTTP ${res.status}` });
+        return;
+      }
+      setTestRes(data as { ok: boolean; env: string; error?: string });
+    } finally {
+      setTesting(false);
+    }
   }
 
   async function save() {
@@ -77,6 +101,8 @@ export default function PaymentSettingsView() {
         return;
       }
       setSecret('');
+      setDirty(false);
+      setTestRes(null);
       if (form.paypal_enabled && !data.ready) {
         setMsg('Guardado. Ojo: PayPal está activo pero faltan Client ID o Secret.');
       } else {
@@ -144,7 +170,12 @@ export default function PaymentSettingsView() {
           <input
             type="password"
             value={secret}
-            onChange={(e) => setSecret(e.target.value)}
+            onChange={(e) => {
+              setSecret(e.target.value);
+              setDirty(true);
+              setTestRes(null);
+              setMsg(null);
+            }}
             placeholder={form.has_secret ? '•••••••• (dejalo vacío para no cambiarlo)' : 'Pegá el secret'}
             autoComplete="new-password"
           />
@@ -169,14 +200,36 @@ export default function PaymentSettingsView() {
             {msg}
           </div>
         )}
-        <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
-          {saving ? 'Guardando…' : 'Guardar configuración'}
-        </button>
-        {form.updated_at && (
-          <p className="st-note" style={{ marginTop: '0.4rem' }}>
-            Última actualización: {new Date(form.updated_at).toLocaleString('en-US')}
-          </p>
+
+        {testRes && (
+          <div
+            className={testRes.ok ? 'st-note' : 'st-err'}
+            style={testRes.ok ? { margin: '0.5rem 0', color: '#15803d', fontWeight: 600 } : { margin: '0.5rem 0' }}
+          >
+            {testRes.ok
+              ? `✓ Conectado a PayPal (${testRes.env}). Las credenciales sirven.`
+              : `✗ ${testRes.error ?? 'PayPal rechazó las credenciales.'}`}
+          </div>
         )}
+
+        <div className="st-inline" style={{ gap: '0.5rem' }}>
+          <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
+            {saving ? 'Guardando…' : 'Guardar configuración'}
+          </button>
+          <button
+            className="st-btn st-btn-ghost"
+            type="button"
+            disabled={testing || saving}
+            onClick={runTest}
+          >
+            {testing ? 'Probando…' : 'Probar conexión'}
+          </button>
+        </div>
+        <p className="st-note" style={{ marginTop: '0.4rem' }}>
+          "Probar conexión" pide un token a PayPal con lo <strong>guardado</strong>
+          {dirty ? ' — guardá primero para probar los cambios' : ''}.
+          {form.updated_at && ` Última actualización: ${new Date(form.updated_at).toLocaleString('en-US')}.`}
+        </p>
       </div>
     </div>
   );
