@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { verifyWebhook } from '@lib/paypal';
 import { sendBookingGroupEmails } from '@lib/email';
+import { confirmGroupLines, cancelGroupLines } from '@lib/group-lines';
 
 export const prerender = false;
 
@@ -56,11 +57,8 @@ async function confirmGroup(supabase: SupabaseClient, groupId: string, resource:
     paymentId = created?.id ?? null;
   }
 
-  await supabase
-    .from('bookings')
-    .update({ status: 'confirmed', payment_id: paymentId })
-    .eq('group_id', group.id)
-    .eq('status', 'pending_payment');
+  // Confirma líneas de lecciones Y de alquileres (mismo helper que capture.ts).
+  await confirmGroupLines(supabase, group.id, paymentId);
   await supabase.from('booking_groups').update({ status: 'confirmed' }).eq('id', group.id);
 
   await sendBookingGroupEmails(group.id);
@@ -105,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
         .update({ status: 'refunded' })
         .eq('related_id', groupId)
         .eq('provider', 'paypal');
-      await supabase.from('bookings').update({ status: 'cancelled' }).eq('group_id', groupId);
+      await cancelGroupLines(supabase, groupId);
       await supabase
         .from('booking_groups')
         .update({ status: 'cancelled' })

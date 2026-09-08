@@ -51,9 +51,9 @@ export default function CartCheckout({
   const [days, setDays] = useState(1);
   const [loading, setLoading] = useState(true);
   const [c, setC] = useState({ full_name: '', email: '', phone: '', note: '' });
-  const [payMethod, setPayMethod] = useState<'paypal' | 'on_arrival'>(
-    paypalClientId ? 'paypal' : 'on_arrival',
-  );
+  // PayPal si está configurado; si no, "pagar al retirar". Sin elección del usuario:
+  // online se paga al momento cuando hay método online.
+  const [payMethod] = useState<'paypal' | 'on_arrival'>(paypalClientId ? 'paypal' : 'on_arrival');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [booked, setBooked] = useState<Booked | null>(null);
@@ -268,26 +268,18 @@ export default function CartCheckout({
                 <textarea rows={3} value={c.note} onChange={(e) => setC({ ...c, note: e.target.value })} />
               </label>
 
-              <div className="rsv-pays">
-                {paypalClientId && (
-                  <label className={payMethod === 'paypal' ? 'on' : ''}>
-                    <input
-                      type="radio"
-                      checked={payMethod === 'paypal'}
-                      onChange={() => setPayMethod('paypal')}
-                    />
-                    Pay now (card / PayPal)
+              {paypalClientId ? (
+                <p className="rsv-note">
+                  You pay now with card or PayPal on the next step. The board is held while you pay.
+                </p>
+              ) : (
+                <div className="rsv-pays">
+                  <label className="on">
+                    <input type="radio" checked readOnly />
+                    Pay at the shop on pickup
                   </label>
-                )}
-                <label className={payMethod === 'on_arrival' ? 'on' : ''}>
-                  <input
-                    type="radio"
-                    checked={payMethod === 'on_arrival'}
-                    onChange={() => setPayMethod('on_arrival')}
-                  />
-                  Pay at the shop on pickup
-                </label>
-              </div>
+                </div>
+              )}
 
               <button className="bav-btn" type="button" disabled={!canBook} onClick={confirm}>
                 {busy ? 'Confirming…' : 'Confirm reservation'}

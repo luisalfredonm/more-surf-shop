@@ -644,13 +644,30 @@ moverlo a un endpoint para atribución consistente.
    `CashView`. `cash_shift_totals` devuelve `refunds_cash` / `refunds_card`.
 10. ✅ Toggle **efectivo / tarjeta** en el cobro de daño (`ReturnRentalModal`) y
     en el cobro de mostrador de la entrega (`RentalCheckoutModal`).
+11. ✅ **PayPal online para rentals**: `create-order` / `capture` / `refund` ya
+    eran rental-aware (`confirmGroupLines` / `cancelGroupLines`). Se arregló el
+    **webhook** (sólo tocaba `bookings`) para confirmar/cancelar también
+    `rentals`. `CartCheckout`: si `PUBLIC_PAYPAL_CLIENT_ID` está seteado, la
+    reserva online es **sólo pago inmediato** (se saca "pagar al retirar").
+
+#### Encender PayPal (config — lo hace el usuario)
+
+1. App sandbox en developer.paypal.com → Client ID + Secret.
+2. `.env`: `PAYPAL_ENV=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
+   `PUBLIC_PAYPAL_CLIENT_ID` (= el mismo client id).
+3. Webhook en la app PayPal → `https://<dominio>/api/payments/paypal/webhook`,
+   eventos `PAYMENT.CAPTURE.COMPLETED` / `.REFUNDED` / `.REVERSED` / `.DENIED`.
+   Copiar el Webhook ID → `PAYPAL_WEBHOOK_ID`.
+4. Reiniciar el dev server. En local el webhook no llega sin túnel, pero
+   `capture.ts` confirma en el callback del cliente; el webhook es respaldo de prod.
+5. Al encender PayPal, `RENTALS_ASSUME_ONLINE_PAID` deja de tener efecto online
+   (ya no hay reservas `on_arrival` por web). Se puede dejar o quitar.
 
 #### Pendiente
 
 - **Correr `schema-cash.sql`** en Supabase (reejecutar — la firma de
   `cash_shift_totals` cambió otra vez: `refunds_cash` / `refunds_card`).
-- **PayPal online** (a validar) — cuando exista, quitar el flag
-  `RENTALS_ASSUME_ONLINE_PAID` y esos pagos van a un bucket "online" sin `shift_id`.
+- **Cargar credenciales PayPal sandbox** y probar el flujo online completo.
 - Reembolso: no se puede **deshacer** desde la UI (hay que borrar el `payments`
   a mano). Suficiente para v1.
 - Prueba E2E con dos logins de staff: abrir turno → reservar+cobrar → entregar →
