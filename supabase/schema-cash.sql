@@ -185,8 +185,8 @@ create policy "cash_shifts_delete_owner" on public.cash_shifts
 -- pero sólo devuelve agregados de un turno que el llamante ya puede ver por RLS
 -- (se valida shift_id contra cash_shifts + is_staff()).
 -- ============================================
--- drop previo: cambió la firma (se sumó expenses_total) y create-or-replace
--- no puede cambiar el tipo de retorno de una función existente.
+-- drop previo: la firma cambió (expenses_total, refunds por método) y
+-- create-or-replace no puede cambiar el tipo de retorno de una función.
 drop function if exists public.cash_shift_totals(uuid);
 create or replace function public.cash_shift_totals(p_shift_id uuid)
 returns table (
@@ -194,7 +194,8 @@ returns table (
   card_total numeric,
   cash_count integer,
   card_count integer,
-  refunds_total numeric,
+  refunds_cash numeric,   -- reembolsos en efectivo (restan del efectivo esperado)
+  refunds_card numeric,   -- reembolsos en tarjeta (informativo — los revierte el datáfono)
   expenses_total numeric
 )
 language sql
@@ -207,7 +208,8 @@ as $$
     coalesce(sum(amount) filter (where provider = 'card' and status = 'paid'), 0),
     count(*) filter (where provider = 'cash' and status = 'paid')::int,
     count(*) filter (where provider = 'card' and status = 'paid')::int,
-    coalesce(sum(amount) filter (where status = 'refunded'), 0),
+    coalesce(sum(amount) filter (where provider = 'cash' and status = 'refunded'), 0),
+    coalesce(sum(amount) filter (where provider = 'card' and status = 'refunded'), 0),
     coalesce(
       (select sum(e.amount) from public.cash_expenses e
        where e.shift_id = p_shift_id and public.is_staff()),

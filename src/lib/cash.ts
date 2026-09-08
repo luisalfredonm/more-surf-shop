@@ -28,7 +28,8 @@ export interface ShiftTotals {
   card_total: number;
   cash_count: number;
   card_count: number;
-  refunds_total: number;
+  refunds_cash: number;
+  refunds_card: number;
   expenses_total: number;
 }
 
@@ -49,21 +50,22 @@ export async function getShiftTotals(
   const rows = (payRes.data ?? []) as { provider: string; amount: number; status: string }[];
   const sum = (pred: (r: (typeof rows)[number]) => boolean) =>
     round2(rows.filter(pred).reduce((s, r) => s + (Number(r.amount) || 0), 0));
-  const paid = (prov: string) => (r: (typeof rows)[number]) =>
-    r.provider === prov && r.status === 'paid';
+  const is = (prov: string, st: string) => (r: (typeof rows)[number]) =>
+    r.provider === prov && r.status === st;
   return {
-    cash_total: sum(paid('cash')),
-    card_total: sum(paid('card')),
-    cash_count: rows.filter(paid('cash')).length,
-    card_count: rows.filter(paid('card')).length,
-    refunds_total: sum((r) => r.status === 'refunded'),
+    cash_total: sum(is('cash', 'paid')),
+    card_total: sum(is('card', 'paid')),
+    cash_count: rows.filter(is('cash', 'paid')).length,
+    card_count: rows.filter(is('card', 'paid')).length,
+    refunds_cash: sum(is('cash', 'refunded')),
+    refunds_card: sum(is('card', 'refunded')),
     expenses_total: round2(
       (expRes.data ?? []).reduce((s, r) => s + (Number((r as { amount: number }).amount) || 0), 0),
     ),
   };
 }
 
-/** efectivo esperado = fondo inicial + efectivo cobrado − reembolsos − gastos. */
+/** efectivo esperado = fondo inicial + efectivo cobrado − reembolsos en efectivo − gastos. */
 export function expectedCash(openingFloat: number, t: ShiftTotals): number {
-  return round2(Number(openingFloat) + t.cash_total - t.refunds_total - t.expenses_total);
+  return round2(Number(openingFloat) + t.cash_total - t.refunds_cash - t.expenses_total);
 }

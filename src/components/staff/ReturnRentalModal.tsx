@@ -33,6 +33,7 @@ export default function ReturnRentalModal({
   const [damage, setDamage] = useState(false);
   const [damageFee, setDamageFee] = useState('');
   const [collectCash, setCollectCash] = useState(true);
+  const [payMethod, setPayMethod] = useState<'cash' | 'card'>('cash');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -86,6 +87,7 @@ export default function ReturnRentalModal({
           damage_reported: damage,
           damage_fee: dmg || null,
           collect_cash: collectCash && due > 0,
+          payment_method: payMethod,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -178,8 +180,26 @@ export default function ReturnRentalModal({
                 checked={collectCash}
                 onChange={(e) => setCollectCash(e.target.checked)}
               />
-              <span>Cobrado en efectivo</span>
+              <span>Cobrar ahora</span>
             </label>
+            {collectCash && (
+              <div className="st-chiprow" style={{ marginTop: '0.35rem' }}>
+                <button
+                  type="button"
+                  className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
+                  onClick={() => setPayMethod('cash')}
+                >
+                  Efectivo
+                </button>
+                <button
+                  type="button"
+                  className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
+                  onClick={() => setPayMethod('card')}
+                >
+                  Tarjeta
+                </button>
+              </div>
+            )}
           </>
         )}
 

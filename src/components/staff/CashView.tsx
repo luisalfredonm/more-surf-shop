@@ -38,7 +38,8 @@ interface Totals {
   card_total: number;
   cash_count: number;
   card_count: number;
-  refunds_total: number;
+  refunds_cash: number;
+  refunds_card: number;
   expenses_total: number;
 }
 interface Expense {
@@ -46,6 +47,12 @@ interface Expense {
   amount: number;
   description: string;
   created_at: string;
+}
+interface Refund {
+  id: string;
+  amount: number;
+  provider: string;
+  notes: string | null;
 }
 
 // profile_id y closed_by apuntan ambos a profiles: hay que desambiguar el embed.
@@ -57,6 +64,7 @@ export default function CashView() {
   const [current, setCurrent] = useState<Shift | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [refunds, setRefunds] = useState<Refund[]>([]);
   const [history, setHistory] = useState<Shift[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -68,6 +76,10 @@ export default function CashView() {
   const [notes, setNotes] = useState('');
   const [expAmount, setExpAmount] = useState('');
   const [expDesc, setExpDesc] = useState('');
+  const [refRef, setRefRef] = useState('');
+  const [refAmount, setRefAmount] = useState('');
+  const [refMethod, setRefMethod] = useState<'cash' | 'card'>('cash');
+  const [refReason, setRefReason] = useState('');
   const [busy, setBusy] = useState(false);
 
   // Edición del dueño sobre un turno reabierto.
@@ -105,19 +117,27 @@ export default function CashView() {
     const mine = (openRows?.[0] as Shift) ?? null;
     setCurrent(mine);
     if (mine) {
-      const [{ data: t }, { data: exp }] = await Promise.all([
+      const [{ data: t }, { data: exp }, { data: ref }] = await Promise.all([
         sb.rpc('cash_shift_totals', { p_shift_id: mine.id }),
         sb
           .from('cash_expenses')
           .select('id, amount, description, created_at')
           .eq('shift_id', mine.id)
           .order('created_at', { ascending: false }),
+        sb
+          .from('payments')
+          .select('id, amount, provider, notes')
+          .eq('shift_id', mine.id)
+          .eq('status', 'refunded')
+          .order('paid_at', { ascending: false }),
       ]);
       setTotals(((Array.isArray(t) ? t[0] : t) as Totals) ?? null);
       setExpenses((exp ?? []) as Expense[]);
+      setRefunds((ref ?? []) as Refund[]);
     } else {
       setTotals(null);
       setExpenses([]);
+      setRefunds([]);
     }
 
     let hq = sb
@@ -192,14 +212,47 @@ export default function CashView() {
     else void load();
   }
 
+  async function addRefund() {
+    if (!current) return;
+    const amount = round2(Number(refAmount) || 0);
+    if (!(amount > 0) || refRef.trim().length < 3 || refReason.trim().length < 3) {
+      setErr('Poné la referencia (RNT-/MSS-), el monto y el motivo del reembolso.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch('/api/payments/refund-counter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+        body: JSON.stringify({
+          reference: refRef.trim(),
+          amount,
+          method: refMethod,
+          reason: refReason.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setErr(data.error || 'No se pudo registrar el reembolso.');
+        return;
+      }
+      setRefRef('');
+      setRefAmount('');
+      setRefReason('');
+      void load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const expensesTotal = totals?.expenses_total ?? 0;
+  const refundsCash = totals?.refunds_cash ?? 0;
+  const refundsCard = totals?.refunds_card ?? 0;
   const expected =
     current && totals
       ? round2(
-          Number(current.opening_float) +
-            totals.cash_total -
-            totals.refunds_total -
-            expensesTotal,
+          Number(current.opening_float) + totals.cash_total - refundsCash - expensesTotal,
         )
       : 0;
   const diff = counted !== '' ? round2((Number(counted) || 0) - expected) : null;
@@ -361,10 +414,19 @@ export default function CashView() {
               {money(totals?.card_total)}{' '}
               <span className="st-note">({totals?.card_count ?? 0} cobros · no entra en la diferencia)</span>
             </dd>
-            {!!totals?.refunds_total && (
+            {refundsCash > 0 && (
               <>
-                <dt>Reembolsos</dt>
-                <dd>−{money(totals.refunds_total)}</dd>
+                <dt>Reembolsos (efectivo)</dt>
+                <dd>−{money(refundsCash)}</dd>
+              </>
+            )}
+            {refundsCard > 0 && (
+              <>
+                <dt>Reembolsos (tarjeta)</dt>
+                <dd>
+                  −{money(refundsCard)}{' '}
+                  <span className="st-note">(no entra en la diferencia)</span>
+                </dd>
               </>
             )}
             {expensesTotal > 0 && (
@@ -376,7 +438,7 @@ export default function CashView() {
             <dt>Efectivo esperado</dt>
             <dd>
               <strong>{money(expected)}</strong>{' '}
-              <span className="st-note">(fondo + efectivo − reembolsos − gastos)</span>
+              <span className="st-note">(fondo + efectivo − reembolsos efvo − gastos)</span>
             </dd>
           </dl>
 
@@ -425,6 +487,66 @@ export default function CashView() {
                 + Gasto
               </button>
             </div>
+          </div>
+
+          {/* Reembolsos / ajustes */}
+          <div className="st-field">
+            <label>Reembolsos / ajustes (cobré de más, cancelación…)</label>
+            {refunds.length > 0 && (
+              <div style={{ marginBottom: '0.4rem' }}>
+                {refunds.map((x) => (
+                  <div className="st-slotlist-row" key={x.id}>
+                    <span style={{ flex: 1 }}>{x.notes ?? '—'}</span>
+                    <span>
+                      −{money(x.amount)} {x.provider === 'card' ? '(tarjeta)' : '(efvo)'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="st-slotlist-row">
+              <input
+                value={refRef}
+                onChange={(e) => setRefRef(e.target.value)}
+                placeholder="Ref. (RNT-… / MSS-…)"
+                style={{ width: '8rem' }}
+              />
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={refAmount}
+                onChange={(e) => setRefAmount(e.target.value)}
+                placeholder="Monto"
+                style={{ width: '5rem' }}
+              />
+              <select
+                value={refMethod}
+                onChange={(e) => setRefMethod(e.target.value as 'cash' | 'card')}
+                style={{ width: '5.5rem' }}
+              >
+                <option value="cash">Efectivo</option>
+                <option value="card">Tarjeta</option>
+              </select>
+              <input
+                value={refReason}
+                onChange={(e) => setRefReason(e.target.value)}
+                placeholder="Motivo"
+                style={{ flex: 1 }}
+              />
+              <button
+                className="st-btn st-btn-ghost st-btn-sm"
+                type="button"
+                disabled={busy}
+                onClick={addRefund}
+              >
+                + Reembolso
+              </button>
+            </div>
+            <p className="st-note" style={{ marginTop: '0.3rem' }}>
+              El de efectivo resta del esperado. El de tarjeta es informativo (lo revierte el datáfono).
+              No se puede deshacer desde acá.
+            </p>
           </div>
 
           <div className="st-row" style={{ marginTop: '0.5rem' }}>

@@ -543,7 +543,7 @@ fechas online, o **conviven** con él (4 h como caso especial arriba del picker)
 | Métodos en lecciones walk-in | **Efectivo o tarjeta**, igual que rentals. |
 | Cierre | **Formal**: fondo inicial + efectivo contado + diferencia. |
 | Alcance del cierre | **Rentals + lecciones del día**, una sola caja combinada. |
-| Turnos | **Dos turnos por día** (p. ej. mañana / tarde). Se **obliga a abrir turno** antes de poder cobrar. |
+| Turnos | **Dos turnos libres** por día en la práctica (abrir/cerrar sin tipo fijo — sin `shift_kind`). Se **obliga a abrir turno** antes de poder cobrar. |
 | Fondo inicial | Lo **fija el empleado** al abrir. |
 | Gastos del turno | El empleado registra **salidas de caja** (monto + concepto) durante el turno; restan del efectivo esperado: `fondo + efectivo − reembolsos − gastos`. Tabla `cash_expenses`. |
 | Diferencia (faltante/sobrante) | **Deja cerrar** siempre; **pide nota**. |
@@ -638,20 +638,23 @@ moverlo a un endpoint para atribución consistente.
    "checked in · por <empleado>" en `AgendaView`.
 8. ✅ Gastos del turno: tabla `cash_expenses` + RLS; se restan del efectivo
    esperado; alta/baja en `CashView`; snapshot `cash_shifts.expenses_total`.
+9. ✅ Reembolsos / ajustes: `/api/payments/refund-counter` (por referencia
+   RNT-/MSS-) → `payments status='refunded'` atribuido al turno. Sólo el de
+   **efectivo** resta del esperado; el de tarjeta es informativo. Alta desde
+   `CashView`. `cash_shift_totals` devuelve `refunds_cash` / `refunds_card`.
+10. ✅ Toggle **efectivo / tarjeta** en el cobro de daño (`ReturnRentalModal`) y
+    en el cobro de mostrador de la entrega (`RentalCheckoutModal`).
 
 #### Pendiente
 
-- **Correr `schema-cash.sql`** en Supabase (reejecutar — cambió con `cash_expenses`).
-- **Refunds / ajustes de efectivo** dentro de un turno (nota + ajuste + refund
-  real): el cierre ya resta `status='refunded'`, pero falta la UI para registrar
-  un reembolso/ajuste de mostrador atribuido al turno.
-- **PayPal online** (a validar) — cuando exista, esos pagos van a un bucket
-  "online" sin `shift_id`.
-- Confirmar si "dos turnos" son **2 fijos/día** (mañana/tarde, quizá con
-  `shift_kind`) o abrir/cerrar libre (~2 en la práctica). El modelo `cash_shifts`
-  sirve para ambas lecturas.
+- **Correr `schema-cash.sql`** en Supabase (reejecutar — la firma de
+  `cash_shift_totals` cambió otra vez: `refunds_cash` / `refunds_card`).
+- **PayPal online** (a validar) — cuando exista, quitar el flag
+  `RENTALS_ASSUME_ONLINE_PAID` y esos pagos van a un bucket "online" sin `shift_id`.
+- Reembolso: no se puede **deshacer** desde la UI (hay que borrar el `payments`
+  a mano). Suficiente para v1.
 - Prueba E2E con dos logins de staff: abrir turno → reservar+cobrar → entregar →
-  recibir daño → cerrar caja de cada uno; verificar atribución y totales.
+  recibir daño → reembolso → cerrar caja de cada uno; verificar atribución y totales.
 
 ---
 

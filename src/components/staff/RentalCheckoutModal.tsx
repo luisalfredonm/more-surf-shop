@@ -76,6 +76,7 @@ export default function RentalCheckoutModal({
   const [accepted, setAccepted] = useState(false);
 
   const [collectCash, setCollectCash] = useState(true);
+  const [payMethod, setPayMethod] = useState<'cash' | 'card'>('cash');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -164,6 +165,7 @@ export default function RentalCheckoutModal({
           condition_out_photo_url: photo,
           condition_out_notes: condNotes.trim() || null,
           collect_cash: collectCash && due > 0,
+          payment_method: payMethod,
           waiver: {
             signer_name: signerName.trim(),
             is_minor: isMinor,
@@ -325,16 +327,36 @@ export default function RentalCheckoutModal({
               </label>
             </div>
 
-            {/* Pago */}
+            {/* Pago (normalmente ya está pagado — se cobra al reservar) */}
             {due > 0 && (
-              <label className="st-check">
-                <input
-                  type="checkbox"
-                  checked={collectCash}
-                  onChange={(e) => setCollectCash(e.target.checked)}
-                />
-                <span>Cobrar {money(due, r.currency)} en efectivo ahora</span>
-              </label>
+              <>
+                <label className="st-check">
+                  <input
+                    type="checkbox"
+                    checked={collectCash}
+                    onChange={(e) => setCollectCash(e.target.checked)}
+                  />
+                  <span>Cobrar {money(due, r.currency)} ahora</span>
+                </label>
+                {collectCash && (
+                  <div className="st-chiprow" style={{ marginTop: '0.35rem' }}>
+                    <button
+                      type="button"
+                      className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
+                      onClick={() => setPayMethod('cash')}
+                    >
+                      Efectivo
+                    </button>
+                    <button
+                      type="button"
+                      className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
+                      onClick={() => setPayMethod('card')}
+                    >
+                      Tarjeta
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="st-modal-actions">
