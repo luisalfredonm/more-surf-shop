@@ -545,6 +545,7 @@ fechas online, o **conviven** con él (4 h como caso especial arriba del picker)
 | Alcance del cierre | **Rentals + lecciones del día**, una sola caja combinada. |
 | Turnos | **Dos turnos por día** (p. ej. mañana / tarde). Se **obliga a abrir turno** antes de poder cobrar. |
 | Fondo inicial | Lo **fija el empleado** al abrir. |
+| Gastos del turno | El empleado registra **salidas de caja** (monto + concepto) durante el turno; restan del efectivo esperado: `fondo + efectivo − reembolsos − gastos`. Tabla `cash_expenses`. |
 | Diferencia (faltante/sobrante) | **Deja cerrar** siempre; **pide nota**. |
 | Corrección de cobro erróneo | **Nota + ajuste manual + refund real** (los tres — refunds entran al alcance v1). |
 | Daño en la devolución | Único cobro en la devolución. Efectivo o tarjeta. Entra al cierre de **quien recibió** la tabla. |
@@ -635,10 +636,12 @@ moverlo a un endpoint para atribución consistente.
    vivo, historial; el dueño ve los de todo el equipo, reabre y ajusta+re-cierra.
 7. ✅ Display: "reservó / entregó / recibió" en `RentalsView` y `UnitHistoryModal`;
    "checked in · por <empleado>" en `AgendaView`.
+8. ✅ Gastos del turno: tabla `cash_expenses` + RLS; se restan del efectivo
+   esperado; alta/baja en `CashView`; snapshot `cash_shifts.expenses_total`.
 
 #### Pendiente
 
-- **Correr `schema-cash.sql`** en Supabase.
+- **Correr `schema-cash.sql`** en Supabase (reejecutar — cambió con `cash_expenses`).
 - **Refunds / ajustes de efectivo** dentro de un turno (nota + ajuste + refund
   real): el cierre ya resta `status='refunded'`, pero falta la UI para registrar
   un reembolso/ajuste de mostrador atribuido al turno.
