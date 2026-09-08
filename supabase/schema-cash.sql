@@ -50,6 +50,10 @@ alter table public.bookings drop constraint if exists bookings_payment_method_ch
 alter table public.bookings add constraint bookings_payment_method_check
   check (payment_method in ('paypal', 'on_arrival', 'cash', 'card'));
 
+alter table public.booking_groups drop constraint if exists booking_groups_payment_method_check;
+alter table public.booking_groups add constraint booking_groups_payment_method_check
+  check (payment_method in ('paypal', 'on_arrival', 'cash', 'card'));
+
 -- ============================================
 -- Tabla: cash_shifts — un turno de caja de un empleado
 -- Flujo: abrir (fondo inicial) → cobrar durante el turno → cerrar (contar efectivo).

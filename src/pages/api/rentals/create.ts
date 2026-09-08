@@ -3,13 +3,15 @@ import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
 import { computeEndAt, makeRentalRef, presetOverride, priceRental } from '@lib/rentals';
+import { getOpenShift } from '@lib/cash';
 
 export const prerender = false;
 
 /**
  * Reserva de alquiler desde el panel (walk-in o reserva para después).
- * Crea el `rental` en estado 'confirmed' — sin waiver ni condición de salida.
- * El waiver + la foto + el cobro van en /api/rentals/checkout (la entrega).
+ * El cliente PAGA al reservar (efectivo o tarjeta) — la reserva nace 'confirmed'
+ * y pagada. El waiver + la foto + la entrega van en /api/rentals/checkout.
+ * Requiere un turno de caja abierto (el cobro se atribuye a ese turno).
  */
 
 const json = (b: unknown, s = 200) =>
@@ -20,6 +22,7 @@ const Schema = z.object({
   start_at: z.string().datetime().optional(), // retiro previsto; default = ahora
   rate_type: z.enum(['hour', 'day', 'week']),
   units_billed: z.number().int().min(1).max(60),
+  payment: z.object({ method: z.enum(['cash', 'card']) }),
   customer: z.object({
     id: z.string().uuid().optional(),
     full_name: z.string().trim().min(2).max(120),
@@ -49,6 +52,15 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const d = parsed.data;
   const supabase = getSupabase();
+
+  // --- Turno de caja (obligatorio para cobrar) ---
+  const shift = await getOpenShift(supabase, staff.userId);
+  if (!shift) {
+    return json(
+      { error: 'Abrí tu turno de caja antes de cobrar una reserva.', code: 'no_open_shift' },
+      409,
+    );
+  }
 
   // --- Unidad + modelo + tarifa ---
   const { data: unit, error: uErr } = await supabase
@@ -85,6 +97,12 @@ export const POST: APIRoute = async ({ request }) => {
   );
   const total = override ?? computed.total;
   const unitPrice = override != null ? Math.round((override / d.units_billed) * 100) / 100 : computed.unitPrice;
+  if (!(total > 0)) {
+    return json(
+      { error: 'Esa tabla no tiene tarifa cargada. Cargala en Fleet.', code: 'no_price' },
+      409,
+    );
+  }
 
   // --- Disponibilidad (guard de carrera) ---
   const { data: avail, error: aErr } = await supabase.rpc('is_unit_available', {
@@ -146,7 +164,7 @@ export const POST: APIRoute = async ({ request }) => {
         customer_id: customerId,
         total_amount: total,
         currency: 'USD',
-        payment_method: 'on_arrival',
+        payment_method: d.payment.method,
         status: 'confirmed',
       })
       .select('id, reference')
@@ -177,8 +195,9 @@ export const POST: APIRoute = async ({ request }) => {
       total_amount: total,
       currency: 'USD',
       status: 'confirmed',
-      payment_method: 'on_arrival',
+      payment_method: d.payment.method,
       source: 'walk_in',
+      reserved_by: staff.userId,
       customer_note: d.customer_note ?? null,
       staff_note: d.staff_note ?? null,
     })
@@ -190,6 +209,30 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'No se pudo crear la reserva.' }, 500);
   }
 
+  // --- Cobro (paga al reservar) ---
+  const { data: pay, error: pErr } = await supabase
+    .from('payments')
+    .insert({
+      provider: d.payment.method,
+      amount: total,
+      currency: 'USD',
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      related_type: 'rental_reservation',
+      related_id: rental.id,
+      collected_by: staff.userId,
+      shift_id: shift.id,
+    })
+    .select('id')
+    .single();
+  if (pErr || !pay) {
+    console.error('[rentals/create] payment:', pErr?.message);
+    await supabase.from('rentals').delete().eq('id', rental.id);
+    await supabase.from('booking_groups').delete().eq('id', group.id);
+    return json({ error: 'No se pudo registrar el cobro.' }, 500);
+  }
+  await supabase.from('rentals').update({ payment_id: pay.id }).eq('id', rental.id);
+
   return json(
     {
       ok: true,
@@ -198,6 +241,7 @@ export const POST: APIRoute = async ({ request }) => {
       group_reference: group.reference,
       total,
       currency: 'USD',
+      payment_method: d.payment.method,
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString(),
     },

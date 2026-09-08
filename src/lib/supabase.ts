@@ -205,7 +205,7 @@ export interface DbBookingGroup {
   customer_id: string;
   total_amount: number;
   currency: string;
-  payment_method: PaymentMethod | null;
+  payment_method: PaymentMethod | 'cash' | 'card' | null;
   status: 'pending' | 'confirmed' | 'cancelled';
   confirmation_sent_at: string | null;
   reminder_sent_at: string | null;

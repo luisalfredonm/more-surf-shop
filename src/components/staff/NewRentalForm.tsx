@@ -46,6 +46,9 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   const [hits, setHits] = useState<CustomerHit[]>([]);
   const [note, setNote] = useState('');
 
+  const [payMethod, setPayMethod] = useState<'cash' | 'card'>('cash');
+  const [hasShift, setHasShift] = useState<boolean | null>(null);
+
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -95,6 +98,17 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         const p = (data?.duration_presets as Preset[]) ?? [];
         setPresets(Array.isArray(p) ? p : []);
       });
+    void sb.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!uid) return setHasShift(false);
+      void sb
+        .from('cash_shifts')
+        .select('id')
+        .eq('profile_id', uid)
+        .eq('status', 'open')
+        .maybeSingle()
+        .then(({ data: s }) => setHasShift(!!s));
+    });
   }, []);
 
   const unit = useMemo(() => units.find((u) => u.id === unitId) ?? null, [units, unitId]);
@@ -140,7 +154,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
     setHits([]);
   }
 
-  const valid = unitId && qty >= 1 && cName.trim().length >= 2;
+  const valid = unitId && qty >= 1 && cName.trim().length >= 2 && hasShift === true;
 
   async function submit(deliver: boolean) {
     if (!valid) return;
@@ -160,6 +174,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           start_at: startAt.toISOString(),
           rate_type: rateType,
           units_billed: qty,
+          payment: { method: payMethod },
           customer: {
             id: customerId ?? undefined,
             full_name: cName.trim(),
@@ -194,6 +209,12 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       {msg && (
         <div className="st-note" style={{ marginBottom: '0.75rem' }}>
           {msg}
+        </div>
+      )}
+      {hasShift === false && (
+        <div className="st-err">
+          No tenés un turno de caja abierto. Andá a <strong>Caja → Cierre de caja</strong> y abrí tu
+          turno para poder cobrar.
         </div>
       )}
 
@@ -286,6 +307,27 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         )}
       </div>
 
+      {/* Pago (se cobra al reservar) */}
+      <div className="st-field">
+        <label>Pago — se cobra ahora{unit ? ` · ${money(total)}` : ''}</label>
+        <div className="st-chiprow">
+          <button
+            type="button"
+            className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
+            onClick={() => setPayMethod('cash')}
+          >
+            Efectivo
+          </button>
+          <button
+            type="button"
+            className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
+            onClick={() => setPayMethod('card')}
+          >
+            Tarjeta
+          </button>
+        </div>
+      </div>
+
       {/* Cliente */}
       <div className="st-row">
         <div className="st-field" style={{ position: 'relative' }}>
@@ -346,7 +388,8 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       {!valid && !busy && (
         <p className="st-note" style={{ marginTop: '0.5rem' }}>
           Falta: {!unitId && 'tabla · '}
-          {cName.trim().length < 2 && 'nombre'}
+          {cName.trim().length < 2 && 'nombre · '}
+          {hasShift === false && 'abrir turno de caja'}
         </p>
       )}
 

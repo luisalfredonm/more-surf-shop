@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
+import { getOpenShift } from '@lib/cash';
 import { renderWaiverText, WAIVER_VERSION } from '@lib/waiver';
 
 export const prerender = false;
@@ -21,6 +22,7 @@ const Schema = z.object({
   condition_out_photo_url: z.string().trim().max(500).nullish(),
   condition_out_notes: z.string().trim().max(1000).nullish(),
   collect_cash: z.boolean().default(false),
+  payment_method: z.enum(['cash', 'card']).default('cash'),
   waiver: z
     .object({
       signer_name: z.string().trim().min(2).max(120), // el que alquila (o el menor)
@@ -132,20 +134,31 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'No se pudo registrar la entrega.' }, 500);
   }
 
-  // --- Cobro en efectivo (opcional) ---
+  // --- Cobro en el mostrador (opcional) ---
+  // Normalmente la reserva ya está pagada (se cobra al reservar). Esto cubre el
+  // caso de una reserva creada sin pago (p. ej. una reserva online pendiente).
   let collected = 0;
   const due = rental.payment_id ? 0 : Number(rental.total_amount) || 0;
   if (d.collect_cash && due > 0) {
+    const shift = await getOpenShift(supabase, staff.userId);
+    if (!shift) {
+      return json(
+        { error: 'Abrí tu turno de caja antes de cobrar.', code: 'no_open_shift' },
+        409,
+      );
+    }
     const { data: pay } = await supabase
       .from('payments')
       .insert({
-        provider: 'cash',
+        provider: d.payment_method,
         amount: due,
         currency: rental.currency || 'USD',
         status: 'paid',
         paid_at: signedAtISO,
         related_type: 'rental_reservation',
         related_id: rental.id,
+        collected_by: staff.userId,
+        shift_id: shift.id,
       })
       .select('id')
       .single();

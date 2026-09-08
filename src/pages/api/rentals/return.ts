@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { requireStaff } from '@lib/staff-auth';
+import { getOpenShift } from '@lib/cash';
 
 export const prerender = false;
 
@@ -16,6 +17,7 @@ const Schema = z.object({
   damage_reported: z.boolean().default(false),
   damage_fee: z.number().min(0).max(100_000).nullish(),
   collect_cash: z.boolean().default(false),
+  payment_method: z.enum(['cash', 'card']).default('cash'),
 });
 
 export const POST: APIRoute = async ({ request }) => {
@@ -75,16 +77,25 @@ export const POST: APIRoute = async ({ request }) => {
 
   let collected = 0;
   if (d.collect_cash && collectNow > 0) {
+    const shift = await getOpenShift(supabase, staff.userId);
+    if (!shift) {
+      return json(
+        { error: 'Abrí tu turno de caja antes de cobrar el daño.', code: 'no_open_shift' },
+        409,
+      );
+    }
     const { data: pay } = await supabase
       .from('payments')
       .insert({
-        provider: 'cash',
+        provider: d.payment_method,
         amount: collectNow,
         currency: rental.currency || 'USD',
         status: 'paid',
         paid_at: now,
         related_type: 'rental_reservation',
         related_id: rental.id,
+        collected_by: staff.userId,
+        shift_id: shift.id,
         notes: damage > 0 ? `incluye daño ${damage.toFixed(2)}` : null,
       })
       .select('id')
