@@ -465,6 +465,167 @@ cobro extra" — **no está implementado.** Hoy `ReturnRentalModal` /
 la tabla vuelve después de `end_at`. Falta: en Recibir, mostrar "estuvo X días de
 más · +$Y" y sumarlo al cobro. (Depende de qué se decida en T1.)
 
+### T3. Duraciones fijas (4 h / 1 día / 1 semana) con tarifa por tipo de tabla
+
+> Reunión con el dueño (sin fecha exacta, ~sep 2026). Solo analizado, nada tocado.
+
+**Lo que pidió:** una tabla se alquila por **4 h, 1 día o 1 semana**, y tanto la
+duración disponible como el precio **dependen del tipo de tabla**: softtop,
+"regular" y shortboard.
+
+**Dónde encaja ya:** `rentals.rate_type` ya es `hour|day|week`; `computeEndAt` /
+`RENTAL_MS` calculan bien un bloque de 4 h; el mostrador ya entrega por 4 h (chip
+por defecto en `duration_presets`); el staff edita tarifas en Fleet (por modelo) y
+chips en Rental settings sin tocar código.
+
+**Los dos choques de diseño:**
+
+1. **Online no vende por horas ni por bloques — solo por rango de fechas.** Todo el
+   circuito web (`CatalogGrid`, `BoardAvailability`, `CartCheckout`,
+   `/api/rentals/quote`, `/api/rentals/book`, `rental-cart.ts`) trabaja con
+   `from`/`to` en `YYYY-MM-DD` y `pickRate(days)` que solo devuelve `day`/`week`.
+   El "4 h" hoy vive **solo en el mostrador** (decisión §14: "las horas quedan solo
+   para el mostrador"). Llevar 4h/1d/1sem a la web = rediseñar widget + las 2 APIs
+   + el carrito + la ficha de tabla y el copy del hero.
+2. **El precio de 4 h no puede variar por tipo de tabla.** Las palancas de precio
+   hoy: `price_per_hour` / `price_per_day` **por modelo** (sirve para hora y día por
+   tier), y el `price` de un chip de `duration_presets` que es **uno solo, plano
+   para toda la flota**. "4 h softtop = $15, 4 h shortboard = $20" no se puede
+   expresar.
+
+**Huecos menores:** no hay concepto de "tier de precio" (el schema tiene 6
+`category`, el dueño habla de 3); nada restringe las duraciones a esas 3 (walk-in
+tiene selector libre 1–60, online llega a `max_duration_days`); `min_duration_hours`
+(default 1) no se valida contra el bloque de 4 h.
+
+**Decisión de fondo pendiente:** ¿las 3 duraciones **reemplazan** el rango de
+fechas online, o **conviven** con él (4 h como caso especial arriba del picker)?
+
+**Opciones de modelado:**
+
+| | Qué hace | Costo | Límite |
+| - | -------- | ----- | ------ |
+| A. Liviana | `duration_presets` = exactamente 4h/1d/1sem; precio sale de `price_per_hour`×4 y `price_per_day`×7 por modelo | Casi no toca schema | El 4 h queda atado a `hora × 4`; sin número propio |
+| **B. Matriz** *(recomendada si el 4 h es número propio)* | `price_tier` (softtop/regular/shortboard) + tabla editable de 9 precios `(tier, duración) → $`; el precio se resuelve de la matriz | Schema + Fleet + quote + book + walk-in + fichas | — |
+
+**Preguntas para el dueño:**
+
+1. ¿4h/1d/1sem es la lista completa (y online deja de alquilar "por fechas"), o se
+   suma al rango actual?
+2. El 4 h: ¿número propio o fórmula (`tarifa hora × 4`)?
+3. "Regular" = ¿longboard + funboard + fish? ¿SUP entra en algún tier o se saca?
+4. ¿Los 3 tipos ofrecen las 3 duraciones? (¿shortboard por 4 h? ¿softtop por semana?)
+5. Estadías intermedias (3, 10 días): ¿siguen permitidas? ¿cobradas por día?
+6. ¿Online necesita el bloque de 4 h, o 4 h es solo mostrador y la web queda en
+   día/semana?
+
+### T4. Pago al reservar + atribución de staff + cierre de caja formal
+
+> Reunión con el dueño (~sep 2026). **Decisiones cerradas** — listo para
+> planificar implementación. Nada tocado todavía.
+
+**Lo que pidió:**
+
+1. En renta, el cliente **paga al reservar** (walk-in y reservas a fecha futura).
+2. Al crear la reserva, **mostrar qué empleado la hizo**.
+3. En la devolución, **mostrar quién la recibió** (automático).
+4. *(implícito)* Dos empleados comparten horario, cada uno con su dispositivo y su
+   login → **cierre de caja formal por empleado**, que incluye rentals **y**
+   lecciones del día.
+
+#### Decisiones cerradas
+
+| Tema | Decisión |
+| ---- | -------- |
+| Pago al reservar | **Siempre**, walk-in y reserva futura. El efectivo/pago entra al cierre del **día en que se paga / se hace la reserva** (no el del retiro). |
+| Online | Por ahora **sin pago online** (reserva online → paga en el mostrador al retirar; ese cobro entra al cierre de quien lo procesa). **PayPal a validar**; cuando exista, se paga al momento de reservar y esos pagos van a un bucket "online" — NO entran al cierre de ningún empleado. |
+| Tarjeta | Solo se registra **"pagado con tarjeta $X"**. Sin voucher, sin referencia, sin integración con el datáfono. |
+| Métodos en lecciones walk-in | **Efectivo o tarjeta**, igual que rentals. |
+| Cierre | **Formal**: fondo inicial + efectivo contado + diferencia. |
+| Alcance del cierre | **Rentals + lecciones del día**, una sola caja combinada. |
+| Turnos | **Dos turnos por día** (p. ej. mañana / tarde). Se **obliga a abrir turno** antes de poder cobrar. |
+| Fondo inicial | Lo **fija el empleado** al abrir. |
+| Diferencia (faltante/sobrante) | **Deja cerrar** siempre; **pide nota**. |
+| Corrección de cobro erróneo | **Nota + ajuste manual + refund real** (los tres — refunds entran al alcance v1). |
+| Daño en la devolución | Único cobro en la devolución. Efectivo o tarjeta. Entra al cierre de **quien recibió** la tabla. |
+| Tarjeta en el cierre | Se muestra como total aparte; **NO cuenta en la diferencia de efectivo** (esa la concilia el datáfono). |
+| Permisos | Cada empleado ve **su** cierre; el dueño ve **todos** y es el único que **reabre/edita**. |
+| Zona horaria del "día" | **Costa Rica (UTC−6)**. Un turno que cruza medianoche = un solo turno (por apertura/cierre, no por fecha). |
+| Dispositivos | Cada empleado usa **el suyo**, con su login → atribución = usuario de la sesión. Sin cambio rápido de usuario. |
+
+#### Modelo resultante
+
+**Atribución (quién hizo qué):**
+
+- `rentals.reserved_by` *(nuevo)* → `profiles(id)` — quién creó la reserva. `null` = vía online.
+- `rentals.checked_out_by` / `checked_in_by` *(ya existen y ya se guardan)* — quién entregó / recibió.
+- `payments.collected_by` *(nuevo)* → `profiles(id)` — quién cobró. `null` = pago online.
+- `payments.shift_id` *(nuevo)* → `cash_shifts(id)` — el turno abierto en el momento del cobro.
+
+**Métodos de pago:**
+
+- Sumar `'card'` a `payments.provider`, `rentals.payment_method` y `bookings.payment_method`.
+- `NewRentalForm` gana un paso "efectivo / tarjeta"; `/api/rentals/create` inserta
+  el `payments` (`status='paid'`, estampa `collected_by` + `shift_id`) y setea
+  `rentals.payment_id`. La reserva nace pagada.
+- `/api/rentals/return` — el cobro de daño gana opción tarjeta + `collected_by` + `shift_id`.
+
+**Cierre formal — tabla nueva `cash_shifts`:**
+
+```
+cash_shifts
+  id, profile_id → profiles,
+  opened_at, opening_float numeric not null,      -- lo fija el empleado
+  closed_at, closed_by → profiles (null hasta cerrar),
+  expected_cash numeric,   -- snapshot al cerrar: opening_float + Σ efectivo del turno
+  counted_cash numeric,    -- lo ingresa el empleado al cerrar
+  difference numeric,      -- counted - expected (snapshot)
+  status ('open'|'closed'|'reopened'),
+  notes text,              -- justificación de la diferencia / ajustes
+  timestamps
+-- RLS: el empleado ve/edita solo los suyos con status='open'; el dueño, todos.
+```
+
+- **Flujo empleado:** "Abrir turno" (ingresa fondo) → ve el acumulado en vivo →
+  "Cerrar turno" (ingresa efectivo contado, ve la diferencia, nota, confirma).
+- **Qué entra:** todos los `payments` de mostrador (efectivo **y** tarjeta) de ese
+  empleado, de rentals **y** de lecciones, del período del turno. La tarjeta suma
+  como total informativo; solo el efectivo entra en `expected_cash` / `difference`.
+- **Refunds / ajustes:** un `payments` de signo negativo (o `status='refunded'`)
+  con `collected_by` + `shift_id`, para que el arqueo del turno cuadre.
+- **Vista nueva "Caja / Cierre"** en el nav del panel (`StaffApp`). Empleado: solo
+  la suya. Dueño: todas, filtro por empleado/fecha + reabrir/editar.
+
+**Display (Req. 2 y 3):** join a `profiles(display_name)` para `reserved_by` /
+`checked_out_by` / `checked_in_by` en `RentalsView`, los modales y
+`UnitHistoryModal`; y para `checked_in_by` en `AgendaView` (lecciones) — hoy nada
+del panel muestra qué persona hizo cada acción.
+
+#### Alcance transversal — la vía walk-in de lecciones también cambia
+
+Hoy el cobro en efectivo de una lección walk-in se inserta **desde el navegador**,
+solo efectivo, sin `collected_by`
+([NewBookingForm.tsx:117-133](../src/components/staff/NewBookingForm.tsx#L117-L133)).
+Para el cierre hay que: estampar `collected_by` + `shift_id`, agregar tarjeta, y
+moverlo a un endpoint para atribución consistente.
+
+#### Orden de construcción sugerido
+
+1. Schema: `cash_shifts`, `payments.collected_by` + `shift_id`,
+   `rentals.reserved_by`, `'card'` en los tres enums + tipos en `supabase.ts`.
+2. Turno: endpoints abrir/cerrar + guard "no cobrar sin turno abierto".
+3. Pago al reservar: `NewRentalForm` + `/api/rentals/create`.
+4. Lecciones walk-in a endpoint con pago (efectivo/tarjeta) + atribución.
+5. Devolución: tarjeta + atribución del cobro de daño.
+6. Vista "Caja / Cierre" (empleado + dueño) con refunds/ajustes.
+7. Display de nombres de staff en agenda, modales y hoja de vida.
+
+#### Pendiente menor
+
+- Confirmar si "dos turnos" son **2 fijos/día** (mañana/tarde, quizá con
+  `shift_kind`) o simplemente abrir/cerrar libre y que en la práctica sean ~2. El
+  modelo `cash_shifts` (abrir→cerrar por empleado) sirve para ambas lecturas.
+
 ---
 
 ## 14. Catálogo público (rediseño de la vía online)
