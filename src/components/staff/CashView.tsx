@@ -58,6 +58,11 @@ export default function CashView() {
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // Edición del dueño sobre un turno reabierto.
+  const [edit, setEdit] = useState<{ id: string; float: string; counted: string; notes: string } | null>(
+    null,
+  );
+
   const token = useCallback(async () => {
     const { data } = await getBrowserSupabase().auth.getSession();
     return data.session?.access_token ?? '';
@@ -101,7 +106,8 @@ export default function CashView() {
       .limit(40);
     if (!(role === 'owner' && showAll)) hq = hq.eq('profile_id', uid);
     const { data: hist } = await hq;
-    setHistory((hist ?? []) as Shift[]);
+    // El turno reabierto propio ya se muestra arriba como "actual".
+    setHistory(((hist ?? []) as Shift[]).filter((h) => h.id !== mine?.id));
     setLoading(false);
   }, [showAll]);
 
@@ -181,6 +187,43 @@ export default function CashView() {
       .eq('id', s.id);
     if (error) alert(error.message);
     else void load();
+  }
+
+  /** El dueño ajusta un turno reabierto y lo vuelve a cerrar. Un turno reabierto
+   *  no recibe cobros nuevos, así que expected sólo se corre por el cambio de fondo. */
+  async function saveEdit(s: Shift) {
+    if (!edit) return;
+    const floatNew = Number(edit.float) || 0;
+    const countedNew = Number(edit.counted) || 0;
+    const expectedNew = round2(Number(s.expected_cash ?? 0) + (floatNew - Number(s.opening_float)));
+    const diffNew = round2(countedNew - expectedNew);
+    if (diffNew !== 0 && edit.notes.trim().length === 0) {
+      setErr('Hay diferencia. Agregá una nota.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const { error } = await getBrowserSupabase()
+      .from('cash_shifts')
+      .update({
+        opening_float: round2(floatNew),
+        counted_cash: round2(countedNew),
+        expected_cash: expectedNew,
+        difference: diffNew,
+        notes: edit.notes.trim() || null,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by: me?.id ?? null,
+      })
+      .eq('id', s.id);
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    setEdit(null);
+    setMsg('Turno ajustado y cerrado.');
+    void load();
   }
 
   if (loading) {
@@ -321,31 +364,99 @@ export default function CashView() {
         <p className="st-empty">Sin cierres todavía.</p>
       ) : (
         history.map((s) => (
-          <div className="st-card st-rental-row" key={s.id}>
-            <div className="st-rental-main">
-              <strong className="st-svc-title">{one(s.profiles)?.display_name ?? '—'}</strong>
-              <span className="st-note">
-                {dt(s.opened_at)} → {dt(s.closed_at)}
-                {s.status === 'reopened' && ' · reabierto'}
-              </span>
-              {s.notes && <span className="st-note">“{s.notes}”</span>}
+          <div className="st-card" key={s.id}>
+            <div className="st-rental-row">
+              <div className="st-rental-main">
+                <strong className="st-svc-title">{one(s.profiles)?.display_name ?? '—'}</strong>
+                <span className="st-note">
+                  {dt(s.opened_at)} → {dt(s.closed_at)}
+                  {s.status === 'reopened' && ' · reabierto'}
+                </span>
+                {s.notes && <span className="st-note">“{s.notes}”</span>}
+              </div>
+              <div className="st-rental-dates">
+                <span>fondo {money(s.opening_float)}</span>
+                <span>
+                  esperado {money(s.expected_cash)} · contado {money(s.counted_cash)}
+                </span>
+                <span
+                  className={s.difference != null && s.difference !== 0 ? 'st-gate-warn' : 'st-note'}
+                >
+                  dif {s.difference != null && s.difference > 0 ? '+' : ''}
+                  {money(s.difference)} · tarjeta {money(s.card_total)}
+                </span>
+              </div>
+              {me?.role === 'owner' && (
+                <div className="st-rental-actions">
+                  {s.status === 'closed' ? (
+                    <button
+                      className="st-btn st-btn-ghost st-btn-sm"
+                      type="button"
+                      onClick={() => reopen(s)}
+                    >
+                      Reabrir
+                    </button>
+                  ) : (
+                    <button
+                      className="st-btn st-btn-ghost st-btn-sm"
+                      type="button"
+                      onClick={() =>
+                        setEdit(
+                          edit?.id === s.id
+                            ? null
+                            : {
+                                id: s.id,
+                                float: String(s.opening_float ?? ''),
+                                counted: String(s.counted_cash ?? ''),
+                                notes: s.notes ?? '',
+                              },
+                        )
+                      }
+                    >
+                      {edit?.id === s.id ? 'Cerrar edición' : 'Ajustar'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="st-rental-dates">
-              <span>fondo {money(s.opening_float)}</span>
-              <span>
-                esperado {money(s.expected_cash)} · contado {money(s.counted_cash)}
-              </span>
-              <span
-                className={s.difference != null && s.difference !== 0 ? 'st-gate-warn' : 'st-note'}
-              >
-                dif {s.difference != null && s.difference > 0 ? '+' : ''}
-                {money(s.difference)} · tarjeta {money(s.card_total)}
-              </span>
-            </div>
-            {me?.role === 'owner' && s.status === 'closed' && (
-              <div className="st-rental-actions">
-                <button className="st-btn st-btn-ghost st-btn-sm" type="button" onClick={() => reopen(s)}>
-                  Reabrir
+
+            {edit?.id === s.id && (
+              <div className="st-svc-form">
+                <div className="st-row">
+                  <div className="st-field">
+                    <label>Fondo inicial (USD)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={edit.float}
+                      onChange={(e) => setEdit({ ...edit, float: e.target.value })}
+                    />
+                  </div>
+                  <div className="st-field">
+                    <label>Efectivo contado (USD)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={edit.counted}
+                      onChange={(e) => setEdit({ ...edit, counted: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="st-field">
+                  <label>Nota</label>
+                  <textarea
+                    rows={2}
+                    value={edit.notes}
+                    onChange={(e) => setEdit({ ...edit, notes: e.target.value })}
+                  />
+                </div>
+                <button
+                  className="st-btn st-btn-primary st-btn-sm"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => saveEdit(s)}
+                >
+                  {busy ? 'Guardando…' : 'Guardar y cerrar'}
                 </button>
               </div>
             )}
