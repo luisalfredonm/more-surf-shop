@@ -11,6 +11,8 @@ const dt = (iso: string | null) =>
       })
     : '—';
 
+type NameRef = { display_name: string } | { display_name: string }[] | null;
+
 interface Row {
   id: string;
   reference: string;
@@ -27,12 +29,16 @@ interface Row {
   condition_out_photo_url: string | null;
   condition_in_photo_url: string | null;
   customers: { full_name: string } | { full_name: string }[] | null;
+  res_by: NameRef;
+  out_by: NameRef;
+  in_by: NameRef;
 }
 const one = <T,>(v: T | T[] | null | undefined): T | null =>
   Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+const nameOf = (v: NameRef) => one(v)?.display_name ?? null;
 
 const COLS =
-  'id, reference, start_at, end_at, returned_at, status, fins_out, fins_in, damage_reported, damage_fee, condition_out_notes, condition_in_notes, condition_out_photo_url, condition_in_photo_url, customers ( full_name )';
+  'id, reference, start_at, end_at, returned_at, status, fins_out, fins_in, damage_reported, damage_fee, condition_out_notes, condition_in_notes, condition_out_photo_url, condition_in_photo_url, customers ( full_name ), res_by:profiles!reserved_by ( display_name ), out_by:profiles!checked_out_by ( display_name ), in_by:profiles!checked_in_by ( display_name )';
 
 export default function UnitHistoryModal({
   unit,
@@ -89,12 +95,14 @@ export default function UnitHistoryModal({
                     <dt>Ref</dt>
                     <dd>
                       {r.reference} · <span className={`st-badge ${r.status}`}>{r.status}</span>
+                      {nameOf(r.res_by) ? ` · reservó ${nameOf(r.res_by)}` : ''}
                     </dd>
                     <dt>Cliente</dt>
                     <dd>{c}</dd>
                     <dt>Salida</dt>
                     <dd>
                       {dt(r.start_at)} · fins {r.fins_out ?? '—'}
+                      {nameOf(r.out_by) ? ` · entregó ${nameOf(r.out_by)}` : ''}
                       {r.condition_out_notes ? ` · ${r.condition_out_notes}` : ''}
                       {r.condition_out_photo_url && (
                         <>
@@ -109,6 +117,7 @@ export default function UnitHistoryModal({
                     <dd>
                       {dt(r.returned_at)}
                       {r.returned_at ? ` · fins ${r.fins_in ?? '—'}` : ''}
+                      {nameOf(r.in_by) ? ` · recibió ${nameOf(r.in_by)}` : ''}
                       {finsBad ? ' ⚠ faltan fins' : ''}
                       {r.condition_in_notes ? ` · ${r.condition_in_notes}` : ''}
                       {r.condition_in_photo_url && (

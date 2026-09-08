@@ -28,6 +28,8 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: 'no-show',
 };
 
+type NameRef = { display_name: string } | { display_name: string }[] | null;
+
 interface Rental {
   id: string;
   reference: string;
@@ -45,10 +47,13 @@ interface Rental {
   board_units: { code: string } | { code: string }[] | null;
   board_models: { name: string } | { name: string }[] | null;
   customers: { full_name: string; phone: string | null } | { full_name: string; phone: string | null }[] | null;
+  res_by: NameRef;
+  out_by: NameRef;
+  in_by: NameRef;
 }
 
 const COLS =
-  'id, reference, start_at, end_at, picked_up_at, returned_at, status, total_amount, currency, payment_id, waiver_id, fins_out, damage_reported, board_units ( code ), board_models ( name ), customers ( full_name, phone )';
+  'id, reference, start_at, end_at, picked_up_at, returned_at, status, total_amount, currency, payment_id, waiver_id, fins_out, damage_reported, board_units ( code ), board_models ( name ), customers ( full_name, phone ), res_by:profiles!reserved_by ( display_name ), out_by:profiles!checked_out_by ( display_name ), in_by:profiles!checked_in_by ( display_name )';
 
 export default function RentalsView() {
   const [tab, setTab] = useState<'out' | 'agenda'>('out');
@@ -246,6 +251,13 @@ export default function RentalsView() {
           const model = one(r.board_models)?.name ?? '—';
           const cust = one(r.customers);
           const isOverdue = r.status === 'picked_up' && Date.parse(r.end_at) < now;
+          const staffLine = [
+            one(r.res_by)?.display_name && `reservó ${one(r.res_by)!.display_name}`,
+            one(r.out_by)?.display_name && `entregó ${one(r.out_by)!.display_name}`,
+            one(r.in_by)?.display_name && `recibió ${one(r.in_by)!.display_name}`,
+          ]
+            .filter(Boolean)
+            .join(' · ');
           return (
             <div className="st-card st-rental-row" key={r.id}>
               <div className="st-rental-main">
@@ -257,6 +269,7 @@ export default function RentalsView() {
                   {cust?.full_name ?? '—'}
                   {cust?.phone ? ` · ${cust.phone}` : ''}
                 </span>
+                {staffLine && <span className="st-note">{staffLine}</span>}
               </div>
               <div className="st-rental-meta">
                 <span className={`st-badge ${r.status}`}>{STATUS_LABEL[r.status] ?? r.status}</span>

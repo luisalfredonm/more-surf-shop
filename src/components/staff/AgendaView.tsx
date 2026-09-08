@@ -62,6 +62,7 @@ interface Booking {
   slot_date: string;
   start_time: string;
   checked_in_at: string | null;
+  checkin_by: { display_name: string } | { display_name: string }[] | null;
   customer_note: string | null;
   staff_note: string | null;
   class_types: { name: string } | { name: string }[] | null;
@@ -108,6 +109,7 @@ export default function AgendaView() {
       .select(
         `id, reference, status, participants_count, total_amount, currency,
          payment_method, payment_id, group_id, slot_date, start_time, checked_in_at, customer_note, staff_note,
+         checkin_by:profiles!checked_in_by ( display_name ),
          class_types ( name ),
          customers ( full_name, email, phone, country_of_residence ),
          booking_participants ( id, full_name, age, is_minor, waiver_id, emergency_contact_name, emergency_contact_phone ),
@@ -412,7 +414,12 @@ export default function AgendaView() {
                         {b.checked_in_at && (
                           <>
                             <dt>Checked in</dt>
-                            <dd>{new Date(b.checked_in_at).toLocaleString('en-US')}</dd>
+                            <dd>
+                              {new Date(b.checked_in_at).toLocaleString('en-US')}
+                              {one(b.checkin_by)?.display_name
+                                ? ` · por ${one(b.checkin_by)!.display_name}`
+                                : ''}
+                            </dd>
                           </>
                         )}
                         {b.customer_note && (
