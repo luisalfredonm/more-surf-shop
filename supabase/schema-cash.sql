@@ -185,6 +185,9 @@ create policy "cash_shifts_delete_owner" on public.cash_shifts
 -- pero sólo devuelve agregados de un turno que el llamante ya puede ver por RLS
 -- (se valida shift_id contra cash_shifts + is_staff()).
 -- ============================================
+-- drop previo: cambió la firma (se sumó expenses_total) y create-or-replace
+-- no puede cambiar el tipo de retorno de una función existente.
+drop function if exists public.cash_shift_totals(uuid);
 create or replace function public.cash_shift_totals(p_shift_id uuid)
 returns table (
   cash_total numeric,
