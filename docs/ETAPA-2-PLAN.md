@@ -609,22 +609,46 @@ solo efectivo, sin `collected_by`
 Para el cierre hay que: estampar `collected_by` + `shift_id`, agregar tarjeta, y
 moverlo a un endpoint para atribución consistente.
 
-#### Orden de construcción sugerido
+#### Orden de construcción — estado
 
-1. Schema: `cash_shifts`, `payments.collected_by` + `shift_id`,
-   `rentals.reserved_by`, `'card'` en los tres enums + tipos en `supabase.ts`.
-2. Turno: endpoints abrir/cerrar + guard "no cobrar sin turno abierto".
-3. Pago al reservar: `NewRentalForm` + `/api/rentals/create`.
-4. Lecciones walk-in a endpoint con pago (efectivo/tarjeta) + atribución.
-5. Devolución: tarjeta + atribución del cobro de daño.
-6. Vista "Caja / Cierre" (empleado + dueño) con refunds/ajustes.
-7. Display de nombres de staff en agenda, modales y hoja de vida.
+> Rama `feat/rental-pago-y-cierre-de-caja`. **Falta correr
+> `supabase/schema-cash.sql`** (tras `schema-bookings.sql` y `schema-rentals.sql`)
+> — hasta entonces el panel de rentals rompe (columna `rentals.reserved_by` y
+> embeds a `profiles`).
 
-#### Pendiente menor
+1. ✅ Schema `schema-cash.sql`: `cash_shifts` + RLS, `payments.collected_by` /
+   `shift_id`, `rentals.reserved_by`, `'card'` en `payments.provider` /
+   `rentals.payment_method` / `bookings.payment_method` /
+   `booking_groups.payment_method`, RPC `cash_shift_totals`, tipos en `supabase.ts`.
+2. ✅ Turno: `/api/cash/open` + `/api/cash/close` (recalcula esperado en el
+   server, exige nota si hay diferencia) + `lib/cash.ts` (`getOpenShift` /
+   `getShiftTotals` / `expectedCash`). Guard "no cobrar sin turno abierto" en
+   `create` / `return` / `checkout` / `payments/counter`.
+3. ✅ Pago al reservar: `NewRentalForm` (chips efectivo/tarjeta + bloqueo si no hay
+   turno) + `/api/rentals/create` (cobra al reservar, estampa `reserved_by` +
+   `collected_by` + `shift_id`, guard de tarifa 0).
+4. ✅ Lecciones walk-in: `/api/payments/counter` genérico (booking o rental);
+   `NewBookingForm` y `AgendaView` cobran por el endpoint con opción tarjeta.
+5. ✅ Devolución / entrega: `return` y `checkout` suman opción tarjeta +
+   `collected_by` + `shift_id` al cobro (daño / saldo).
+6. ✅ Vista `CashView` ("Caja → Cierre de caja"): abrir/cerrar con totales en
+   vivo, historial; el dueño ve los de todo el equipo, reabre y ajusta+re-cierra.
+7. ✅ Display: "reservó / entregó / recibió" en `RentalsView` y `UnitHistoryModal`;
+   "checked in · por <empleado>" en `AgendaView`.
 
+#### Pendiente
+
+- **Correr `schema-cash.sql`** en Supabase.
+- **Refunds / ajustes de efectivo** dentro de un turno (nota + ajuste + refund
+  real): el cierre ya resta `status='refunded'`, pero falta la UI para registrar
+  un reembolso/ajuste de mostrador atribuido al turno.
+- **PayPal online** (a validar) — cuando exista, esos pagos van a un bucket
+  "online" sin `shift_id`.
 - Confirmar si "dos turnos" son **2 fijos/día** (mañana/tarde, quizá con
-  `shift_kind`) o simplemente abrir/cerrar libre y que en la práctica sean ~2. El
-  modelo `cash_shifts` (abrir→cerrar por empleado) sirve para ambas lecturas.
+  `shift_kind`) o abrir/cerrar libre (~2 en la práctica). El modelo `cash_shifts`
+  sirve para ambas lecturas.
+- Prueba E2E con dos logins de staff: abrir turno → reservar+cobrar → entregar →
+  recibir daño → cerrar caja de cada uno; verificar atribución y totales.
 
 ---
 
