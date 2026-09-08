@@ -393,12 +393,22 @@ export interface DbCashShift {
   opening_float: number;         // fondo inicial — lo fija el empleado
   closed_at: string | null;
   closed_by: string | null;      // = profiles.id (normal: el mismo; el dueño puede cerrar por otro)
-  expected_cash: number | null;  // snapshot: opening_float + Σ efectivo del turno
+  expected_cash: number | null;  // snapshot: opening_float + Σ efectivo − reembolsos − gastos
   counted_cash: number | null;   // lo ingresa el empleado al cerrar
   difference: number | null;     // counted_cash - expected_cash
   card_total: number | null;     // Σ tarjeta del turno (informativo)
+  expenses_total: number | null; // Σ gastos del turno (snapshot al cerrar)
   status: CashShiftStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbCashExpense {
+  id: string;
+  shift_id: string;
+  amount: number;
+  description: string;
+  created_by: string | null;
+  created_at: string;
 }

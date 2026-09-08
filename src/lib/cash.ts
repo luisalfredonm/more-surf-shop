@@ -29,6 +29,7 @@ export interface ShiftTotals {
   cash_count: number;
   card_count: number;
   refunds_total: number;
+  expenses_total: number;
 }
 
 /**
@@ -39,12 +40,13 @@ export async function getShiftTotals(
   supabase: SupabaseClient,
   shiftId: string,
 ): Promise<ShiftTotals> {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('provider, amount, status')
-    .eq('shift_id', shiftId);
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as { provider: string; amount: number; status: string }[];
+  const [payRes, expRes] = await Promise.all([
+    supabase.from('payments').select('provider, amount, status').eq('shift_id', shiftId),
+    supabase.from('cash_expenses').select('amount').eq('shift_id', shiftId),
+  ]);
+  if (payRes.error) throw new Error(payRes.error.message);
+  if (expRes.error) throw new Error(expRes.error.message);
+  const rows = (payRes.data ?? []) as { provider: string; amount: number; status: string }[];
   const sum = (pred: (r: (typeof rows)[number]) => boolean) =>
     round2(rows.filter(pred).reduce((s, r) => s + (Number(r.amount) || 0), 0));
   const paid = (prov: string) => (r: (typeof rows)[number]) =>
@@ -55,10 +57,13 @@ export async function getShiftTotals(
     cash_count: rows.filter(paid('cash')).length,
     card_count: rows.filter(paid('card')).length,
     refunds_total: sum((r) => r.status === 'refunded'),
+    expenses_total: round2(
+      (expRes.data ?? []).reduce((s, r) => s + (Number((r as { amount: number }).amount) || 0), 0),
+    ),
   };
 }
 
-/** efectivo esperado = fondo inicial + efectivo cobrado − reembolsos. */
+/** efectivo esperado = fondo inicial + efectivo cobrado − reembolsos − gastos. */
 export function expectedCash(openingFloat: number, t: ShiftTotals): number {
-  return round2(Number(openingFloat) + t.cash_total - t.refunds_total);
+  return round2(Number(openingFloat) + t.cash_total - t.refunds_total - t.expenses_total);
 }

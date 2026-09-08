@@ -83,6 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
       counted_cash: counted,
       difference,
       card_total: totals.card_total,
+      expenses_total: totals.expenses_total,
       notes: d.notes?.trim() || null,
     })
     .eq('id', shift.id);
@@ -98,6 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
       counted_cash: counted,
       difference,
       card_total: totals.card_total,
+      expenses_total: totals.expenses_total,
       cash_count: totals.cash_count,
       card_count: totals.card_count,
     },

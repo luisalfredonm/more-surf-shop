@@ -71,6 +71,7 @@ create table if not exists public.cash_shifts (
   counted_cash numeric(10, 2),    -- lo ingresa el empleado al cerrar
   difference numeric(10, 2),      -- counted_cash - expected_cash (faltante/sobrante)
   card_total numeric(10, 2),      -- Σ tarjeta del turno (informativo, no entra en difference)
+  expenses_total numeric(10, 2),  -- Σ gastos del turno (salidas de caja — restan del esperado)
   status text not null default 'open' check (status in ('open', 'closed', 'reopened')),
   notes text,                     -- justificación de la diferencia / ajustes
   created_at timestamptz not null default now(),
@@ -79,6 +80,8 @@ create table if not exists public.cash_shifts (
     status <> 'open' or (closed_at is null and closed_by is null)
   )
 );
+
+alter table public.cash_shifts add column if not exists expenses_total numeric(10, 2);
 
 -- Un solo turno abierto por empleado a la vez (lo aplica el guard de /api, esto lo respalda).
 create unique index if not exists idx_cash_shifts_one_open
@@ -108,6 +111,45 @@ create index if not exists idx_payments_collected_by
 alter table public.rentals
   add column if not exists reserved_by uuid references public.profiles(id) on delete set null;
 create index if not exists idx_rentals_reserved_by on public.rentals (reserved_by) where reserved_by is not null;
+
+-- ============================================
+-- Tabla: cash_expenses — salidas de caja durante un turno (gastos de mostrador)
+-- Restan del efectivo esperado al cerrar.
+-- ============================================
+create table if not exists public.cash_expenses (
+  id uuid primary key default uuid_generate_v4(),
+  shift_id uuid not null references public.cash_shifts(id) on delete cascade,
+  amount numeric(10, 2) not null check (amount > 0),
+  description text not null,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_cash_expenses_shift on public.cash_expenses (shift_id);
+
+alter table public.cash_expenses enable row level security;
+
+drop policy if exists "cash_expenses_select" on public.cash_expenses;
+create policy "cash_expenses_select" on public.cash_expenses
+  for select using (
+    public.is_owner()
+    or exists (select 1 from public.cash_shifts s where s.id = shift_id and s.profile_id = auth.uid())
+  );
+
+drop policy if exists "cash_expenses_write" on public.cash_expenses;
+create policy "cash_expenses_write" on public.cash_expenses
+  for all using (
+    public.is_owner()
+    or exists (
+      select 1 from public.cash_shifts s
+      where s.id = shift_id and s.profile_id = auth.uid() and s.status in ('open', 'reopened')
+    )
+  ) with check (
+    public.is_owner()
+    or exists (
+      select 1 from public.cash_shifts s
+      where s.id = shift_id and s.profile_id = auth.uid() and s.status in ('open', 'reopened')
+    )
+  );
 
 -- ============================================
 -- Row-Level Security — cash_shifts
@@ -149,7 +191,8 @@ returns table (
   card_total numeric,
   cash_count integer,
   card_count integer,
-  refunds_total numeric
+  refunds_total numeric,
+  expenses_total numeric
 )
 language sql
 stable
@@ -161,7 +204,12 @@ as $$
     coalesce(sum(amount) filter (where provider = 'card' and status = 'paid'), 0),
     count(*) filter (where provider = 'cash' and status = 'paid')::int,
     count(*) filter (where provider = 'card' and status = 'paid')::int,
-    coalesce(sum(amount) filter (where status = 'refunded'), 0)
+    coalesce(sum(amount) filter (where status = 'refunded'), 0),
+    coalesce(
+      (select sum(e.amount) from public.cash_expenses e
+       where e.shift_id = p_shift_id and public.is_staff()),
+      0
+    )
   from public.payments
   where shift_id = p_shift_id
     and public.is_staff();

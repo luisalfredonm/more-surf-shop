@@ -28,6 +28,7 @@ interface Shift {
   counted_cash: number | null;
   difference: number | null;
   card_total: number | null;
+  expenses_total: number | null;
   status: 'open' | 'closed' | 'reopened';
   notes: string | null;
   profiles?: { display_name: string } | { display_name: string }[] | null;
@@ -38,15 +39,24 @@ interface Totals {
   cash_count: number;
   card_count: number;
   refunds_total: number;
+  expenses_total: number;
+}
+interface Expense {
+  id: string;
+  amount: number;
+  description: string;
+  created_at: string;
 }
 
+// profile_id y closed_by apuntan ambos a profiles: hay que desambiguar el embed.
 const COLS =
-  'id, profile_id, opened_at, opening_float, closed_at, closed_by, expected_cash, counted_cash, difference, card_total, status, notes, profiles ( display_name )';
+  'id, profile_id, opened_at, opening_float, closed_at, closed_by, expected_cash, counted_cash, difference, card_total, expenses_total, status, notes, profiles!profile_id ( display_name )';
 
 export default function CashView() {
   const [me, setMe] = useState<{ id: string; role: string } | null>(null);
   const [current, setCurrent] = useState<Shift | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [history, setHistory] = useState<Shift[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -56,6 +66,8 @@ export default function CashView() {
   const [float, setFloat] = useState('');
   const [counted, setCounted] = useState('');
   const [notes, setNotes] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expDesc, setExpDesc] = useState('');
   const [busy, setBusy] = useState(false);
 
   // Edición del dueño sobre un turno reabierto.
@@ -82,20 +94,30 @@ export default function CashView() {
     const role = (prof?.role as string) ?? 'staff';
     setMe({ id: uid, role });
 
-    const { data: openRows } = await sb
+    const { data: openRows, error: oErr } = await sb
       .from('cash_shifts')
       .select(COLS)
       .eq('profile_id', uid)
       .in('status', ['open', 'reopened'])
       .order('opened_at', { ascending: false })
       .limit(1);
+    if (oErr) setErr(oErr.message);
     const mine = (openRows?.[0] as Shift) ?? null;
     setCurrent(mine);
     if (mine) {
-      const { data: t } = await sb.rpc('cash_shift_totals', { p_shift_id: mine.id });
+      const [{ data: t }, { data: exp }] = await Promise.all([
+        sb.rpc('cash_shift_totals', { p_shift_id: mine.id }),
+        sb
+          .from('cash_expenses')
+          .select('id, amount, description, created_at')
+          .eq('shift_id', mine.id)
+          .order('created_at', { ascending: false }),
+      ]);
       setTotals(((Array.isArray(t) ? t[0] : t) as Totals) ?? null);
+      setExpenses((exp ?? []) as Expense[]);
     } else {
       setTotals(null);
+      setExpenses([]);
     }
 
     let hq = sb
@@ -105,7 +127,8 @@ export default function CashView() {
       .order('closed_at', { ascending: false, nullsFirst: false })
       .limit(40);
     if (!(role === 'owner' && showAll)) hq = hq.eq('profile_id', uid);
-    const { data: hist } = await hq;
+    const { data: hist, error: hErr } = await hq;
+    if (hErr) setErr(hErr.message);
     // El turno reabierto propio ya se muestra arriba como "actual".
     setHistory(((hist ?? []) as Shift[]).filter((h) => h.id !== mine?.id));
     setLoading(false);
@@ -138,9 +161,46 @@ export default function CashView() {
     }
   }
 
+  async function addExpense() {
+    if (!current) return;
+    const amount = round2(Number(expAmount) || 0);
+    if (!(amount > 0) || expDesc.trim().length === 0) {
+      setErr('Poné un monto y un concepto para el gasto.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const { error } = await getBrowserSupabase().from('cash_expenses').insert({
+      shift_id: current.id,
+      amount,
+      description: expDesc.trim(),
+      created_by: me?.id ?? null,
+    });
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    setExpAmount('');
+    setExpDesc('');
+    void load();
+  }
+
+  async function delExpense(id: string) {
+    const { error } = await getBrowserSupabase().from('cash_expenses').delete().eq('id', id);
+    if (error) alert(error.message);
+    else void load();
+  }
+
+  const expensesTotal = totals?.expenses_total ?? 0;
   const expected =
     current && totals
-      ? round2(Number(current.opening_float) + totals.cash_total - totals.refunds_total)
+      ? round2(
+          Number(current.opening_float) +
+            totals.cash_total -
+            totals.refunds_total -
+            expensesTotal,
+        )
       : 0;
   const diff = counted !== '' ? round2((Number(counted) || 0) - expected) : null;
   const needsNote = diff !== null && diff !== 0 && notes.trim().length === 0;
@@ -243,6 +303,21 @@ export default function CashView() {
         </div>
       )}
 
+      <div
+        className="st-note"
+        style={{
+          marginBottom: '0.75rem',
+          fontWeight: 700,
+          color: current ? '#15803d' : 'var(--text-muted)',
+        }}
+      >
+        {current
+          ? `● Caja ABIERTA — desde ${dt(current.opened_at)} · fondo ${money(current.opening_float)}${
+              current.status === 'reopened' ? ' · reabierto por el dueño' : ''
+            }`
+          : '○ Caja CERRADA — no hay turno abierto'}
+      </div>
+
       {/* Turno actual */}
       {!current ? (
         <div className="st-card">
@@ -274,16 +349,9 @@ export default function CashView() {
         </div>
       ) : (
         <div className="st-card">
-          <div className="st-svc-head" style={{ cursor: 'default' }}>
-            <span className="st-dot on" aria-hidden="true" />
-            <span className="st-svc-title">Turno abierto</span>
-            <span className="st-svc-sum">
-              desde {dt(current.opened_at)} · fondo {money(current.opening_float)}
-              {current.status === 'reopened' && ' · reabierto por el dueño'}
-            </span>
-          </div>
-
           <dl className="st-bdetail">
+            <dt>Fondo inicial</dt>
+            <dd>{money(current.opening_float)}</dd>
             <dt>Efectivo cobrado</dt>
             <dd>
               {money(totals?.cash_total)} <span className="st-note">({totals?.cash_count ?? 0} cobros)</span>
@@ -299,12 +367,65 @@ export default function CashView() {
                 <dd>−{money(totals.refunds_total)}</dd>
               </>
             )}
+            {expensesTotal > 0 && (
+              <>
+                <dt>Gastos</dt>
+                <dd>−{money(expensesTotal)}</dd>
+              </>
+            )}
             <dt>Efectivo esperado</dt>
             <dd>
               <strong>{money(expected)}</strong>{' '}
-              <span className="st-note">(fondo + efectivo − reembolsos)</span>
+              <span className="st-note">(fondo + efectivo − reembolsos − gastos)</span>
             </dd>
           </dl>
+
+          {/* Gastos del turno */}
+          <div className="st-field">
+            <label>Gastos del turno (salidas de caja)</label>
+            {expenses.length > 0 && (
+              <div style={{ marginBottom: '0.4rem' }}>
+                {expenses.map((x) => (
+                  <div className="st-slotlist-row" key={x.id}>
+                    <span style={{ flex: 1 }}>{x.description}</span>
+                    <span>−{money(x.amount)}</span>
+                    <button
+                      className="st-btn st-btn-danger st-btn-sm"
+                      type="button"
+                      onClick={() => delExpense(x.id)}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="st-slotlist-row">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={expAmount}
+                onChange={(e) => setExpAmount(e.target.value)}
+                placeholder="Monto"
+                style={{ width: '6rem' }}
+              />
+              <input
+                value={expDesc}
+                onChange={(e) => setExpDesc(e.target.value)}
+                placeholder="Concepto (ej. hielo, taxi, propina proveedor)"
+                style={{ flex: 1 }}
+              />
+              <button
+                className="st-btn st-btn-ghost st-btn-sm"
+                type="button"
+                disabled={busy}
+                onClick={addExpense}
+              >
+                + Gasto
+              </button>
+            </div>
+          </div>
 
           <div className="st-row" style={{ marginTop: '0.5rem' }}>
             <div className="st-field">
@@ -344,6 +465,11 @@ export default function CashView() {
           >
             {busy ? 'Cerrando…' : 'Cerrar turno'}
           </button>
+          {counted === '' && (
+            <p className="st-note" style={{ marginTop: '0.4rem' }}>
+              Ingresá el efectivo contado para poder cerrar.
+            </p>
+          )}
         </div>
       )}
 
@@ -384,6 +510,7 @@ export default function CashView() {
                 >
                   dif {s.difference != null && s.difference > 0 ? '+' : ''}
                   {money(s.difference)} · tarjeta {money(s.card_total)}
+                  {s.expenses_total ? ` · gastos ${money(s.expenses_total)}` : ''}
                 </span>
               </div>
               {me?.role === 'owner' && (
