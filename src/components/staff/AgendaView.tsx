@@ -326,28 +326,44 @@ export default function AgendaView() {
               return (
                 <div className="st-brow-wrap" key={b.id}>
                   <div className="st-brow">
-                    <span className="st-bcell st-b-ref">
-                      {b.reference}
-                      {grp?.reference && <em>{grp.reference}</em>}
-                    </span>
-                    <span className="st-bcell st-b-svc">{ct?.name ?? '—'}</span>
-                    <span className="st-bcell st-b-time">{fmtTime(b.start_time)}</span>
-                    <span className="st-bcell st-b-cust">
-                      <span className="st-b-avatar">{custInitials(cust?.full_name)}</span>
-                      <span className="st-b-custtext">
-                        <strong>{cust?.full_name ?? '—'}</strong>
-                        <span>{cust?.email}</span>
-                        {cust?.phone && <span>{cust.phone}</span>}
-                        {cust?.country_of_residence && <span>{cust.country_of_residence}</span>}
+                    <div className="st-b-when">
+                      <span className="st-b-time">{fmtTime(b.start_time)}</span>
+                      <span className="st-b-ref">
+                        {b.reference}
+                        {grp?.reference && <em>{grp.reference}</em>}
                       </span>
-                    </span>
-                    <span className="st-bcell st-b-guests">{b.participants_count}</span>
-                    <span className="st-bcell st-b-total">{money(b.total_amount, b.currency)}</span>
-                    <span className="st-bcell st-b-status">
-                      <span className={`st-badge ${b.status}`}>{STATUS_LABEL[b.status]}</span>
-                      {pay && <span className={`st-badge ${pay.cls}`}>{pay.label}</span>}
-                    </span>
-                    <span className="st-bcell st-b-actions">
+                    </div>
+
+                    <div className="st-b-main">
+                      <span className="st-b-svc">{ct?.name ?? '—'}</span>
+                      <span className="st-b-cust">
+                        <span className="st-b-avatar">{custInitials(cust?.full_name)}</span>
+                        <span className="st-b-custtext">
+                          <strong>{cust?.full_name ?? '—'}</strong>
+                          {cust?.email && <span className="st-b-line">{cust.email}</span>}
+                          {(cust?.phone || cust?.country_of_residence) && (
+                            <span className="st-b-line">
+                              {[cust?.phone, cust?.country_of_residence]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="st-b-facts">
+                      <span className="st-b-guests">
+                        {b.participants_count} {b.participants_count === 1 ? 'guest' : 'guests'}
+                      </span>
+                      <span className="st-b-total">{money(b.total_amount, b.currency)}</span>
+                      <span className="st-b-status">
+                        <span className={`st-badge ${b.status}`}>{STATUS_LABEL[b.status]}</span>
+                        {pay && <span className={`st-badge ${pay.cls}`}>{pay.label}</span>}
+                      </span>
+                    </div>
+
+                    <div className="st-b-actions">
                       <button
                         className="st-btn st-btn-ghost st-btn-sm"
                         onClick={() => setOpenId(isOpen ? null : b.id)}
@@ -372,7 +388,7 @@ export default function AgendaView() {
                       >
                         Delete
                       </button>
-                    </span>
+                    </div>
                   </div>
 
                   {isOpen && (
