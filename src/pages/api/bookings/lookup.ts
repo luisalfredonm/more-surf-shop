@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Expected JSON body' }, 400);
   }
   const parsed = Schema.safeParse(raw);
-  if (!parsed.success) return json({ error: 'Revisá el código y el email.' }, 400);
+  if (!parsed.success) return json({ error: 'Check the code and the email.' }, 400);
   if (!isSupabaseConfigured()) return json({ error: 'No disponible.' }, 503);
 
   const supabase = getSupabase();
@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const custEmail = (one(g?.customers) as { email?: string } | null)?.email ?? '';
   if (!g || custEmail.toLowerCase() !== parsed.data.email.toLowerCase()) {
-    return json({ error: 'No encontramos esa reserva.' }, 404);
+    return json({ error: 'We could not find that booking.' }, 404);
   }
 
   const bookings = (g.bookings ?? []) as any[];

@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed' }, 400);
   if (!(await isPayPalConfigured()) || !isSupabaseConfigured()) {
-    return json({ error: 'PayPal no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'PayPal is not configured.', code: 'not_configured' }, 503);
   }
 
   const supabase = getSupabase();
@@ -34,9 +34,9 @@ export const POST: APIRoute = async ({ request }) => {
     .select('id, reference, status, total_amount, currency, payment_method')
     .eq('id', parsed.data.group_id)
     .maybeSingle();
-  if (!group) return json({ error: 'Esa reserva no existe.' }, 404);
+  if (!group) return json({ error: 'That reservation does not exist.' }, 404);
   if (group.payment_method !== 'paypal') {
-    return json({ error: 'Esa reserva no se pagó con PayPal.', code: 'not_paypal' }, 409);
+    return json({ error: 'That reservation was not paid with PayPal.', code: 'not_paypal' }, 409);
   }
 
   const { data: payment } = await supabase
@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request }) => {
     /* noop */
   }
   if (!captureId) {
-    return json({ error: 'No se encontró el ID de captura. Reembolsá en PayPal a mano.', code: 'no_capture' }, 409);
+    return json({ error: 'Capture ID not found. Refund it manually in PayPal.', code: 'no_capture' }, 409);
   }
 
   let result;
@@ -71,7 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
   } catch (e) {
     console.error('[paypal/refund]', e);
-    return json({ error: 'PayPal rechazó el reembolso.' }, 502);
+    return json({ error: 'PayPal rejected the refund.' }, 502);
   }
   if (result.status !== 'COMPLETED' && result.status !== 'PENDING') {
     return json({ error: `Reembolso no completado (${result.status}).`, code: 'not_completed' }, 409);

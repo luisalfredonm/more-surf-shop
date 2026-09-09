@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
   const shift = await getOpenShift(supabase, staff.userId);
   if (!shift) {
     return json(
-      { error: 'Abrí tu turno de caja antes de cobrar una reserva.', code: 'no_open_shift' },
+      { error: 'Open your cash shift before charging a reservation.', code: 'no_open_shift' },
       409,
     );
   }
@@ -70,14 +70,14 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (uErr) {
     console.error('[rentals/create] unit:', uErr.message);
-    return json({ error: 'No se pudo cargar la tabla.' }, 500);
+    return json({ error: 'Could not load the board.' }, 500);
   }
-  if (!unit) return json({ error: 'Esa tabla no existe.' }, 404);
+  if (!unit) return json({ error: 'That board does not exist.' }, 404);
   if (unit.status !== 'available') {
-    return json({ error: `La tabla está en estado "${unit.status}".`, code: 'unit_unavailable' }, 409);
+    return json({ error: `The board is "${unit.status}".`, code: 'unit_unavailable' }, 409);
   }
   const model = Array.isArray(unit.board_models) ? unit.board_models[0] : unit.board_models;
-  if (!model) return json({ error: 'La tabla no tiene modelo.' }, 409);
+  if (!model) return json({ error: 'The board has no model.' }, 409);
 
   const startAt = d.start_at ? new Date(d.start_at) : new Date();
   const endAt = computeEndAt(startAt, d.rate_type, d.units_billed);
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
   const unitPrice = override != null ? Math.round((override / d.units_billed) * 100) / 100 : computed.unitPrice;
   if (!(total > 0)) {
     return json(
-      { error: 'Esa tabla no tiene tarifa cargada. Cargala en Fleet.', code: 'no_price' },
+      { error: 'That board has no rate set. Set it in Fleet.', code: 'no_price' },
       409,
     );
   }
@@ -112,10 +112,10 @@ export const POST: APIRoute = async ({ request }) => {
   });
   if (aErr) {
     console.error('[rentals/create] availability:', aErr.message);
-    return json({ error: 'No se pudo verificar disponibilidad.' }, 500);
+    return json({ error: 'Could not check availability.' }, 500);
   }
   if (!avail) {
-    return json({ error: 'Esa tabla no está libre en ese rango.', code: 'unit_busy' }, 409);
+    return json({ error: 'That board is not free in that range.', code: 'unit_busy' }, 409);
   }
 
   // --- Cliente (find-or-create) ---
@@ -143,7 +143,7 @@ export const POST: APIRoute = async ({ request }) => {
         .single();
       if (cErr || !created) {
         console.error('[rentals/create] customer:', cErr?.message);
-        return json({ error: 'No se pudo crear el cliente.' }, 500);
+        return json({ error: 'Could not create the customer.' }, 500);
       }
       customerId = created.id;
     }
@@ -172,11 +172,11 @@ export const POST: APIRoute = async ({ request }) => {
     if (gErr) {
       if ((gErr as { code?: string }).code === '23505' && attempt === 0) continue;
       console.error('[rentals/create] group:', gErr.message);
-      return json({ error: 'No se pudo crear la reserva.' }, 500);
+      return json({ error: 'Could not create the reservation.' }, 500);
     }
     group = g;
   }
-  if (!group) return json({ error: 'No se pudo crear la reserva.' }, 500);
+  if (!group) return json({ error: 'Could not create the reservation.' }, 500);
 
   // --- Alquiler: reservado (confirmed). El retiro/waiver va en /checkout. ---
   const { data: rental, error: rErr } = await supabase
@@ -206,7 +206,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (rErr || !rental) {
     console.error('[rentals/create] rental:', rErr?.message);
     await supabase.from('booking_groups').delete().eq('id', group.id);
-    return json({ error: 'No se pudo crear la reserva.' }, 500);
+    return json({ error: 'Could not create the reservation.' }, 500);
   }
 
   // --- Cobro (paga al reservar) ---
@@ -229,7 +229,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('[rentals/create] payment:', pErr?.message);
     await supabase.from('rentals').delete().eq('id', rental.id);
     await supabase.from('booking_groups').delete().eq('id', group.id);
-    return json({ error: 'No se pudo registrar el cobro.' }, 500);
+    return json({ error: 'Could not record the payment.' }, 500);
   }
   await supabase.from('rentals').update({ payment_id: pay.id }).eq('id', rental.id);
 

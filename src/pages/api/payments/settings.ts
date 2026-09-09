@@ -35,7 +35,7 @@ async function loadRow(supabase: ReturnType<typeof getSupabase>) {
 export const GET: APIRoute = async ({ request }) => {
   const staff = await requireStaff(request);
   if (!staff) return json({ error: 'unauthorized' }, 401);
-  if (staff.role !== 'owner') return json({ error: 'Sólo el dueño.', code: 'forbidden' }, 403);
+  if (staff.role !== 'owner') return json({ error: 'Owner only.', code: 'forbidden' }, 403);
   if (!isSupabaseConfigured()) return json({ error: 'not_configured' }, 503);
 
   const row = await loadRow(getSupabase());
@@ -53,7 +53,7 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   const staff = await requireStaff(request);
   if (!staff) return json({ error: 'unauthorized' }, 401);
-  if (staff.role !== 'owner') return json({ error: 'Sólo el dueño.', code: 'forbidden' }, 403);
+  if (staff.role !== 'owner') return json({ error: 'Owner only.', code: 'forbidden' }, 403);
   if (!isSupabaseConfigured()) return json({ error: 'not_configured' }, 503);
 
   let raw: unknown;
@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { error } = await supabase.from('payment_settings').upsert(patch, { onConflict: 'id' });
   if (error) {
     console.error('[payments/settings] save:', error.message);
-    return json({ error: 'No se pudo guardar la configuración.' }, 500);
+    return json({ error: 'Could not save the settings.' }, 500);
   }
 
   clearPayPalConfigCache();

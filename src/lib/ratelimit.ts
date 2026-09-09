@@ -29,7 +29,7 @@ export function clientKey(request: Request): string {
 }
 
 export function tooMany(): Response {
-  return new Response(JSON.stringify({ error: 'Demasiadas solicitudes. Probá en un minuto.', code: 'rate_limited' }), {
+  return new Response(JSON.stringify({ error: 'Too many requests. Try again in a minute.', code: 'rate_limited' }), {
     status: 429,
     headers: { 'Content-Type': 'application/json' },
   });

@@ -51,7 +51,7 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   const maxDays = settings?.max_duration_days ?? 30;
   if (days > maxDays) {
-    return json({ available: false, days, error: `El alquiler máximo es de ${maxDays} días.`, code: 'too_long' });
+    return json({ available: false, days, error: `The maximum rental is ${maxDays} days.`, code: 'too_long' });
   }
 
   const startAt = dayStart(from);
@@ -64,7 +64,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     return json({
       available: false,
       days,
-      error: `Reservá con al menos ${minLead} h de antelación.`,
+      error: `Book at least ${minLead} h in advance.`,
       code: 'too_soon',
     });
   }

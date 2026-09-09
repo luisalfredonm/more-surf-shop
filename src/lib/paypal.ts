@@ -110,8 +110,8 @@ export async function testCredentials(): Promise<{
     }
     const hint =
       res.status === 401
-        ? 'Client ID o Secret inválidos para este modo.'
-        : `PayPal respondió ${res.status}.`;
+        ? 'Client ID or Secret invalid for this mode.'
+        : `PayPal responded ${res.status}.`;
     return { ok: false, env: cfg.env, error: `${hint}${detail ? ` (${detail})` : ''}` };
   } catch (e) {
     return {

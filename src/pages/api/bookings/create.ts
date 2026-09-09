@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!isSupabaseConfigured()) {
     return json(
-      { error: 'Las reservas en línea todavía no están activas. Escribinos por WhatsApp.', code: 'not_configured' },
+      { error: 'Online bookings are not active yet. Message us on WhatsApp.', code: 'not_configured' },
       503,
     );
   }
@@ -94,10 +94,10 @@ export const POST: APIRoute = async ({ request }) => {
       .maybeSingle();
     if (ctErr) {
       console.error('[bookings/create] class_type:', ctErr.message);
-      return json({ error: 'No se pudo verificar un tipo de clase' }, 500);
+      return json({ error: 'Could not verify a class type' }, 500);
     }
     if (!ct || !ct.active) {
-      return json({ error: 'Un tipo de clase no está disponible.', code: 'class_inactive', item: i }, 409);
+      return json({ error: 'A class type is not available.', code: 'class_inactive', item: i }, 409);
     }
 
     // Disponibilidad calculada desde la plantilla (guard de carrera) menos
@@ -112,14 +112,14 @@ export const POST: APIRoute = async ({ request }) => {
     const alreadyInCart = usedBySlot.get(slotKey) ?? 0;
     if (!thisSlot) {
       return json(
-        { error: 'Un horario ya no está disponible (cerrado, pasado o lleno).', code: 'slot_unavailable', item: i },
+        { error: 'A time slot is no longer available (closed, past or full).', code: 'slot_unavailable', item: i },
         409,
       );
     }
     if (thisSlot.remaining - alreadyInCart < item.guests) {
       return json(
         {
-          error: `Quedan ${thisSlot.remaining - alreadyInCart} cupo(s) en un horario.`,
+          error: `${thisSlot.remaining - alreadyInCart} spot(s) left in a time slot.`,
           code: 'slot_full',
           item: i,
           remaining: thisSlot.remaining - alreadyInCart,
@@ -133,7 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (item.guests < (ct.min_guests ?? 1) || item.guests > maxGuests) {
       return json(
         {
-          error: `Ese tipo de clase admite de ${ct.min_guests ?? 1} a ${maxGuests} personas.`,
+          error: `That class type takes ${ct.min_guests ?? 1} to ${maxGuests} people.`,
           code: 'guest_bounds',
           item: i,
         },
@@ -144,7 +144,7 @@ export const POST: APIRoute = async ({ request }) => {
     const unit = Number(ct.price_per_person);
     if (data.source === 'web' && !(unit > 0)) {
       return json(
-        { error: 'Un tipo de clase todavía no tiene precio configurado. Escribinos por WhatsApp.', code: 'no_price', item: i },
+        { error: 'A class type has no price set yet. Message us on WhatsApp.', code: 'no_price', item: i },
         409,
       );
     }
@@ -173,7 +173,7 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (findErr) {
     console.error('[bookings/create] customer find:', findErr.message);
-    return json({ error: 'No se pudo procesar el cliente' }, 500);
+    return json({ error: 'Could not process the customer' }, 500);
   }
   if (existing) {
     customerId = existing.id;
@@ -198,7 +198,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
     if (cErr || !created) {
       console.error('[bookings/create] customer create:', cErr?.message);
-      return json({ error: 'No se pudo crear el cliente' }, 500);
+      return json({ error: 'Could not create the customer' }, 500);
     }
     customerId = created.id;
   }
@@ -223,11 +223,11 @@ export const POST: APIRoute = async ({ request }) => {
     if (gErr) {
       if ((gErr as { code?: string }).code === '23505' && attempt === 0) continue;
       console.error('[bookings/create] group:', gErr.message);
-      return json({ error: 'No se pudo crear la reserva' }, 500);
+      return json({ error: 'Could not create the booking' }, 500);
     }
     group = g;
   }
-  if (!group) return json({ error: 'No se pudo crear la reserva' }, 500);
+  if (!group) return json({ error: 'Could not create the booking' }, 500);
 
   // --- Reservas ---
   const rows = priced.map((p) => ({
@@ -254,7 +254,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (bErr || !inserted) {
     console.error('[bookings/create] bookings:', bErr?.message);
     await rollback(supabase, group.id);
-    return json({ error: 'No se pudo crear la reserva' }, 500);
+    return json({ error: 'Could not create the booking' }, 500);
   }
   const references = inserted.map((r) => r.reference);
   const bookingIds = inserted.map((r) => r.id);

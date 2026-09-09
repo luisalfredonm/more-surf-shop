@@ -13,7 +13,7 @@ const json = (b: unknown, s = 200) =>
 export const POST: APIRoute = async ({ request }) => {
   const staff = await requireStaff(request);
   if (!staff) return json({ error: 'unauthorized' }, 401);
-  if (staff.role !== 'owner') return json({ error: 'Sólo el dueño.', code: 'forbidden' }, 403);
+  if (staff.role !== 'owner') return json({ error: 'Owner only.', code: 'forbidden' }, 403);
   if (!isSupabaseConfigured()) return json({ error: 'not_configured' }, 503);
 
   const result = await testCredentials();

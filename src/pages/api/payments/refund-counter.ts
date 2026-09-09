@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request }) => {
       .select('id, currency')
       .eq('reference', ref)
       .maybeSingle();
-    if (!bk) return json({ error: `No encontré la reserva ${ref}.`, code: 'not_found' }, 404);
+    if (!bk) return json({ error: `Reservation ${ref} not found.`, code: 'not_found' }, 404);
     relatedType = 'booking';
     relatedId = bk.id;
     currency = bk.currency || 'USD';
@@ -69,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const shift = await getOpenShift(supabase, staff.userId);
   if (!shift) {
-    return json({ error: 'Abrí tu turno de caja antes de registrar un reembolso.', code: 'no_open_shift' }, 409);
+    return json({ error: 'Open your cash shift before recording a refund.', code: 'no_open_shift' }, 409);
   }
 
   const { data: pay, error: pErr } = await supabase
@@ -90,7 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
     .single();
   if (pErr || !pay) {
     console.error('[payments/refund-counter]', pErr?.message);
-    return json({ error: 'No se pudo registrar el reembolso.' }, 500);
+    return json({ error: 'Could not record the refund.' }, 500);
   }
 
   return json({ ok: true, payment_id: pay.id, reference: ref, amount: round2(d.amount), method: d.method }, 201);

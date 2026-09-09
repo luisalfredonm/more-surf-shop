@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
   const minLead = settings?.min_lead_hours ?? 0;
 
   if (days > maxDays) {
-    return json({ error: `El alquiler máximo es de ${maxDays} días.`, code: 'too_long' }, 409);
+    return json({ error: `The maximum rental is ${maxDays} days.`, code: 'too_long' }, 409);
   }
   const startAt = dayStart(d.from);
   const endAt = dayEnd(d.to);
@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Those dates are in the past.', code: 'past' }, 409);
   }
   if (minLead > 0 && startAt.getTime() < Date.now() + minLead * 3_600_000) {
-    return json({ error: `Reservá con al menos ${minLead} h de antelación.`, code: 'too_soon' }, 409);
+    return json({ error: `Book at least ${minLead} h in advance.`, code: 'too_soon' }, 409);
   }
 
   const { rateType, unitsBilled } = pickRate(days);
@@ -135,7 +135,7 @@ export const POST: APIRoute = async ({ request }) => {
     const total = override ?? computed.total;
     if (!(total > 0)) {
       return json(
-        { error: `"${model.name}" todavía no tiene tarifa. Escribinos por WhatsApp.`, code: 'no_price' },
+        { error: `"${model.name}" has no rate yet. Message us on WhatsApp.`, code: 'no_price' },
         409,
       );
     }
@@ -151,7 +151,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     if (!available) {
       return json(
-        { error: `"${model.name}" ya no está libre en esas fechas.`, code: 'unit_busy', unit_id: item.unit_id },
+        { error: `"${model.name}" is no longer free on those dates.`, code: 'unit_busy', unit_id: item.unit_id },
         409,
       );
     }
@@ -265,7 +265,7 @@ export const POST: APIRoute = async ({ request }) => {
         paid_at: new Date().toISOString(),
         related_type: 'booking_group',
         related_id: group.id,
-        notes: 'Reserva online — pago pendiente de integración (bypass RENTALS_ASSUME_ONLINE_PAID)',
+        notes: 'Online reservation — payment pending integration (RENTALS_ASSUME_ONLINE_PAID bypass)',
       })
       .select('id')
       .single();

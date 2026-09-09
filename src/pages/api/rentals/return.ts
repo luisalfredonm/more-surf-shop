@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -45,11 +45,11 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (rErr) {
     console.error('[rentals/return] load:', rErr.message);
-    return json({ error: 'No se pudo cargar el alquiler.' }, 500);
+    return json({ error: 'Could not load the rental.' }, 500);
   }
-  if (!rental) return json({ error: 'Ese alquiler no existe.' }, 404);
+  if (!rental) return json({ error: 'That rental does not exist.' }, 404);
   if (rental.status !== 'picked_up') {
-    return json({ error: `El alquiler está en estado "${rental.status}".`, code: 'not_out' }, 409);
+    return json({ error: `The rental is "${rental.status}".`, code: 'not_out' }, 409);
   }
 
   const now = new Date().toISOString();
@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
     .eq('id', rental.id);
   if (upErr) {
     console.error('[rentals/return] update:', upErr.message);
-    return json({ error: 'No se pudo cerrar el alquiler.' }, 500);
+    return json({ error: 'Could not close the rental.' }, 500);
   }
 
   let collected = 0;
@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
     const shift = await getOpenShift(supabase, staff.userId);
     if (!shift) {
       return json(
-        { error: 'Abrí tu turno de caja antes de cobrar el daño.', code: 'no_open_shift' },
+        { error: 'Open your cash shift before charging for the damage.', code: 'no_open_shift' },
         409,
       );
     }
@@ -96,7 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
         related_id: rental.id,
         collected_by: staff.userId,
         shift_id: shift.id,
-        notes: damage > 0 ? `incluye daño ${damage.toFixed(2)}` : null,
+        notes: damage > 0 ? `includes damage ${damage.toFixed(2)}` : null,
       })
       .select('id')
       .single();

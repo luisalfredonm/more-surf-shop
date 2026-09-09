@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
 
   const { booking_id, participants, force } = parsed.data;
@@ -62,13 +62,13 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (bErr) {
     console.error('[bookings/checkin] load:', bErr.message);
-    return json({ error: 'No se pudo cargar la reserva' }, 500);
+    return json({ error: 'Could not load the booking' }, 500);
   }
-  if (!booking) return json({ error: 'Esa reserva no existe.' }, 404);
+  if (!booking) return json({ error: 'That booking does not exist.' }, 404);
   if (booking.checked_in_at && !force) {
     return json(
       {
-        error: 'Esta reserva ya tiene check-in. Recargá la agenda para ver los waivers.',
+        error: 'This booking is already checked in. Reload the agenda to see the waivers.',
         code: 'already_checked_in',
       },
       409,
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
     if (pErr || !part) {
       console.error('[bookings/checkin] participant:', pErr?.message);
-      return json({ error: 'No se pudo guardar un participante.', checked_in: count }, 500);
+      return json({ error: 'Could not save a participant.', checked_in: count }, 500);
     }
 
     const snapshot = renderWaiverText({
@@ -133,7 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
     if (wErr || !waiver) {
       console.error('[bookings/checkin] waiver:', wErr?.message);
-      return json({ error: 'No se pudo guardar un waiver.', checked_in: count }, 500);
+      return json({ error: 'Could not save a waiver.', checked_in: count }, 500);
     }
 
     await supabase.from('booking_participants').update({ waiver_id: waiver.id }).eq('id', part.id);

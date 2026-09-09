@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -49,16 +49,16 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (rErr) {
     console.error('[payments/counter] load:', rErr.message);
-    return json({ error: 'No se pudo cargar la reserva.' }, 500);
+    return json({ error: 'Could not load the reservation.' }, 500);
   }
-  if (!row) return json({ error: 'Esa reserva no existe.' }, 404);
-  if (row.payment_id) return json({ error: 'Esa reserva ya está pagada.', code: 'already_paid' }, 409);
+  if (!row) return json({ error: 'That reservation does not exist.' }, 404);
+  if (row.payment_id) return json({ error: 'That reservation is already paid.', code: 'already_paid' }, 409);
   const amount = Number(row.total_amount) || 0;
-  if (!(amount > 0)) return json({ error: 'Esa reserva no tiene monto.', code: 'no_amount' }, 409);
+  if (!(amount > 0)) return json({ error: 'That reservation has no amount.', code: 'no_amount' }, 409);
 
   const shift = await getOpenShift(supabase, staff.userId);
   if (!shift) {
-    return json({ error: 'Abrí tu turno de caja antes de cobrar.', code: 'no_open_shift' }, 409);
+    return json({ error: 'Open your cash shift before collecting payment.', code: 'no_open_shift' }, 409);
   }
 
   const { data: pay, error: pErr } = await supabase
@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ request }) => {
     .single();
   if (pErr || !pay) {
     console.error('[payments/counter] insert:', pErr?.message);
-    return json({ error: 'No se pudo registrar el cobro.' }, 500);
+    return json({ error: 'Could not record the payment.' }, 500);
   }
 
   await supabase

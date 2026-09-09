@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = Schema.safeParse(raw);
   if (!parsed.success) return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -46,14 +46,14 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (sErr) {
     console.error('[cash/close] load:', sErr.message);
-    return json({ error: 'No se pudo cargar el turno.' }, 500);
+    return json({ error: 'Could not load the shift.' }, 500);
   }
-  if (!shift) return json({ error: 'Ese turno no existe.' }, 404);
+  if (!shift) return json({ error: 'That shift does not exist.' }, 404);
   if (shift.profile_id !== staff.userId && staff.role !== 'owner') {
-    return json({ error: 'Sólo podés cerrar tu propio turno.' }, 403);
+    return json({ error: 'You can only close your own shift.' }, 403);
   }
   if (shift.status !== 'open' && shift.status !== 'reopened') {
-    return json({ error: `El turno ya está ${shift.status}.`, code: 'not_open' }, 409);
+    return json({ error: `The shift is already ${shift.status}.`, code: 'not_open' }, 409);
   }
 
   const totals = await getShiftTotals(supabase, shift.id);
@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (difference !== 0 && !(d.notes && d.notes.trim().length > 0)) {
     return json(
       {
-        error: 'Hay diferencia en la caja. Agregá una nota explicando el faltante o sobrante.',
+        error: 'There is a cash difference. Add a note explaining the shortage or overage.',
         code: 'note_required',
         expected_cash: expected,
         difference,
@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ request }) => {
     .eq('id', shift.id);
   if (upErr) {
     console.error('[cash/close] update:', upErr.message);
-    return json({ error: 'No se pudo cerrar el turno.' }, 500);
+    return json({ error: 'Could not close the shift.' }, 500);
   }
 
   return json(
