@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { addToCart, readCart, type CartItem } from '@lib/rental-cart';
+import { addToCart, readCart, clearCart, type CartItem } from '@lib/rental-cart';
 import './catalog.css';
 
 const money = (n: number) => `$${Number(n).toFixed(0)}`;
@@ -75,17 +75,36 @@ export default function BoardAvailability({ unit }: { unit: CartItem }) {
     setAdded(true);
   }
 
+  // Sin esto, un carrito armado antes dejaba las fechas bloqueadas y la única
+  // salida era irse a /reservation a vaciarlo.
+  function startOver() {
+    clearCart();
+    setLocked(false);
+    setInCart(0);
+    setAlreadyIn(false);
+    setAdded(false);
+    setQuote(null);
+    setErr(null);
+    setFrom(today);
+    setTo(today);
+  }
+
   return (
     <div className="bav">
       <h2>Check availability</h2>
 
       {locked ? (
         <p className="bav-locked">
-          Same dates as your reservation:{' '}
+          You already picked{' '}
           <strong>
             {prettyDate(from)} to {prettyDate(to)}
-          </strong>
-          . Change them on the <a href="/reservation">reservation page</a>.
+          </strong>{' '}
+          for {inCart === 1 ? 'a board' : `${inCart} boards`}. Change the dates on the{' '}
+          <a href="/reservation">reservation page</a>, or{' '}
+          <button type="button" className="bav-linkbtn" onClick={startOver}>
+            start over
+          </button>
+          .
         </p>
       ) : (
         <div className="bav-dates">

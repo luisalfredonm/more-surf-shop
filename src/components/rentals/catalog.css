@@ -472,9 +472,19 @@
 .bav-locked strong {
   color: var(--navy);
 }
-.bav-locked a {
+.bav-locked a,
+.bav-linkbtn {
   color: var(--teal-dark);
   font-weight: 600;
+}
+.bav-linkbtn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }
 .bav-added p {
   margin: 0 0 0.75rem;
