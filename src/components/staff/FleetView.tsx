@@ -80,7 +80,7 @@ export default function FleetView() {
   if (loading) {
     return (
       <p className="st-empty">
-        <span className="st-spin">◠</span> Cargando…
+        <span className="st-spin">◠</span> Loading…
       </p>
     );
   }
@@ -88,14 +88,14 @@ export default function FleetView() {
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Modelos y tarifas se ven de inmediato en el catálogo online. Las unidades son las
-        tablas físicas reservables (el <code>code</code> va en el sticker QR).
+        Models and rates show up immediately in the online catalog. Units are the physical,
+        bookable boards (the <code>code</code> goes on the QR sticker).
       </p>
 
-      <h2 className="st-h2">Modelos</h2>
+      <h2 className="st-h2">Models</h2>
       <NewModelForm onSaved={load} />
       {models.length === 0 ? (
-        <p className="st-empty">Sin modelos todavía.</p>
+        <p className="st-empty">No models yet.</p>
       ) : (
         models.map((m) => (
           <ModelCard
@@ -110,7 +110,7 @@ export default function FleetView() {
       )}
 
       <h2 className="st-h2" style={{ marginTop: '2rem' }}>
-        Unidades (tablas físicas)
+        Units (physical boards)
       </h2>
       <NewUnitForm models={models} onSaved={load} />
       {models.map((m) => {
@@ -130,14 +130,14 @@ export default function FleetView() {
           </div>
         );
       })}
-      {units.length === 0 && <p className="st-empty">Sin unidades todavía.</p>}
+      {units.length === 0 && <p className="st-empty">No units yet.</p>}
 
       {histUnit && <UnitHistoryModal unit={histUnit} onClose={() => setHistUnit(null)} />}
     </div>
   );
 }
 
-// ---------- Modelo: nuevo ----------
+// ---------- Model: new ----------
 
 function NewModelForm({ onSaved }: { onSaved: () => void }) {
   const [name, setName] = useState('');
@@ -152,7 +152,7 @@ function NewModelForm({ onSaved }: { onSaved: () => void }) {
     e.preventDefault();
     setErr(null);
     if (name.trim().length < 2) {
-      setErr('Poné un nombre.');
+      setErr('Enter a name.');
       return;
     }
     setBusy(true);
@@ -166,7 +166,7 @@ function NewModelForm({ onSaved }: { onSaved: () => void }) {
     });
     setBusy(false);
     if (error) {
-      setErr(error.code === '23505' ? 'Ya existe un modelo con ese slug.' : error.message);
+      setErr(error.code === '23505' ? 'A model with that slug already exists.' : error.message);
       return;
     }
     setName('');
@@ -181,11 +181,11 @@ function NewModelForm({ onSaved }: { onSaved: () => void }) {
       {err && <div className="st-err">{err}</div>}
       <div className="st-row">
         <div className="st-field">
-          <label>Nombre</label>
+          <label>Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Soft-top 8'0" />
         </div>
         <div className="st-field">
-          <label>Categoría</label>
+          <label>Category</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -197,31 +197,31 @@ function NewModelForm({ onSaved }: { onSaved: () => void }) {
       </div>
       <div className="st-row">
         <div className="st-field">
-          <label>Largo</label>
+          <label>Length</label>
           <input value={lengthLabel} onChange={(e) => setLengthLabel(e.target.value)} placeholder="8'0" />
         </div>
         <div className="st-field">
-          <label>Tarifa / hora (USD)</label>
+          <label>Rate / hour (USD)</label>
           <input type="number" min={0} value={pph} onChange={(e) => setPph(e.target.value)} />
         </div>
       </div>
       <div className="st-row">
         <div className="st-field">
-          <label>Tarifa / día (USD)</label>
+          <label>Rate / day (USD)</label>
           <input type="number" min={0} value={ppd} onChange={(e) => setPpd(e.target.value)} />
         </div>
         <div className="st-field" style={{ justifyContent: 'flex-end' }}>
           <button className="st-btn st-btn-primary" type="submit" disabled={busy}>
-            {busy ? 'Agregando…' : '+ Agregar modelo'}
+            {busy ? 'Adding…' : '+ Add model'}
           </button>
         </div>
       </div>
-      <p className="st-note">Semana = tarifa/día × 7.</p>
+      <p className="st-note">Week = rate/day × 7.</p>
     </form>
   );
 }
 
-// ---------- Modelo: editar ----------
+// ---------- Model: edit ----------
 
 function ModelCard({
   model,
@@ -278,19 +278,19 @@ function ModelCard({
       .eq('id', model.id);
     setSaving(false);
     if (error) {
-      setMsg(error.code === '23505' ? 'Slug repetido.' : error.message);
+      setMsg(error.code === '23505' ? 'Duplicate slug.' : error.message);
       return;
     }
-    setMsg('Guardado.');
+    setMsg('Saved.');
     onSaved();
   }
 
   async function remove() {
     if (unitCount > 0) {
-      alert('Ese modelo tiene unidades. Quitalas primero.');
+      alert('That model has units. Remove them first.');
       return;
     }
-    if (!confirm(`Eliminar el modelo "${model.name}"?`)) return;
+    if (!confirm(`Delete model "${model.name}"?`)) return;
     const { error } = await getBrowserSupabase().from('board_models').delete().eq('id', model.id);
     if (error) alert(error.message);
     else onSaved();
@@ -302,10 +302,10 @@ function ModelCard({
         <span className={`st-dot ${form.active ? 'on' : 'off'}`} aria-hidden="true" />
         <span className="st-svc-title">{form.name}</span>
         <span className="st-svc-sum">
-          {form.category} · {money(form.price_per_hour)}/h · {money(form.price_per_day)}/día · {unitCount}{' '}
-          {unitCount === 1 ? 'tabla' : 'tablas'}
+          {form.category} · {money(form.price_per_hour)}/h · {money(form.price_per_day)}/day ·{' '}
+          {unitCount} {unitCount === 1 ? 'board' : 'boards'}
         </span>
-        {form.featured && <span className="st-svc-badge">destacado</span>}
+        {form.featured && <span className="st-svc-badge">featured</span>}
         <span className="st-svc-caret">{open ? '▲' : '▼'}</span>
       </button>
 
@@ -313,7 +313,7 @@ function ModelCard({
         <div className="st-svc-form">
           <div className="st-row">
             <div className="st-field">
-              <label>Nombre</label>
+              <label>Name</label>
               <input value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
             <div className="st-field">
@@ -323,7 +323,7 @@ function ModelCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Categoría</label>
+              <label>Category</label>
               <select value={form.category} onChange={(e) => set('category', e.target.value)}>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -333,7 +333,7 @@ function ModelCard({
               </select>
             </div>
             <div className="st-field">
-              <label>Nivel</label>
+              <label>Level</label>
               <select value={form.skill_level} onChange={(e) => set('skill_level', e.target.value)}>
                 {SKILL_LEVELS.map((s) => (
                   <option key={s} value={s}>
@@ -345,11 +345,11 @@ function ModelCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Largo</label>
+              <label>Length</label>
               <input value={form.length_label ?? ''} onChange={(e) => set('length_label', e.target.value)} />
             </div>
             <div className="st-field">
-              <label>Volumen (L)</label>
+              <label>Volume (L)</label>
               <input
                 type="number"
                 value={form.volume_l ?? ''}
@@ -359,7 +359,7 @@ function ModelCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Tarifa / hora (USD)</label>
+              <label>Rate / hour (USD)</label>
               <input
                 type="number"
                 min={0}
@@ -368,7 +368,7 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Tarifa / día (USD)</label>
+              <label>Rate / day (USD)</label>
               <input
                 type="number"
                 min={0}
@@ -378,10 +378,10 @@ function ModelCard({
             </div>
           </div>
 
-          <p className="st-field-label" style={{ margin: '0.5rem 0 0' }}>Ficha del catálogo</p>
+          <p className="st-field-label" style={{ margin: '0.5rem 0 0' }}>Catalog details</p>
           <div className="st-row">
             <div className="st-field">
-              <label>Ancho (pulgadas)</label>
+              <label>Width (inches)</label>
               <input
                 type="number"
                 step="0.01"
@@ -391,7 +391,7 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Grosor (pulgadas)</label>
+              <label>Thickness (inches)</label>
               <input
                 type="number"
                 step="0.01"
@@ -403,7 +403,7 @@ function ModelCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Quillas</label>
+              <label>Fins</label>
               <input
                 value={form.fin_setup ?? ''}
                 onChange={(e) => set('fin_setup', e.target.value)}
@@ -411,17 +411,17 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Construcción</label>
+              <label>Construction</label>
               <input
                 value={form.construction ?? ''}
                 onChange={(e) => set('construction', e.target.value)}
-                placeholder="Poliéster"
+                placeholder="Polyester"
               />
             </div>
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Peso recomendado — mín (kg)</label>
+              <label>Recommended weight — min (kg)</label>
               <input
                 type="number"
                 min={0}
@@ -431,7 +431,7 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Peso recomendado — máx (kg)</label>
+              <label>Recommended weight — max (kg)</label>
               <input
                 type="number"
                 min={0}
@@ -443,7 +443,7 @@ function ModelCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Mejor en (uno por línea)</label>
+              <label>Best for (one per line)</label>
               <textarea
                 rows={2}
                 value={(form.best_for ?? []).join('\n')}
@@ -452,19 +452,19 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Incluye (uno por línea)</label>
+              <label>Includes (one per line)</label>
               <textarea
                 rows={2}
                 value={(form.features ?? []).join('\n')}
                 onChange={(e) => set('features', e.target.value.split('\n'))}
-                placeholder={'Quillas FCS II incluidas\nIdeal Tamarindo'}
+                placeholder={'FCS II fins included\nGreat for Tamarindo'}
               />
             </div>
           </div>
 
           <div className="st-row">
             <div className="st-field">
-              <label>Orden</label>
+              <label>Order</label>
               <input
                 type="number"
                 value={form.sort_order}
@@ -472,31 +472,31 @@ function ModelCard({
               />
             </div>
             <div className="st-field">
-              <label>Estado</label>
+              <label>Status</label>
               <select
                 value={form.active ? 'yes' : 'no'}
                 onChange={(e) => set('active', e.target.value === 'yes')}
               >
-                <option value="yes">Activo — visible online</option>
-                <option value="no">Inactivo — oculto</option>
+                <option value="yes">Active — visible online</option>
+                <option value="no">Inactive — hidden</option>
               </select>
             </div>
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Destacado</label>
+              <label>Featured</label>
               <select
                 value={form.featured ? 'yes' : 'no'}
                 onChange={(e) => set('featured', e.target.value === 'yes')}
               >
                 <option value="no">No</option>
-                <option value="yes">Sí</option>
+                <option value="yes">Yes</option>
               </select>
             </div>
             <div className="st-field" />
           </div>
           <div className="st-field">
-            <label>Descripción</label>
+            <label>Description</label>
             <textarea
               rows={2}
               value={form.description ?? ''}
@@ -504,7 +504,7 @@ function ModelCard({
             />
           </div>
           <div className="st-field">
-            <label>Fotos — URLs (una por línea)</label>
+            <label>Photos — URLs (one per line)</label>
             <textarea
               rows={2}
               value={(form.image_urls ?? []).join('\n')}
@@ -519,10 +519,10 @@ function ModelCard({
           )}
           <div className="st-actions">
             <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
             <button className="st-btn st-btn-danger st-btn-sm" type="button" onClick={remove}>
-              Eliminar modelo
+              Delete model
             </button>
           </div>
         </div>
@@ -531,7 +531,7 @@ function ModelCard({
   );
 }
 
-// ---------- Unidad: nueva ----------
+// ---------- Unit: new ----------
 
 function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void }) {
   const [modelId, setModelId] = useState('');
@@ -548,11 +548,11 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
     e.preventDefault();
     setErr(null);
     if (!modelId) {
-      setErr('Creá un modelo primero.');
+      setErr('Create a model first.');
       return;
     }
     if (code.trim().length < 1) {
-      setErr('Poné el número de tabla.');
+      setErr('Enter the board number.');
       return;
     }
     setBusy(true);
@@ -560,12 +560,12 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
     const { error } = await getBrowserSupabase().from('board_units').insert({
       model_id: modelId,
       code: code.trim(),
-      slug: slugify(`${model?.name ?? 'tabla'}-${code.trim()}`),
+      slug: slugify(`${model?.name ?? 'board'}-${code.trim()}`),
       default_fins: Math.max(0, Number(fins) || 0),
     });
     setBusy(false);
     if (error) {
-      setErr(error.code === '23505' ? 'Ya hay una tabla con ese número.' : error.message);
+      setErr(error.code === '23505' ? 'A board with that number already exists.' : error.message);
       return;
     }
     setCode('');
@@ -577,7 +577,7 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
       {err && <div className="st-err">{err}</div>}
       <div className="st-row">
         <div className="st-field">
-          <label>Modelo</label>
+          <label>Model</label>
           <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
             {models.map((m) => (
               <option key={m.id} value={m.id}>
@@ -587,13 +587,13 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
           </select>
         </div>
         <div className="st-field">
-          <label>Nº de tabla (code / QR)</label>
+          <label>Board number (code / QR)</label>
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="6.2 Ap" />
         </div>
       </div>
       <div className="st-row">
         <div className="st-field">
-          <label>Fins por defecto</label>
+          <label>Default fins</label>
           <input
             type="number"
             min={0}
@@ -604,7 +604,7 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
         </div>
         <div className="st-field" style={{ justifyContent: 'flex-end' }}>
           <button className="st-btn st-btn-primary" type="submit" disabled={busy}>
-            {busy ? 'Agregando…' : '+ Agregar tabla'}
+            {busy ? 'Adding…' : '+ Add board'}
           </button>
         </div>
       </div>
@@ -612,7 +612,7 @@ function NewUnitForm({ models, onSaved }: { models: Model[]; onSaved: () => void
   );
 }
 
-// ---------- Unidad: fila editable ----------
+// ---------- Unit: editable row ----------
 
 function UnitRow({
   unit,
@@ -655,7 +655,7 @@ function UnitRow({
       })
       .eq('id', unit.id);
     setBusy(false);
-    if (error) alert(error.code === '23505' ? 'Ese slug ya existe.' : error.message);
+    if (error) alert(error.code === '23505' ? 'That slug already exists.' : error.message);
     else onSaved();
   }
 
@@ -679,7 +679,7 @@ function UnitRow({
   }
 
   async function remove() {
-    if (!confirm(`Eliminar la tabla ${unit.code}?`)) return;
+    if (!confirm(`Delete board ${unit.code}?`)) return;
     const { error } = await getBrowserSupabase().from('board_units').delete().eq('id', unit.id);
     if (error) alert(error.message);
     else onSaved();
@@ -710,10 +710,10 @@ function UnitRow({
         </span>
         <span className="st-spacer" />
         <button className="st-btn st-btn-ghost st-btn-sm" type="button" onClick={onHistory}>
-          Historial
+          History
         </button>
         <button className="st-btn st-btn-danger st-btn-sm" type="button" onClick={remove}>
-          Quitar
+          Remove
         </button>
       </div>
 
@@ -721,21 +721,21 @@ function UnitRow({
         <div className="st-svc-form">
           <div className="st-row">
             <div className="st-field">
-              <label>Apodo (opcional)</label>
+              <label>Nickname (optional)</label>
               <input
                 value={f.nickname ?? ''}
                 onChange={(e) => set('nickname', e.target.value)}
-                placeholder="la amarilla"
+                placeholder="the yellow one"
               />
             </div>
             <div className="st-field">
-              <label>Slug (URL del detalle)</label>
+              <label>Slug (detail page URL)</label>
               <input value={f.slug ?? ''} onChange={(e) => set('slug', e.target.value)} />
             </div>
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Fins por defecto</label>
+              <label>Default fins</label>
               <input
                 type="number"
                 min={0}
@@ -745,7 +745,7 @@ function UnitRow({
               />
             </div>
             <div className="st-field">
-              <label>Estado</label>
+              <label>Status</label>
               <select value={f.status} onChange={(e) => set('status', e.target.value)}>
                 {UNIT_STATUS.map((s) => (
                   <option key={s} value={s}>
@@ -756,14 +756,14 @@ function UnitRow({
             </div>
           </div>
           <div className="st-field">
-            <label>Foto de esta tabla (la que ve el cliente)</label>
+            <label>Photo of this board (what the customer sees)</label>
             <input type="file" accept="image/*" onChange={onPhoto} disabled={photoBusy} />
-            {photoBusy && <span className="st-note">Subiendo…</span>}
-            {photoWarn && <span className="st-note">No se pudo subir. Revisá el bucket rental-photos.</span>}
+            {photoBusy && <span className="st-note">Uploading…</span>}
+            {photoWarn && <span className="st-note">Upload failed. Check the rental-photos bucket.</span>}
             <input
               value={f.photo_url ?? ''}
               onChange={(e) => set('photo_url', e.target.value)}
-              placeholder="o pegá una URL"
+              placeholder="or paste a URL"
             />
             {f.photo_url && (
               <img
@@ -779,7 +779,7 @@ function UnitRow({
             disabled={!dirty || busy}
             onClick={save}
           >
-            {busy ? 'Guardando…' : 'Guardar tabla'}
+            {busy ? 'Saving…' : 'Save board'}
           </button>
         </div>
       )}
