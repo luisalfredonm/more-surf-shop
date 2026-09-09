@@ -16,10 +16,10 @@ export default function StaffLogin() {
       password,
     });
     if (error) {
-      setError('Email o contraseña incorrectos.');
+      setError('Wrong email or password.');
       setBusy(false);
     }
-    // Con éxito, onAuthStateChange en StaffApp toma el control.
+    // On success, onAuthStateChange in StaffApp takes over.
   }
 
   return (
@@ -28,7 +28,7 @@ export default function StaffLogin() {
         <h1>
           more<span style={{ color: 'var(--teal)' }}>surf</span>shop
         </h1>
-        <p>Panel de staff</p>
+        <p>Staff panel</p>
 
         {error && <div className="st-err">{error}</div>}
 
@@ -44,7 +44,7 @@ export default function StaffLogin() {
           />
         </div>
         <div className="st-field">
-          <label htmlFor="st-pass">Contraseña</label>
+          <label htmlFor="st-pass">Password</label>
           <input
             id="st-pass"
             type="password"
@@ -56,7 +56,7 @@ export default function StaffLogin() {
         </div>
 
         <button className="st-btn st-btn-primary st-btn-block" disabled={busy} type="submit">
-          {busy ? 'Entrando…' : 'Entrar'}
+          {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </div>

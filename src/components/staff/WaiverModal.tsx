@@ -54,7 +54,7 @@ export default function WaiverModal({
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) setErr(error.message);
-        else if (!data) setErr('No se encontró el waiver.');
+        else if (!data) setErr('Waiver not found.');
         else setRow(data as unknown as WaiverRow);
       });
     return () => {
@@ -67,12 +67,12 @@ export default function WaiverModal({
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Waiver firmado">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Signed waiver">
         <div className="st-modal-hd">
           <h3>Waiver</h3>
           <span className="st-modal-ref">{participantName}</span>
           <span className="st-spacer" />
-          <button className="st-modal-x" onClick={onClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -80,34 +80,34 @@ export default function WaiverModal({
         {err && <div className="st-err">{err}</div>}
         {!row && !err && (
           <p className="st-empty">
-            <span className="st-spin">◠</span> Cargando…
+            <span className="st-spin">◠</span> Loading…
           </p>
         )}
 
         {row && (
           <>
             <dl className="st-audit">
-              <dt>Firmado por</dt>
+              <dt>Signed by</dt>
               <dd>
                 {row.signer_name_typed}
                 {row.is_minor && (
                   <>
                     {' '}
-                    · como tutor de <strong>{participantName}</strong> (menor)
+                    · as guardian of <strong>{participantName}</strong> (minor)
                   </>
                 )}
               </dd>
-              <dt>Fecha</dt>
+              <dt>Date</dt>
               <dd>{new Date(row.signed_at).toLocaleString('en-US')}</dd>
-              <dt>Aceptó términos</dt>
-              <dd>{row.accepted_terms ? 'Sí' : 'No'}</dd>
-              <dt>Versión</dt>
+              <dt>Accepted terms</dt>
+              <dd>{row.accepted_terms ? 'Yes' : 'No'}</dd>
+              <dt>Version</dt>
               <dd>
                 {row.waiver_version} · {row.lang} · {row.activity}
               </dd>
               {(emergencyName || emergencyPhone) && (
                 <>
-                  <dt>Contacto emergencia</dt>
+                  <dt>Emergency contact</dt>
                   <dd>
                     {emergencyName || '—'}
                     {emergencyPhone ? ` · ${emergencyPhone}` : ''}
@@ -116,20 +116,20 @@ export default function WaiverModal({
               )}
               <dt>IP</dt>
               <dd>{row.ip || '—'}</dd>
-              <dt>Navegador</dt>
+              <dt>Browser</dt>
               <dd className="st-audit-ua">{row.user_agent || '—'}</dd>
             </dl>
 
-            <div className="st-field-label">Firma</div>
+            <div className="st-field-label">Signature</div>
             {sigSrc ? (
               <div className="st-waiver-sig">
-                <img src={sigSrc} alt={`Firma de ${row.signer_name_typed}`} />
+                <img src={sigSrc} alt={`Signature of ${row.signer_name_typed}`} />
               </div>
             ) : (
-              <p className="st-note">Sin firma dibujada.</p>
+              <p className="st-note">No signature drawn.</p>
             )}
 
-            <div className="st-field-label">Texto aceptado (snapshot)</div>
+            <div className="st-field-label">Accepted text (snapshot)</div>
             <pre className="st-waiver-snapshot">{row.rendered_text_snapshot}</pre>
           </>
         )}

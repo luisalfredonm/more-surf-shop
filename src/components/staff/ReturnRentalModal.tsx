@@ -92,27 +92,27 @@ export default function ReturnRentalModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo cerrar el alquiler.');
+        setErr(data.error || 'Could not close the rental.');
         setBusy(false);
         return;
       }
       onDone();
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
       setBusy(false);
     }
   }
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Recibir tabla">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Return board">
         <div className="st-modal-hd">
-          <h3>Recibir</h3>
+          <h3>Return</h3>
           <span className="st-modal-ref">
             {rental.code} · {rental.model} · {rental.customer}
           </span>
           <span className="st-spacer" />
-          <button className="st-modal-x" onClick={onClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -121,7 +121,7 @@ export default function ReturnRentalModal({
 
         <div className="st-row">
           <div className="st-field">
-            <label>Fins devueltas</label>
+            <label>Fins returned</label>
             <input
               type="number"
               min={0}
@@ -130,30 +130,30 @@ export default function ReturnRentalModal({
               onChange={(e) => setFinsIn(Number(e.target.value))}
             />
             {rental.fins_out != null && finsIn !== rental.fins_out && (
-              <span className="st-note">salieron {rental.fins_out}</span>
+              <span className="st-note">{rental.fins_out} went out</span>
             )}
           </div>
           <div className="st-field">
-            <label>Foto de la tabla</label>
+            <label>Board photo</label>
             <input type="file" accept="image/*" capture="environment" onChange={onPhoto} disabled={photoBusy} />
-            {photoBusy && <span className="st-note">Subiendo…</span>}
-            {photoIn && <span className="st-note">✓ foto cargada</span>}
-            {photoWarn && <span className="st-note">No se pudo subir — seguí sin foto.</span>}
+            {photoBusy && <span className="st-note">Uploading…</span>}
+            {photoIn && <span className="st-note">✓ photo uploaded</span>}
+            {photoWarn && <span className="st-note">Upload failed — continue without a photo.</span>}
           </div>
         </div>
 
         <div className="st-field">
-          <label>Nota de condición (opcional)</label>
+          <label>Condition note (optional)</label>
           <input value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
         <label className="st-check">
           <input type="checkbox" checked={damage} onChange={(e) => setDamage(e.target.checked)} />
-          <span>Hubo daño / faltante</span>
+          <span>Damage / missing items</span>
         </label>
         {damage && (
           <div className="st-field">
-            <label>Cargo por daño (USD)</label>
+            <label>Damage fee (USD)</label>
             <input
               type="number"
               min={0}
@@ -166,11 +166,11 @@ export default function ReturnRentalModal({
         {due > 0 && (
           <>
             <p className="st-q" style={{ marginTop: '0.75rem' }}>
-              A cobrar ahora: <strong>{money(due, rental.currency)}</strong>
+              To collect now: <strong>{money(due, rental.currency)}</strong>
               {baseDue > 0 && dmg > 0 && (
                 <span className="st-note">
                   {' '}
-                  (alquiler {money(baseDue, rental.currency)} + daño {money(dmg, rental.currency)})
+                  (rental {money(baseDue, rental.currency)} + damage {money(dmg, rental.currency)})
                 </span>
               )}
             </p>
@@ -180,7 +180,7 @@ export default function ReturnRentalModal({
                 checked={collectCash}
                 onChange={(e) => setCollectCash(e.target.checked)}
               />
-              <span>Cobrar ahora</span>
+              <span>Collect now</span>
             </label>
             {collectCash && (
               <div className="st-chiprow" style={{ marginTop: '0.35rem' }}>
@@ -189,14 +189,14 @@ export default function ReturnRentalModal({
                   className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
                   onClick={() => setPayMethod('cash')}
                 >
-                  Efectivo
+                  Cash
                 </button>
                 <button
                   type="button"
                   className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
                   onClick={() => setPayMethod('card')}
                 >
-                  Tarjeta
+                  Card
                 </button>
               </div>
             )}
@@ -205,10 +205,10 @@ export default function ReturnRentalModal({
 
         <div className="st-modal-actions">
           <button className="st-btn st-btn-ghost st-btn-sm" onClick={onClose}>
-            Cancelar
+            Cancel
           </button>
           <button className="st-btn st-btn-primary st-btn-sm" disabled={busy} onClick={submit}>
-            {busy ? 'Cerrando…' : 'Confirmar devolución'}
+            {busy ? 'Closing…' : 'Confirm return'}
           </button>
         </div>
       </div>

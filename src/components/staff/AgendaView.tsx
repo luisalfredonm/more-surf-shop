@@ -144,7 +144,7 @@ export default function AgendaView() {
   }
 
   async function del(b: Booking) {
-    if (!confirm(`Eliminar la reserva ${b.reference}? No se puede deshacer.`)) return;
+    if (!confirm(`Delete booking ${b.reference}? This cannot be undone.`)) return;
     setBusyId(b.id);
     const { error } = await getBrowserSupabase().from('bookings').delete().eq('id', b.id);
     setBusyId(null);
@@ -156,7 +156,7 @@ export default function AgendaView() {
     if (!b.group_id) return;
     if (
       !confirm(
-        `Reembolsar por PayPal y cancelar TODAS las reservas del grupo ${b.reference}? No se puede deshacer.`,
+        `Refund via PayPal and cancel ALL bookings in group ${b.reference}? This cannot be undone.`,
       )
     )
       return;
@@ -173,7 +173,7 @@ export default function AgendaView() {
     const data = await res.json().catch(() => ({}));
     setBusyId(null);
     if (!res.ok || !data.ok) {
-      alert(data.error || 'No se pudo reembolsar.');
+      alert(data.error || 'Could not process the refund.');
       return;
     }
     await load();
@@ -195,8 +195,8 @@ export default function AgendaView() {
     if (!res.ok || !data.ok) {
       alert(
         data.code === 'no_open_shift'
-          ? 'Abrí tu turno de caja (Caja → Cierre de caja) antes de cobrar.'
-          : data.error || 'No se pudo registrar el cobro.',
+          ? 'Open your cash shift (Cash → Cash Close) before collecting payment.'
+          : data.error || 'Could not record the payment.',
       );
       return;
     }
@@ -237,7 +237,7 @@ export default function AgendaView() {
           className={`st-btn st-btn-sm ${showNew ? 'st-btn-ghost' : 'st-btn-primary'}`}
           onClick={() => setShowNew((v) => !v)}
         >
-          {showNew ? 'Cerrar' : '+ Nueva reserva'}
+          {showNew ? 'Close' : '+ New booking'}
         </button>
       </div>
       {showNew && (
@@ -468,14 +468,14 @@ export default function AgendaView() {
                               disabled={busyId === b.id}
                               onClick={() => registerCounterPayment(b, 'cash')}
                             >
-                              Cobrar efectivo
+                              Collect cash
                             </button>
                             <button
                               className="st-btn st-btn-ghost st-btn-sm"
                               disabled={busyId === b.id}
                               onClick={() => registerCounterPayment(b, 'card')}
                             >
-                              Cobrar tarjeta
+                              Collect card
                             </button>
                           </>
                         )}
@@ -504,7 +504,7 @@ export default function AgendaView() {
                         {b.status === 'confirmed' && (
                           <>
                             {!b.checked_in_at && (
-                              <span className="st-gate-warn">⚠ sin check-in</span>
+                              <span className="st-gate-warn">⚠ no check-in</span>
                             )}
                             <button
                               className="st-btn st-btn-ghost st-btn-sm"

@@ -35,8 +35,8 @@ const VIEW_TITLE: Record<View, string> = {
   fleet: 'Fleet',
   rental_settings: 'Rental Settings',
   qr_stickers: 'QR Stickers',
-  cash: 'Cierre de caja',
-  payments: 'Pagos',
+  cash: 'Cash Close',
+  payments: 'Payments',
 };
 
 function initials(name: string): string {
@@ -68,10 +68,10 @@ const NAV: {
     ],
   },
   {
-    section: 'Caja',
+    section: 'Cash',
     items: [
-      { key: 'cash', label: 'Cierre de caja' },
-      { key: 'payments', label: 'Pagos', ownerOnly: true },
+      { key: 'cash', label: 'Cash Close' },
+      { key: 'payments', label: 'Payments', ownerOnly: true },
     ],
   },
 ];
@@ -119,11 +119,11 @@ export default function StaffApp() {
     return (
       <div className="st-center">
         <div className="st-login">
-          <h1>Panel de staff</h1>
-          <p>Falta configurar Supabase.</p>
+          <h1>Staff panel</h1>
+          <p>Supabase is not configured.</p>
           <p className="st-note">
-            Definí <code>PUBLIC_SUPABASE_URL</code> y <code>PUBLIC_SUPABASE_ANON_KEY</code> en{' '}
-            <code>.env</code> y recargá.
+            Set <code>PUBLIC_SUPABASE_URL</code> and <code>PUBLIC_SUPABASE_ANON_KEY</code> in{' '}
+            <code>.env</code> and reload.
           </p>
         </div>
       </div>
@@ -144,10 +144,10 @@ export default function StaffApp() {
     return (
       <div className="st-center">
         <div className="st-login">
-          <h1>Sin acceso</h1>
-          <p>Tu usuario no está habilitado en el panel.</p>
+          <h1>No access</h1>
+          <p>Your account is not enabled for the panel.</p>
           <button className="st-btn st-btn-ghost st-btn-block" onClick={signOut}>
-            Salir
+            Sign out
           </button>
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function StaffApp() {
           <span className="st-side-user">
             {profile.display_name || 'staff'} · {profile.role}
           </span>
-          <button onClick={signOut}>Salir</button>
+          <button onClick={signOut}>Sign out</button>
         </div>
       </aside>
 

@@ -34,15 +34,15 @@ export default function QrScanner({
       if (!navigator.mediaDevices?.getUserMedia) {
         setErr(
           window.isSecureContext
-            ? 'Este navegador no da acceso a la cámara. Escribí el nº de tabla.'
-            : `La cámara necesita HTTPS o localhost (estás en ${window.location.host}). Escribí el nº de tabla.`,
+            ? 'This browser does not allow camera access. Type the board number instead.'
+            : `The camera needs HTTPS or localhost (you're on ${window.location.host}). Type the board number instead.`,
         );
         return;
       }
       try {
         decode = (await import('jsqr')).default;
       } catch {
-        setErr('No se pudo cargar el lector de QR. Escribí el nº de tabla.');
+        setErr('Could not load the QR reader. Type the board number instead.');
         return;
       }
       try {
@@ -104,11 +104,11 @@ export default function QrScanner({
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Escanear QR">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Scan QR">
         <div className="st-modal-hd">
-          <h3>Escanear tabla</h3>
+          <h3>Scan board</h3>
           <span className="st-spacer" />
-          <button className="st-modal-x" onClick={onClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -123,7 +123,7 @@ export default function QrScanner({
               <span className="st-qr-reticle" />
             </div>
             <p className="st-note" style={{ marginTop: '0.6rem' }}>
-              Apuntá al sticker de la tabla, o escribí el número.
+              Point at the board's sticker, or type the number.
             </p>
           </>
         )}
@@ -140,11 +140,11 @@ export default function QrScanner({
             autoFocus={!!err}
             value={manual}
             onChange={(e) => setManual(e.target.value)}
-            placeholder="Nº de tabla (ej. 6.2 Ap)"
+            placeholder="Board number (e.g. 6.2 Ap)"
             style={{ flex: 1 }}
           />
           <button type="submit" className="st-btn st-btn-primary st-btn-sm" disabled={!manual.trim()}>
-            Usar
+            Use
           </button>
         </form>
       </div>
@@ -157,15 +157,15 @@ function camMessage(e: unknown): string {
   switch (name) {
     case 'NotAllowedError':
     case 'SecurityError':
-      return 'Permiso de cámara denegado. Habilitalo en el candado de la barra de direcciones, o escribí el nº de tabla.';
+      return 'Camera permission denied. Enable it from the padlock in the address bar, or type the board number.';
     case 'NotFoundError':
     case 'OverconstrainedError':
     case 'DevicesNotFoundError':
-      return 'No se encontró una cámara en este dispositivo. Escribí el nº de tabla.';
+      return 'No camera found on this device. Type the board number instead.';
     case 'NotReadableError':
     case 'TrackStartError':
-      return 'La cámara está en uso por otra app. Cerrala y reintentá, o escribí el nº de tabla.';
+      return 'The camera is in use by another app. Close it and retry, or type the board number.';
     default:
-      return 'No se pudo abrir la cámara. Escribí el nº de tabla.';
+      return 'Could not open the camera. Type the board number instead.';
   }
 }

@@ -68,22 +68,22 @@ export default function UnitHistoryModal({
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Hoja de vida">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Board history">
         <div className="st-modal-hd">
-          <h3>Hoja de vida</h3>
+          <h3>Board history</h3>
           <span className="st-modal-ref">{unit.code}</span>
           <span className="st-spacer" />
-          <button className="st-modal-x" onClick={onClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
 
         {!rows && (
           <p className="st-empty">
-            <span className="st-spin">◠</span> Cargando…
+            <span className="st-spin">◠</span> Loading…
           </p>
         )}
-        {rows && rows.length === 0 && <p className="st-empty">Sin alquileres todavía.</p>}
+        {rows && rows.length === 0 && <p className="st-empty">No rentals yet.</p>}
         {rows && rows.length > 0 && (
           <div className="st-card" style={{ marginBottom: 0 }}>
             {rows.map((r) => {
@@ -95,44 +95,44 @@ export default function UnitHistoryModal({
                     <dt>Ref</dt>
                     <dd>
                       {r.reference} · <span className={`st-badge ${r.status}`}>{r.status}</span>
-                      {nameOf(r.res_by) ? ` · reservó ${nameOf(r.res_by)}` : ''}
+                      {nameOf(r.res_by) ? ` · booked by ${nameOf(r.res_by)}` : ''}
                     </dd>
-                    <dt>Cliente</dt>
+                    <dt>Customer</dt>
                     <dd>{c}</dd>
-                    <dt>Salida</dt>
+                    <dt>Out</dt>
                     <dd>
                       {dt(r.start_at)} · fins {r.fins_out ?? '—'}
-                      {nameOf(r.out_by) ? ` · entregó ${nameOf(r.out_by)}` : ''}
+                      {nameOf(r.out_by) ? ` · handed over by ${nameOf(r.out_by)}` : ''}
                       {r.condition_out_notes ? ` · ${r.condition_out_notes}` : ''}
                       {r.condition_out_photo_url && (
                         <>
                           {' '}
                           <a href={r.condition_out_photo_url} target="_blank" rel="noreferrer">
-                            foto
+                            photo
                           </a>
                         </>
                       )}
                     </dd>
-                    <dt>Entrada</dt>
+                    <dt>In</dt>
                     <dd>
                       {dt(r.returned_at)}
                       {r.returned_at ? ` · fins ${r.fins_in ?? '—'}` : ''}
-                      {nameOf(r.in_by) ? ` · recibió ${nameOf(r.in_by)}` : ''}
-                      {finsBad ? ' ⚠ faltan fins' : ''}
+                      {nameOf(r.in_by) ? ` · returned to ${nameOf(r.in_by)}` : ''}
+                      {finsBad ? ' ⚠ missing fins' : ''}
                       {r.condition_in_notes ? ` · ${r.condition_in_notes}` : ''}
                       {r.condition_in_photo_url && (
                         <>
                           {' '}
                           <a href={r.condition_in_photo_url} target="_blank" rel="noreferrer">
-                            foto
+                            photo
                           </a>
                         </>
                       )}
                     </dd>
                     {r.damage_reported && (
                       <>
-                        <dt>Daño</dt>
-                        <dd>{r.damage_fee ? `$${Number(r.damage_fee).toFixed(2)}` : 'reportado'}</dd>
+                        <dt>Damage</dt>
+                        <dd>{r.damage_fee ? `$${Number(r.damage_fee).toFixed(2)}` : 'reported'}</dd>
                       </>
                     )}
                   </dl>

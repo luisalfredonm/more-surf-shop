@@ -123,7 +123,7 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
       });
       const data = await res.json().catch(() => ({}));
       if (res.status !== 201 || !data.ok) {
-        setErr(data.error || 'No se pudo crear la reserva.');
+        setErr(data.error || 'Could not create the booking.');
         setBusy(false);
         return;
       }
@@ -141,18 +141,18 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
           const pd = await pr.json().catch(() => ({}));
           if (!pr.ok || !pd.ok) {
             setErr(
-              `Reserva ${data.group_reference} creada, pero el cobro falló: ${pd.error ?? ''} — registralo desde la agenda.`,
+              `Booking ${data.group_reference} created, but the charge failed: ${pd.error ?? ''} — record it from the agenda.`,
             );
           }
         }
       }
 
-      setMsg(`Reserva creada: ${data.group_reference}`);
+      setMsg(`Booking created: ${data.group_reference}`);
       setC({ full_name: '', email: '', phone: '', country: '' });
       setTime('');
       onCreated();
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
     } finally {
       setBusy(false);
     }
@@ -169,24 +169,24 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
 
       <div className="st-row">
         <div className="st-field">
-          <label htmlFor="nb-svc">Servicio</label>
+          <label htmlFor="nb-svc">Service</label>
           <select id="nb-svc" value={svcId} onChange={(e) => setSvcId(e.target.value)}>
             {services.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} — ${Number(s.price_per_person).toFixed(0)}/pers
+                {s.name} — ${Number(s.price_per_person).toFixed(0)}/person
               </option>
             ))}
           </select>
         </div>
         <div className="st-field">
-          <label htmlFor="nb-date">Fecha</label>
+          <label htmlFor="nb-date">Date</label>
           <input id="nb-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
       </div>
 
       <div className="st-row">
         <div className="st-field">
-          <label htmlFor="nb-time">Hora</label>
+          <label htmlFor="nb-time">Time</label>
           <select
             id="nb-time"
             value={time}
@@ -195,20 +195,20 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
           >
             <option value="">
               {slotsState === 'loading'
-                ? 'Cargando…'
+                ? 'Loading…'
                 : slotsState === 'empty'
-                  ? 'Sin horarios ese día'
-                  : 'Elegí una hora'}
+                  ? 'No times that day'
+                  : 'Pick a time'}
             </option>
             {slots.map((s) => (
               <option key={s.start_time} value={s.start_time}>
-                {fmtTime(s.start_time)} · {s.remaining} cupo(s)
+                {fmtTime(s.start_time)} · {s.remaining} spot(s)
               </option>
             ))}
           </select>
         </div>
         <div className="st-field">
-          <label htmlFor="nb-guests">Personas</label>
+          <label htmlFor="nb-guests">Guests</label>
           <input
             id="nb-guests"
             type="number"
@@ -222,7 +222,7 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
 
       <div className="st-row">
         <div className="st-field">
-          <label htmlFor="nb-name">Nombre del cliente</label>
+          <label htmlFor="nb-name">Customer name</label>
           <input
             id="nb-name"
             value={c.full_name}
@@ -241,7 +241,7 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
       </div>
       <div className="st-row">
         <div className="st-field">
-          <label htmlFor="nb-phone">Teléfono (opcional)</label>
+          <label htmlFor="nb-phone">Phone (optional)</label>
           <input
             id="nb-phone"
             value={c.phone}
@@ -249,27 +249,27 @@ export default function NewBookingForm({ onCreated }: { onCreated: () => void })
           />
         </div>
         <div className="st-field">
-          <label htmlFor="nb-pay">Pago</label>
+          <label htmlFor="nb-pay">Payment</label>
           <select
             id="nb-pay"
             value={pay}
             onChange={(e) => setPay(e.target.value as 'on_arrival' | 'cash_now' | 'card_now')}
           >
-            <option value="on_arrival">Cobrar al llegar</option>
-            <option value="cash_now">Efectivo — cobrado ahora</option>
-            <option value="card_now">Tarjeta — cobrado ahora</option>
+            <option value="on_arrival">Pay on arrival</option>
+            <option value="cash_now">Cash — collected now</option>
+            <option value="card_now">Card — collected now</option>
           </select>
         </div>
       </div>
 
       {payNow && hasShift === false && (
         <div className="st-err">
-          Para cobrar ahora necesitás un turno de caja abierto (Caja → Cierre de caja).
+          To collect now you need an open cash shift (Cash → Cash Close).
         </div>
       )}
 
       <button className="st-btn st-btn-primary" type="button" disabled={!valid || busy} onClick={submit}>
-        {busy ? 'Creando…' : 'Crear reserva'}
+        {busy ? 'Creating…' : 'Create booking'}
       </button>
     </div>
   );

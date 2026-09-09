@@ -59,7 +59,7 @@ export default function CheckinModal({
     setPeople((ps) => ps.map((p, i) => (i === idx ? { ...p, ...d } : p)));
 
   const tryClose = useCallback(() => {
-    if (doneCount > 0 && !confirm('¿Cerrar sin guardar el check-in? Se pierden las firmas.')) return;
+    if (doneCount > 0 && !confirm('Close without saving the check-in? Signatures will be lost.')) return;
     onClose();
   }, [doneCount, onClose]);
 
@@ -106,25 +106,25 @@ export default function CheckinModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo guardar el check-in.');
+        setErr(data.error || 'Could not save the check-in.');
         setBusy(false);
         return;
       }
       onDone();
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
       setBusy(false);
     }
   }
 
   const stepHint =
     sub === 'next'
-      ? `${doneCount} de ~${booking.participants_count} listas`
-      : `Persona ${idx + 1}`;
+      ? `${doneCount} of ~${booking.participants_count} done`
+      : `Person ${idx + 1}`;
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && tryClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Check-in y waivers">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Check-in and waivers">
         <div className="st-modal-hd">
           <h3>Check-in</h3>
           <span className="st-modal-ref">
@@ -133,7 +133,7 @@ export default function CheckinModal({
           </span>
           <span className="st-spacer" />
           <span className="st-modal-step">{stepHint}</span>
-          <button className="st-modal-x" onClick={tryClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={tryClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -142,7 +142,7 @@ export default function CheckinModal({
 
         {sub === 'name' && (
           <div className="st-field">
-            <label htmlFor="ci-name">Nombre del surfeador</label>
+            <label htmlFor="ci-name">Surfer's name</label>
             <input
               id="ci-name"
               autoFocus
@@ -158,7 +158,7 @@ export default function CheckinModal({
                 disabled={cur.full_name.trim().length < 2}
                 onClick={() => setSub('emergency')}
               >
-                Siguiente
+                Next
               </button>
             </div>
           </div>
@@ -168,7 +168,7 @@ export default function CheckinModal({
           <>
             <div className="st-row">
               <div className="st-field">
-                <label htmlFor="ci-ecname">Contacto de emergencia — nombre</label>
+                <label htmlFor="ci-ecname">Emergency contact — name</label>
                 <input
                   id="ci-ecname"
                   autoFocus
@@ -177,7 +177,7 @@ export default function CheckinModal({
                 />
               </div>
               <div className="st-field">
-                <label htmlFor="ci-ecphone">Teléfono</label>
+                <label htmlFor="ci-ecphone">Phone</label>
                 <input
                   id="ci-ecphone"
                   value={cur.ec_phone}
@@ -187,17 +187,17 @@ export default function CheckinModal({
             </div>
             <div className="st-modal-actions">
               <button className="st-btn st-btn-ghost st-btn-sm" onClick={() => setSub('name')}>
-                Atrás
+                Back
               </button>
               <button
                 className="st-btn st-btn-primary st-btn-sm"
                 disabled={!(cur.ec_name.trim() && cur.ec_phone.trim())}
                 onClick={() => setSub('minor')}
               >
-                Siguiente
+                Next
               </button>
               <button className="st-linkbtn" onClick={() => setSub('minor')}>
-                Omitir
+                Skip
               </button>
             </div>
           </>
@@ -205,7 +205,7 @@ export default function CheckinModal({
 
         {sub === 'minor' && (
           <>
-            <p className="st-q">¿{cur.full_name.trim() || 'Esta persona'} es menor de edad?</p>
+            <p className="st-q">Is {cur.full_name.trim() || 'this person'} a minor?</p>
             <div className="st-bigchoice">
               <button
                 onClick={() => {
@@ -221,12 +221,12 @@ export default function CheckinModal({
                   setSub('guardian');
                 }}
               >
-                Sí
+                Yes
               </button>
             </div>
             <div className="st-modal-actions">
               <button className="st-btn st-btn-ghost st-btn-sm" onClick={() => setSub('emergency')}>
-                Atrás
+                Back
               </button>
             </div>
           </>
@@ -234,7 +234,7 @@ export default function CheckinModal({
 
         {sub === 'guardian' && (
           <div className="st-field">
-            <label htmlFor="ci-guardian">Nombre del tutor / adulto responsable</label>
+            <label htmlFor="ci-guardian">Guardian / responsible adult name</label>
             <input
               id="ci-guardian"
               autoFocus
@@ -244,17 +244,17 @@ export default function CheckinModal({
                 if (e.key === 'Enter' && cur.guardian_name.trim().length >= 2) setSub('sign');
               }}
             />
-            <p className="st-note">Firma el tutor en nombre de {cur.full_name.trim() || 'el menor'}.</p>
+            <p className="st-note">The guardian signs on behalf of {cur.full_name.trim() || 'the minor'}.</p>
             <div className="st-modal-actions">
               <button className="st-btn st-btn-ghost st-btn-sm" onClick={() => setSub('minor')}>
-                Atrás
+                Back
               </button>
               <button
                 className="st-btn st-btn-primary st-btn-sm"
                 disabled={cur.guardian_name.trim().length < 2}
                 onClick={() => setSub('sign')}
               >
-                Siguiente
+                Next
               </button>
             </div>
           </div>
@@ -265,10 +265,11 @@ export default function CheckinModal({
             <p className="st-q">
               {cur.is_minor ? (
                 <>
-                  {cur.guardian_name.trim() || 'El tutor'} firma por {cur.full_name.trim() || 'el menor'}
+                  {cur.guardian_name.trim() || 'The guardian'} signs for{' '}
+                  {cur.full_name.trim() || 'the minor'}
                 </>
               ) : (
-                <>{cur.full_name.trim() || 'El surfeador'} firma</>
+                <>{cur.full_name.trim() || 'The surfer'} signs</>
               )}
             </p>
 
@@ -308,7 +309,7 @@ export default function CheckinModal({
                 className="st-btn st-btn-ghost st-btn-sm"
                 onClick={() => setSub(cur.is_minor ? 'guardian' : 'minor')}
               >
-                Atrás
+                Back
               </button>
               <button
                 className="st-btn st-btn-primary st-btn-sm"
@@ -318,7 +319,7 @@ export default function CheckinModal({
                   setSub('next');
                 }}
               >
-                Firmar
+                Sign
               </button>
             </div>
           </>
@@ -329,22 +330,22 @@ export default function CheckinModal({
             <p className="st-big">✓</p>
             <p>
               <strong>{people[idx].is_minor ? people[idx].guardian_name : people[idx].full_name}</strong>{' '}
-              firmó{people[idx].is_minor ? ` por ${people[idx].full_name}` : ''}.
+              signed{people[idx].is_minor ? ` for ${people[idx].full_name}` : ''}.
             </p>
             <p className="st-note">
-              {doneCount} {doneCount === 1 ? 'persona' : 'personas'} · la reserva es para{' '}
+              {doneCount} {doneCount === 1 ? 'person' : 'people'} · booking is for{' '}
               {booking.participants_count}.
             </p>
             <div className="st-modal-actions" style={{ justifyContent: 'center' }}>
               <button className="st-btn st-btn-ghost st-btn-sm" onClick={addAnother}>
-                + Otra persona
+                + Another person
               </button>
               <button
                 className="st-btn st-btn-primary st-btn-sm"
                 disabled={busy || doneCount === 0}
                 onClick={finish}
               >
-                {busy ? 'Guardando…' : 'Terminar check-in'}
+                {busy ? 'Saving…' : 'Finish check-in'}
               </button>
             </div>
           </div>
