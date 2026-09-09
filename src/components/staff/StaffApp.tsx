@@ -10,6 +10,8 @@ import RentalsView from './RentalsView';
 import FleetView from './FleetView';
 import RentalSettingsView from './RentalSettingsView';
 import QrStickersView from './QrStickersView';
+import ProductsView from './ProductsView';
+import InventoryView from './InventoryView';
 import CashView from './CashView';
 import PaymentSettingsView from './PaymentSettingsView';
 import './staff.css';
@@ -23,6 +25,8 @@ type View =
   | 'fleet'
   | 'rental_settings'
   | 'qr_stickers'
+  | 'shop_products'
+  | 'shop_inventory'
   | 'cash'
   | 'payments';
 
@@ -35,6 +39,8 @@ const VIEW_TITLE: Record<View, string> = {
   fleet: 'Fleet',
   rental_settings: 'Rental Settings',
   qr_stickers: 'QR Stickers',
+  shop_products: 'Products',
+  shop_inventory: 'Inventory',
   cash: 'Cash Close',
   payments: 'Payments',
 };
@@ -65,6 +71,13 @@ const NAV: {
       { key: 'fleet', label: 'Fleet' },
       { key: 'qr_stickers', label: 'QR Stickers' },
       { key: 'rental_settings', label: 'Rental Settings' },
+    ],
+  },
+  {
+    section: 'Shop',
+    items: [
+      { key: 'shop_products', label: 'Products' },
+      { key: 'shop_inventory', label: 'Inventory' },
     ],
   },
   {
@@ -212,6 +225,8 @@ export default function StaffApp() {
           {view === 'fleet' && <FleetView />}
           {view === 'qr_stickers' && <QrStickersView />}
           {view === 'rental_settings' && <RentalSettingsView />}
+          {view === 'shop_products' && <ProductsView />}
+          {view === 'shop_inventory' && <InventoryView />}
           {view === 'cash' && <CashView />}
           {view === 'payments' && profile.role === 'owner' && <PaymentSettingsView />}
         </main>
