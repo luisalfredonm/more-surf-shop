@@ -59,6 +59,7 @@ interface Booking {
   payment_method: string | null;
   payment_id: string | null;
   group_id: string | null;
+  source: string | null;
   slot_date: string;
   start_time: string;
   checked_in_at: string | null;
@@ -78,6 +79,14 @@ const STATUS_LABEL: Record<string, string> = {
   completed: 'completed',
   no_show: 'no-show',
 };
+/** De dónde salió la reserva. La web es el default; el resto lo carga el staff. */
+const SOURCE_LABEL: Record<string, string> = {
+  web: 'web',
+  walk_in: 'counter',
+  whatsapp: 'WhatsApp',
+  phone: 'phone',
+};
+
 const DAY_COLORS = ['#14B8A6', '#3B82F6', '#8B5CF6', '#F59E0B', '#F43F5E', '#10B981'];
 const EARNS = new Set(['confirmed', 'completed']);
 
@@ -108,7 +117,7 @@ export default function AgendaView() {
       .from('bookings')
       .select(
         `id, reference, status, participants_count, total_amount, currency,
-         payment_method, payment_id, group_id, slot_date, start_time, checked_in_at, customer_note, staff_note,
+         payment_method, payment_id, group_id, source, slot_date, start_time, checked_in_at, customer_note, staff_note,
          checkin_by:profiles!checked_in_by ( display_name ),
          class_types ( name ),
          customers ( full_name, email, phone, country_of_residence ),
@@ -360,6 +369,16 @@ export default function AgendaView() {
                       <span className="st-b-status">
                         <span className={`st-badge ${b.status}`}>{STATUS_LABEL[b.status]}</span>
                         {pay && <span className={`st-badge ${pay.cls}`}>{pay.label}</span>}
+                        <span
+                          className={`st-src ${b.source === 'web' ? '' : 'counter'}`}
+                          title={
+                            b.source === 'web'
+                              ? 'Booked by the customer on the website'
+                              : 'Entered by staff'
+                          }
+                        >
+                          {SOURCE_LABEL[b.source ?? 'web'] ?? b.source}
+                        </span>
                       </span>
                     </div>
 
