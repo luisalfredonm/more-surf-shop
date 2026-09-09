@@ -20,8 +20,8 @@ Dos superficies que comparten el mismo catálogo y el mismo stock:
 2. **Pública (escaparate + retirá en tienda)** — la persona ve el catálogo, arma
    una orden y **la retira en la tienda**. Paga con PayPal o al retirar. **Sin envíos.**
 
-**Fuera de alcance de esta etapa:** envíos/courier, costos y márgenes, devoluciones
-formales con nota de crédito, lector de código de barras, factura electrónica propia.
+**Fuera de alcance de esta etapa:** facturación electrónica, envíos/courier, costos
+y márgenes, devoluciones formales con nota de crédito, lector de código de barras.
 
 ### Numeración canónica
 
@@ -61,7 +61,7 @@ del mismo riel que rentals y lecciones.
 
 | # | Tema | Decisión |
 | - | ---- | -------- |
-| 1 | **Factura electrónica** | **Fuera del sistema.** Nuestro POS emite un **recibo impreso, no fiscal**. **QPOS se queda sólo para cuando un cliente pide factura electrónica.** Ver §3.1 |
+| 1 | **Factura electrónica** | **Fuera de alcance.** No se maneja facturación electrónica por ahora, ni se cruzan datos con QPOS. El POS emite un **recibo impreso, no fiscal** |
 | 2 | **Tienda online** | **Retirá en tienda.** Orden online, paga con PayPal o al retirar. **Sin envíos** |
 | 3 | **Variantes** | **Sí.** Talla / color (rash guards, bikinis, boardshorts). Tabla `product_variants` |
 | 4 | **Código de barras** | **No tienen.** Sin lector. El POS busca por nombre + grilla de productos frecuentes |
@@ -70,25 +70,15 @@ del mismo riel que rentals y lecciones.
 | 7 | **Costo / margen** | **No se maneja por ahora.** La columna `cost` queda en el schema pero **sin UI** |
 | 8 | **Devoluciones** | **v2.** En v1 se resuelve con el reembolso + ajuste de stock que ya existen (§8.3) |
 
-### 3.1 Cómo convive con QPOS
+### 3.1 Precios e IVA
 
-Es la decisión con más filo, así que queda explícita:
+Los precios se cargan y se muestran **con IVA incluido**, como se vende en el
+mostrador. **El sistema no calcula desglose de impuesto**: un producto tiene un
+precio y punto. El recibo dice "IVA incluido" como texto fijo.
 
-- **La caja de este sistema es la fuente de verdad del dinero.** Toda venta de
-  mostrador se registra acá y entra al cierre del turno.
-- **QPOS sólo emite el documento fiscal** cuando el cliente lo pide. No se usa
-  para registrar el día.
-- Para poder cruzar después, la orden lleva `invoiced_externally boolean` +
-  `external_invoice_ref text` (el consecutivo de QPOS). El staff lo marca en el
-  momento con un check y un campo.
-- **Riesgo asumido:** el contador va a ver un total de caja mayor que el total
-  facturado en QPOS. Es la misma situación que ya existe hoy con lecciones y
-  rentals. Cuando se decida emitir factura por todo, se engancha un proveedor de
-  FE a `orders` sin rehacer nada (el modelo ya reserva los campos, §4).
-- **IVA:** los precios se cargan y se muestran **con IVA incluido**, como se
-  vende en el mostrador. Se guarda `tax_rate` (default 13) por producto para el
-  día que haya que desglosarlo, pero **v1 no calcula desglose fiscal**. El recibo
-  dice "IVA incluido".
+Si más adelante entra facturación electrónica, hace falta agregar `tax_rate` y
+`cabys_code` por producto y los campos de comprobante en `orders`. Son
+`alter table add column`, no una migración de datos — por eso no se anticipan acá.
 
 ---
 
@@ -107,9 +97,6 @@ products
   image_urls text[],
   price numeric not null,          -- precio al público, IVA incluido
   cost numeric null,               -- sin UI en v1 (decisión 7)
-  tax_rate numeric not null default 13,
-  cabys_code text null,            -- reservado para factura electrónica futura
-  unit_measure text default 'Unid',
   has_variants bool not null default false,
   active bool, featured bool, sort_order int, timestamps
 -- RLS: lectura pública de activos (como class_types / board_models).
@@ -175,10 +162,6 @@ orders
   handed_over_by → profiles (set null), -- quién entregó una orden online
   shift_id → cash_shifts (set null),    -- turno del cobro (null = online sin cobrar)
   picked_up_at timestamptz null,
-  -- QPOS / futuro fiscal
-  invoiced_externally bool not null default false,
-  external_invoice_ref text null,
-  invoice_status text null, invoice_clave text null, invoice_pdf_url text null,
   customer_note text, staff_note text, timestamps
 -- RLS: staff-only. La vía online escribe por endpoint con service_role.
 ```
@@ -201,8 +184,6 @@ order_items
   name_snapshot text not null,      -- 'Leash 6" Dakine — M'
   sku_snapshot text not null,
   unit_price numeric not null,
-  tax_rate numeric not null,
-  cabys_snapshot text null,
   qty int not null check (qty > 0),
   discount numeric not null default 0,
   line_total numeric not null
@@ -253,8 +234,6 @@ Es la pieza que reemplaza la digitación en QPOS. El criterio es **velocidad**: 
 - Al confirmar: crea `orders` + `order_items`, inserta los `payments` con
   `collected_by` + `shift_id`, descuenta stock (`inventory_moves` reason `'sale'`),
   y **abre el recibo para imprimir**.
-- **Checkbox "Factura en QPOS"** al cobrar → marca `invoiced_externally` y pide el
-  consecutivo. Es opcional y por defecto está apagado.
 
 ---
 
@@ -294,8 +273,8 @@ Contenido del recibo:
       recibo dentro de 8 días
 ```
 
-**No es comprobante fiscal.** Si el cliente pide factura electrónica, se emite en
-QPOS y se marca la orden (§3.1).
+**No es comprobante fiscal** — es el comprobante de la tienda para el cliente
+(cambios, garantía, referencia de la orden).
 
 ---
 
@@ -455,8 +434,7 @@ que usamos en Etapa 2.
 
 | Riesgo | Mitigación |
 | ------ | ---------- |
-| **Descalce contable QPOS vs caja** | `invoiced_externally` + `external_invoice_ref` para cruzar. Avisado en §3.1 |
 | **Oversell online/mostrador** | Casi nulo con "retirá en tienda" + holds. `shop_availability()` calculado, sin contador que se desincronice |
 | **Sin lector de barras** | Con 50 productos la grilla + búsqueda alcanza. Si crece, se agrega `@zxing/browser` o lector USB (emula teclado) |
 | **Devoluciones sin flujo propio** | v1 usa reembolso + ajuste (§8.3). Formalizar en v2 |
-| **Precio con IVA incluido** | Documentado y guardado `tax_rate` por producto: el día que entre factura electrónica se desglosa sin migrar datos |
+| **Si más adelante entra factura electrónica** | `alter table` para agregar `tax_rate` / `cabys_code` a `products` y campos de comprobante a `orders`. Los precios ya son IVA incluido, así que no hay migración de datos (§3.1) |
