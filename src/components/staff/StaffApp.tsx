@@ -15,6 +15,7 @@ import ProductsView from './ProductsView';
 import InventoryView from './InventoryView';
 import OrdersView from './OrdersView';
 import CashView from './CashView';
+import SalesView from './SalesView';
 import PaymentSettingsView from './PaymentSettingsView';
 import './staff.css';
 
@@ -32,6 +33,7 @@ type View =
   | 'shop_inventory'
   | 'shop_orders'
   | 'cash'
+  | 'sales'
   | 'payments';
 
 const VIEW_TITLE: Record<View, string> = {
@@ -48,6 +50,7 @@ const VIEW_TITLE: Record<View, string> = {
   shop_inventory: 'Inventory',
   shop_orders: 'Orders',
   cash: 'Cash Close',
+  sales: 'Sales',
   payments: 'Payments',
 };
 
@@ -92,6 +95,7 @@ const NAV: {
     section: 'Cash',
     items: [
       { key: 'cash', label: 'Cash Close' },
+      { key: 'sales', label: 'Sales', ownerOnly: true },
       { key: 'payments', label: 'Payments', ownerOnly: true },
     ],
   },
@@ -238,6 +242,7 @@ export default function StaffApp() {
           {view === 'shop_inventory' && <InventoryView />}
           {view === 'shop_orders' && <OrdersView />}
           {view === 'cash' && <CashView />}
+          {view === 'sales' && profile.role === 'owner' && <SalesView />}
           {view === 'payments' && profile.role === 'owner' && <PaymentSettingsView />}
         </main>
       </div>

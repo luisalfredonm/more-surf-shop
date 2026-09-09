@@ -93,6 +93,9 @@ export const POST: APIRoute = async ({ request }) => {
     paid_at: new Date().toISOString(),
     related_type: 'booking_group' as const,
     related_id: group.id,
+    // PayPal deposita neto: sin esto el banco nunca cuadra contra las ventas.
+    fee: cap.fee,
+    net_amount: cap.net,
     notes: JSON.stringify({ capture_id: cap.captureId, payer_email: cap.payerEmail }),
   };
 
@@ -183,6 +186,8 @@ async function captureShopOrder(
     paid_at: new Date().toISOString(),
     related_type: 'order' as const,
     related_id: order.id,
+    fee: cap.fee,
+    net_amount: cap.net,
     notes: JSON.stringify({ capture_id: cap.captureId, payer_email: cap.payerEmail }),
   };
 

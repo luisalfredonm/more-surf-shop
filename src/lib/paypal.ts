@@ -205,6 +205,25 @@ export interface CaptureResult {
   currency: string | null;
   payerEmail: string | null;
   bookingId: string | null;
+  /** Comisión que se quedó PayPal. Null si no la reportó. */
+  fee: number | null;
+  /** Lo que PayPal deposita de verdad (bruto − comisión). Null si no lo reportó. */
+  net: number | null;
+}
+
+/**
+ * PayPal deposita NETO. El desglose viene en `seller_receivable_breakdown` de
+ * la captura; sin eso el extracto bancario nunca cuadra contra las ventas.
+ * No se estima: si PayPal no lo manda, queda null y el reporte lo muestra
+ * como comisión desconocida en vez de inventar un número que casi cuadra.
+ */
+function breakdown(cap: any): { fee: number | null; net: number | null } {
+  const b = cap?.seller_receivable_breakdown;
+  const num = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  return { fee: num(b?.paypal_fee?.value), net: num(b?.net_amount?.value) };
 }
 
 export async function captureOrder(orderId: string): Promise<CaptureResult> {
@@ -218,7 +237,13 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
     currency: cap?.amount?.currency_code ?? null,
     payerEmail: data.payer?.email_address ?? null,
     bookingId: pu?.custom_id ?? null,
+    ...breakdown(cap),
   };
+}
+
+/** El mismo desglose, pero desde el `resource` que manda el webhook. */
+export function captureBreakdown(resource: unknown): { fee: number | null; net: number | null } {
+  return breakdown(resource);
 }
 
 export async function refundCapture(

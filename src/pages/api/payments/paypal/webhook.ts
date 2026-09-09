@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
-import { verifyWebhook } from '@lib/paypal';
+import { verifyWebhook, captureBreakdown } from '@lib/paypal';
 import { sendBookingGroupEmails } from '@lib/email';
 import { confirmGroupLines, cancelGroupLines } from '@lib/group-lines';
 
@@ -28,6 +28,8 @@ async function confirmGroup(supabase: SupabaseClient, groupId: string, resource:
   }
 
   const orderId = resource?.supplementary_data?.related_ids?.order_id ?? resource?.id ?? null;
+  // El webhook trae el mismo seller_receivable_breakdown que la captura directa.
+  const { fee, net } = captureBreakdown(resource);
   const paidRow = {
     provider: 'paypal' as const,
     provider_ref: orderId,
@@ -37,6 +39,8 @@ async function confirmGroup(supabase: SupabaseClient, groupId: string, resource:
     paid_at: new Date().toISOString(),
     related_type: 'booking_group' as const,
     related_id: group.id,
+    fee,
+    net_amount: net,
     notes: JSON.stringify({ capture_id: resource?.id ?? null, via: 'webhook' }),
   };
 
