@@ -433,7 +433,7 @@ export default function AgendaView() {
                             <dd>
                               {new Date(b.checked_in_at).toLocaleString('en-US')}
                               {one(b.checkin_by)?.display_name
-                                ? ` · por ${one(b.checkin_by)!.display_name}`
+                                ? ` · by ${one(b.checkin_by)!.display_name}`
                                 : ''}
                             </dd>
                           </>
