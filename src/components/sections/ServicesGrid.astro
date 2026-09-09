@@ -6,11 +6,15 @@ import Eyebrow from '@components/ui/Eyebrow.astro';
  * Los 4 pilares del negocio: hub central de la home.
  * Cada card enlaza a su página de servicio real (file-based routing).
  *
+ * Layout "postal": la foto domina la tarjeta y el texto vive en un panel
+ * sólido color arena que se monta sobre el borde inferior de la imagen.
+ * Se apoya bastante en la calidad de la foto.
  * TODO: reemplazar las imágenes de Unsplash por fotos reales de la tienda.
  */
 const pillars = [
   {
     tag: 'Most popular',
+    featured: true,
     title: 'Surf Lessons in Tamarindo',
     text: 'Private, semi-private, and group lessons for beginners, families, and returning surfers. Bilingual ISA-certified instructors, all gear included, right on Tamarindo Beach.',
     href: '/surf-lessons-tamarindo',
@@ -23,7 +27,7 @@ const pillars = [
     text: "Soft-tops, funboards, shortboards. Rent by the hour, day, week, or month. We match the board to your level and today's conditions. Locker and shower at the shop for rental customers.",
     href: '/surfboard-rental-tamarindo',
     cta: 'See surfboard rentals',
-    image: 'https://images.unsplash.com/photo-1533603208986-24fd819e718f?w=800&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80&auto=format&fit=crop',
   },
   {
     tag: 'Guided',
@@ -31,7 +35,7 @@ const pillars = [
     text: 'Day trips to Playa Grande, Avellanas, and Nosara with a local guide, plus non-surf adventures: sport fishing, catamaran sails, estuary boat tours, and more. Something for every travel partner.',
     href: '/tours-tamarindo',
     cta: 'See trips & tours',
-    image: 'https://images.unsplash.com/photo-1519821172144-4f87d85de2a4?w=800&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&auto=format&fit=crop',
   },
   {
     tag: 'In the shop',
@@ -56,14 +60,22 @@ const pillars = [
 
     <div class="pillars-grid">
       {pillars.map((p) => (
-        <a href={p.href} class="pillar-card">
-          <div class="pillar-img" style={`background-image: url('${p.image}');`}>
-            <span class="pillar-tag">{p.tag}</span>
+        <a href={p.href} class:list={['pillar-card', { 'is-featured': p.featured }]}>
+          <div class="pillar-photo">
+            <span
+              class="pillar-photo-bg"
+              style={`background-image: url('${p.image}');`}
+              aria-hidden="true"
+            />
           </div>
-          <div class="pillar-body">
+          <div class="pillar-panel">
+            <span class="pillar-kicker">{p.tag}</span>
             <h3>{p.title}</h3>
             <p>{p.text}</p>
-            <span class="pillar-link">{p.cta} →</span>
+            <span class="pillar-link">
+              {p.cta}
+              <span class="pillar-arrow" aria-hidden="true">&rarr;</span>
+            </span>
           </div>
         </a>
       ))}
@@ -79,72 +91,103 @@ const pillars = [
     color: var(--text-muted);
     font-size: 1.125rem;
   }
+
   .pillars-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    column-gap: 1.75rem;
+    row-gap: 2.25rem;
   }
+
   .pillar-card {
+    display: block;
+    color: inherit;
+  }
+
+  /* Foto: domina la tarjeta, esquinas redondeadas, recorta el zoom del hover. */
+  .pillar-photo {
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg-alt);
+  }
+  .pillar-photo-bg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Panel "postal": sólido, montado sobre el borde inferior de la foto. */
+  .pillar-panel {
+    position: relative;
+    z-index: 1;
+    margin: -2.75rem 1.75rem 0;
+    padding: 1.4rem 1.5rem 1.55rem;
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    color: inherit;
-    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-  }
-  .pillar-card:hover {
-    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
-    border-color: var(--teal);
+    transition: transform 250ms ease, box-shadow 250ms ease;
   }
-  .pillar-img {
-    aspect-ratio: 16 / 10;
-    background-size: cover;
-    background-position: center;
-    position: relative;
+
+  .pillar-kicker {
+    display: block;
+    margin-bottom: 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
-  .pillar-img::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 55%, rgba(10, 37, 64, 0.45) 100%);
-  }
-  .pillar-tag {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    z-index: 1;
-    padding: 0.35rem 0.85rem;
-    background: rgba(255, 255, 255, 0.95);
+  /* El pilar destacado: kicker en navy y en negrita, sin romper la forma. */
+  .pillar-card.is-featured .pillar-kicker {
     color: var(--navy);
-    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    border-radius: 999px;
   }
-  .pillar-body {
-    padding: 1.75rem;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+
+  .pillar-panel h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.6rem;
   }
-  .pillar-body h3 { margin-bottom: 0.75rem; }
-  .pillar-body p {
+  .pillar-panel p {
     color: var(--text);
-    font-size: 0.98rem;
+    font-size: 0.96rem;
     line-height: 1.55;
-    margin-bottom: 1.25rem;
-    flex-grow: 1;
+    margin-bottom: 1.1rem;
   }
+
   .pillar-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     color: var(--teal-dark);
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+  }
+  .pillar-arrow {
+    transition: transform 200ms ease;
+  }
+
+  .pillar-card:hover .pillar-photo-bg { transform: scale(1.05); }
+  .pillar-card:hover .pillar-panel {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
   }
   .pillar-card:hover .pillar-link { color: var(--teal); }
+  .pillar-card:hover .pillar-arrow { transform: translateX(3px); }
+
   @media (max-width: 768px) {
-    .pillars-grid { grid-template-columns: 1fr; }
+    .pillars-grid {
+      grid-template-columns: 1fr;
+      row-gap: 1.75rem;
+    }
+    .pillar-photo { aspect-ratio: 16 / 10; }
+    .pillar-panel {
+      margin: -2.25rem 1.25rem 0;
+      padding: 1.25rem 1.25rem 1.4rem;
+    }
   }
 </style>
