@@ -91,6 +91,9 @@
   top: 0;
   align-self: flex-start;
   height: 100vh;
+  /* La lista ya no cabe en 100vh. Sin esto los ultimos items se dibujaban
+     fuera del fondo navy, sobre el papel, y quedaban ilegibles. */
+  overflow: hidden;
 }
 .st-side-brand {
   font-family: 'Fraunces', serif;
@@ -100,7 +103,25 @@
 }
 .st-side-brand span { color: var(--teal); }
 
-.st-side-nav { display: flex; flex-direction: column; gap: 1rem; }
+/* flex:1 + min-height:0 es lo que deja scrollear el hijo dentro de un flex
+   column; la marca y el pie quedan fijos. */
+.st-side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.st-side-nav::-webkit-scrollbar { width: 6px; }
+.st-side-nav::-webkit-scrollbar-track { background: transparent; }
+.st-side-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
 .st-side-group { display: flex; flex-direction: column; gap: 0.1rem; }
 .st-side-section {
   font-size: 0.66rem;
@@ -212,6 +233,7 @@
   .st-side {
     width: auto;
     height: auto;
+    overflow: visible;
     position: static;
     align-self: stretch;
     flex-direction: row;
@@ -220,7 +242,13 @@
     padding: 0.6rem 1rem;
   }
   .st-side-brand { padding: 0; font-size: 1rem; }
-  .st-side-nav { flex-direction: row; gap: 0.25rem; }
+  .st-side-nav {
+    flex-direction: row;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .st-side-nav button { flex-shrink: 0; white-space: nowrap; }
   .st-side-group { display: contents; }
   .st-side-section { display: none; }
   .st-side-nav button { border-left: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.4rem 0.6rem; }
