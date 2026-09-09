@@ -2,6 +2,7 @@
 import Container from '@components/ui/Container.astro';
 import BookingFlow from '@components/booking/BookingFlow.tsx';
 import { BUSINESS, whatsappUrl } from '@lib/constants';
+import { getPayPalConfig } from '@lib/paypal';
 import type { DbClassType } from '@lib/supabase';
 
 interface Props {
@@ -25,7 +26,10 @@ const bookable = lessons
     max_guests: l.max_guests,
   }));
 
-const paypalClientId = import.meta.env.PUBLIC_PAYPAL_CLIENT_ID ?? '';
+// El client_id (público) sale de la config del panel (Settings → Pagos);
+// el secret nunca llega al browser. Mismo criterio que /reservation.
+const pp = await getPayPalConfig();
+const paypalClientId = pp.enabled ? pp.clientId : '';
 const waHref = whatsappUrl('Hola! Quiero reservar una lección de surf en Tamarindo.');
 ---
 
