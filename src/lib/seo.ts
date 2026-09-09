@@ -66,10 +66,16 @@ export const seoData: Record<string, PageSeo> = {
     keyfocus: 'surf shop tamarindo accessories',
     title: 'Surf Accessories & Gear in Tamarindo | More Surf Shop',
     description:
-      'Surf accessories in Tamarindo: leashes, wax, rash guards, fins, board bags, sunscreen. Walk into our shop on Tamarindo Beach.',
-    synonyms: ['surf accessories tamarindo', 'surf gear tamarindo', 'surf wax tamarindo'],
+      'Surf accessories in Tamarindo, Costa Rica: wax, leashes, fins, rash guards, reef-safe sunscreen and board bags. See what we stock, pick up at the shop.',
+    synonyms: [
+      'surf accessories tamarindo',
+      'surf gear tamarindo',
+      'surf wax tamarindo',
+      'surfboard leash tamarindo',
+      'reef safe sunscreen tamarindo',
+      'rash guard tamarindo',
+    ],
     related: ['surfboard-rental-tamarindo', 'surf-lessons-tamarindo'],
-    noindex: true,
   },
 
   'tours-tamarindo': {

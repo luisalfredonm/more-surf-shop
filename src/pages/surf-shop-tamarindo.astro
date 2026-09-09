@@ -1,66 +1,233 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
 import Container from '@components/ui/Container.astro';
+import Eyebrow from '@components/ui/Eyebrow.astro';
 import Button from '@components/ui/Button.astro';
 import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import FaqAccordion from '@components/sections/FaqAccordion.astro';
+import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
+import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+import ShopGrid from '@components/shop/ShopGrid.tsx';
 import { getPageSeo } from '@lib/seo';
-import { whatsappUrl } from '@lib/constants';
+import { getShopProducts, SHOP_CATEGORIES } from '@lib/queries/shop';
+import { surfShopTamarindoFaqs } from '@data/faqs/surf-shop-tamarindo';
+import { BUSINESS, SITE, absoluteUrl, whatsappUrl } from '@lib/constants';
 
 export const prerender = false;
+
 const seo = getPageSeo('surf-shop-tamarindo')!;
+const products = await getShopProducts();
+const waHref = whatsappUrl('Hi! I want to know what surf gear you have in stock.');
+const url = absoluteUrl('/surf-shop-tamarindo');
+
+const inStock = products.filter((p) => p.available > 0);
+const from = inStock.length ? Math.min(...inStock.map((p) => p.price_from)) : 0;
+
+// Categorías que realmente tienen producto cargado.
+const present = new Set(products.map((p) => p.category));
+const cats = SHOP_CATEGORIES.filter((c) => present.has(c.slug));
+
+const storeSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  '@id': `${url}#store`,
+  name: 'More Surf Shop — Surf Accessories in Tamarindo',
+  description:
+    'Surf accessories on Tamarindo Beach: wax, leashes, fins, rash guards, reef-safe sunscreen, dry bags and board bags.',
+  url,
+  parentOrganization: { '@id': `${SITE.url}/#business` },
+  areaServed: { '@type': 'Place', name: 'Tamarindo, Guanacaste, Costa Rica' },
+  ...(inStock.length
+    ? {
+        makesOffer: {
+          '@type': 'AggregateOffer',
+          priceCurrency: 'USD',
+          lowPrice: from,
+          highPrice: Math.max(...inStock.map((p) => p.price_to)),
+          offerCount: inStock.length,
+          availability: 'https://schema.org/InStock',
+        },
+      }
+    : {}),
+};
+
+const breadcrumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Surf Shop Tamarindo', path: '/surf-shop-tamarindo' },
+];
 ---
 
 <BaseLayout seo={seo}>
-  <section class="coming-soon">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(storeSchema)} />
+    <FAQPageSchema faqs={surfShopTamarindoFaqs} />
+    <BreadcrumbSchema items={breadcrumbs} />
+  </Fragment>
+
+  <section class="ss-hero">
     <Container>
-      <div class="content">
-        <span class="badge">Coming soon</span>
-        <h1>Surf Accessories & Gear in Tamarindo</h1>
-        <p class="lead">
-          Leashes, wax, rash guards, fins, board bags, sunscreen. Walk into our shop on Tamarindo Beach.
-        </p>
-        <div class="cta-row">
-          <Button variant="whatsapp" size="lg" href={whatsappUrl("Hi! I'm looking for surf accessories in Tamarindo.")} target="_blank">
-            <WhatsAppIcon size={20} />
-            WhatsApp us
-          </Button>
-          <Button variant="outline" size="lg" href="/surf-lessons-tamarindo">
-            Book a surf lesson
-          </Button>
+      <Eyebrow>Surf shop · Playa Tamarindo</Eyebrow>
+      <h1>The stuff you forgot to pack</h1>
+      <p class="ss-lead">
+        Wax, leashes, fins, rash guards and reef-safe sunscreen. What you see here is what is on
+        the shelf today.
+      </p>
+      <div class="ss-cta">
+        <Button href="#catalog" size="lg">Browse the shop</Button>
+        <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+          <WhatsAppIcon size={20} />
+          Ask on WhatsApp
+        </Button>
+      </div>
+    </Container>
+  </section>
+
+  {cats.length > 0 && (
+    <section class="ss-cats">
+      <Container>
+        <div class="ss-cat-grid">
+          {cats.map((c) => (
+            <a class="ss-cat" href={`/surf-shop-tamarindo/${c.slug}`}>
+              <strong>{c.label}</strong>
+              <span>{c.blurb}</span>
+            </a>
+          ))}
         </div>
+      </Container>
+    </section>
+  )}
+
+  <section class="ss-catalog" id="catalog">
+    <Container>
+      <div class="ss-cat-head">
+        <h2>Everything we stock</h2>
+        <p>
+          Live from the shop. Prices include tax, and you pay when you pick it up on Tamarindo
+          Beach.
+        </p>
+      </div>
+
+      {products.length > 0 ? (
+        <ShopGrid client:load products={products} categories={SHOP_CATEGORIES} />
+      ) : (
+        <div class="ss-fallback">
+          <p>
+            We're still loading the shelves into the site. Message us and we'll tell you what we
+            have today.
+          </p>
+          <a class="ss-wa" href={waHref} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        </div>
+      )}
+    </Container>
+  </section>
+
+  <FaqAccordion
+    faqs={surfShopTamarindoFaqs}
+    title="Buying surf gear in Tamarindo: FAQ"
+    intro="What people ask before walking over. If yours isn't here, message us on WhatsApp."
+  />
+
+  <section class="ss-final">
+    <Container>
+      <h2>Come by the shop</h2>
+      <p>{BUSINESS.address.formatted}. Open every day.</p>
+      <div class="ss-cta">
+        <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+          <WhatsAppIcon size={20} />
+          Message us on WhatsApp
+        </Button>
+        <Button variant="outline" size="lg" href="/surfboard-rental-tamarindo">
+          Rent a board instead
+        </Button>
       </div>
     </Container>
   </section>
 </BaseLayout>
 
 <style>
-  .coming-soon {
-    padding: 6rem 0;
-    min-height: 60vh;
-    display: flex;
-    align-items: center;
-  }
-  .content { max-width: 720px; }
-  .badge {
-    display: inline-block;
+  .ss-hero {
+    padding: 4rem 0 3rem;
     background: var(--bg-alt);
-    color: var(--teal-dark);
-    padding: 0.375rem 0.875rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
   }
-  .lead {
-    font-size: 1.25rem;
+  .ss-hero h1 { max-width: 16ch; }
+  .ss-lead {
+    font-size: 1.2rem;
     color: var(--text-muted);
-    margin: 1.5rem 0 2rem;
+    max-width: 46ch;
+    margin: 1.1rem 0 1.75rem;
   }
-  .cta-row {
+  .ss-cta {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
   }
+
+  .ss-cats {
+    padding: 2.25rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ss-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+  }
+  .ss-cat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1rem 1.1rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 160ms ease, transform 160ms ease;
+  }
+  .ss-cat:hover {
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .ss-cat strong {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.05rem;
+    color: var(--navy);
+  }
+  .ss-cat span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .ss-catalog { padding: 3rem 0 var(--section-pad); }
+  .ss-cat-head { margin-bottom: 1.5rem; }
+  .ss-cat-head h2 { margin: 0 0 0.4rem; }
+  .ss-cat-head p { color: var(--text-muted); margin: 0; max-width: 60ch; }
+
+  .ss-fallback {
+    max-width: 560px;
+    margin: 2rem auto;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+  }
+  .ss-wa {
+    display: inline-block;
+    margin-top: 1rem;
+    background: #25d366;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .ss-final {
+    padding: 3.5rem 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+  .ss-final p { color: var(--text-muted); margin: 0.5rem 0 1.5rem; }
+  .ss-final .ss-cta { justify-content: center; }
 </style>

@@ -2,12 +2,13 @@ import type { APIRoute } from 'astro';
 import { seoData } from '@lib/seo';
 import { absoluteUrl } from '@lib/constants';
 import { getCatalogUnits, RENTAL_CATEGORIES } from '@lib/queries/rentals';
+import { getShopProducts, SHOP_CATEGORIES } from '@lib/queries/shop';
 
 export const prerender = false;
 
 /**
  * Sitemap dinámico generado a partir de seoData + las páginas de categoría de
- * rental que tengan flota cargada. Excluye páginas marcadas con noindex.
+ * rental y de tienda que tengan producto cargado. Excluye páginas noindex.
  */
 export const GET: APIRoute = async () => {
   const today = new Date().toISOString().split('T')[0];
@@ -36,7 +37,20 @@ export const GET: APIRoute = async () => {
     }
   }
 
-  const urls = [...staticUrls, ...rentalUrls].join('\n');
+  // Tienda: categorías con producto + la ficha de cada producto.
+  const shopUrls: string[] = [];
+  if (seoData['surf-shop-tamarindo'] && !seoData['surf-shop-tamarindo'].noindex) {
+    const products = await getShopProducts();
+    const cats = new Set(products.map((p) => p.category));
+    for (const c of SHOP_CATEGORIES) {
+      if (cats.has(c.slug)) shopUrls.push(entry(`/surf-shop-tamarindo/${c.slug}`, '0.6'));
+    }
+    for (const p of products) {
+      shopUrls.push(entry(`/surf-shop-tamarindo/product/${p.slug}`, '0.5'));
+    }
+  }
+
+  const urls = [...staticUrls, ...rentalUrls, ...shopUrls].join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -1,0 +1,240 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import Button from '@components/ui/Button.astro';
+import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
+import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+import { getShopProduct, getShopProducts, getShopCategory } from '@lib/queries/shop';
+import { BUSINESS, SITE, absoluteUrl, whatsappUrl } from '@lib/constants';
+import type { PageSeo } from '@lib/seo';
+import '@components/shop/shop.css';
+
+export const prerender = false;
+
+const { slug: paramSlug } = Astro.params;
+const product = paramSlug ? await getShopProduct(paramSlug) : null;
+if (!product) return Astro.redirect('/surf-shop-tamarindo', 302);
+
+const cat = getShopCategory(product.category);
+const slug = `/surf-shop-tamarindo/product/${product.slug}`;
+const url = absoluteUrl(slug);
+const waHref = whatsappUrl(`Hi! Do you have the "${product.name}" in stock?`);
+
+const money = (n: number) => `$${Number(n).toFixed(2)}`;
+const priceLabel =
+  product.price_from === product.price_to
+    ? money(product.price_from)
+    : `${money(product.price_from)} – ${money(product.price_to)}`;
+
+const out = product.available <= 0;
+const low = !out && product.available <= 3;
+
+// Related: mismo rubro, sin repetir este producto.
+const siblings = (await getShopProducts(product.category))
+  .filter((p) => p.product_id !== product.product_id)
+  .slice(0, 4);
+
+const seo: PageSeo = {
+  slug,
+  keyfocus: `${product.name.toLowerCase()} tamarindo`,
+  title: `${product.name} in Tamarindo | More Surf Shop`,
+  description:
+    (product.description?.trim().slice(0, 155) ||
+      `Buy ${product.name.toLowerCase()} at our surf shop on Playa Tamarindo, Costa Rica. ${priceLabel}, tax included. Pick up in store.`),
+  related: ['surf-shop-tamarindo'],
+};
+
+const productSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  '@id': `${url}#product`,
+  name: product.name,
+  ...(product.description ? { description: product.description } : {}),
+  ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
+  ...(product.images.length ? { image: product.images } : {}),
+  ...(cat ? { category: cat.label } : {}),
+  sku: product.variants[0]?.sku,
+  offers:
+    product.variants.length > 1
+      ? {
+          '@type': 'AggregateOffer',
+          priceCurrency: 'USD',
+          lowPrice: product.price_from,
+          highPrice: product.price_to,
+          offerCount: product.variants.length,
+          availability: out
+            ? 'https://schema.org/OutOfStock'
+            : 'https://schema.org/InStock',
+          url,
+          seller: { '@id': `${SITE.url}/#business` },
+        }
+      : {
+          '@type': 'Offer',
+          price: product.price_from,
+          priceCurrency: 'USD',
+          availability: out
+            ? 'https://schema.org/OutOfStock'
+            : 'https://schema.org/InStock',
+          url,
+          seller: { '@id': `${SITE.url}/#business` },
+        },
+};
+
+const breadcrumbs = [
+  { name: 'Home', path: '/' },
+  { name: 'Surf Shop Tamarindo', path: '/surf-shop-tamarindo' },
+  ...(cat ? [{ name: cat.label, path: `/surf-shop-tamarindo/${cat.slug}` }] : []),
+  { name: product.name, path: slug },
+];
+---
+
+<BaseLayout seo={seo}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+    <BreadcrumbSchema items={breadcrumbs} />
+  </Fragment>
+
+  <section class="sp-wrap">
+    <Container>
+      <nav class="sp-crumb">
+        <a href="/surf-shop-tamarindo">Surf shop</a>
+        {cat && (
+          <>
+            <span>/</span>
+            <a href={`/surf-shop-tamarindo/${cat.slug}`}>{cat.label}</a>
+          </>
+        )}
+        <span>/</span> {product.name}
+      </nav>
+
+      <div class:list={['sh-detail', { 'no-media': !product.image }]}>
+        {product.image && (
+          <div class="sh-gallery">
+            <div class="sh-gallery-main">
+              <img src={product.image} alt={product.name} width="800" height="800" fetchpriority="high" />
+            </div>
+            {product.images.length > 1 && (
+              <div class="sh-gallery-thumbs">
+                {product.images.slice(1, 5).map((src) => (
+                  <div><img src={src} alt="" loading="lazy" /></div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div>
+          {product.brand && <span class="sh-card-brand">{product.brand}</span>}
+          <h1>{product.name}</h1>
+          <p class="sh-detail-price">{priceLabel}</p>
+
+          <p class={`sh-stock ${out ? 'out' : low ? 'low' : 'in'}`}>
+            {out
+              ? 'Sold out right now'
+              : low
+                ? `Only ${product.available} left at the shop`
+                : `In stock at the shop`}
+          </p>
+
+          {product.variants.length > 1 && (
+            <>
+              <p class="sp-label">Available options</p>
+              <div class="sh-variants">
+                {product.variants.map((v) => (
+                  <span class={`sh-variant ${v.available <= 0 ? 'out' : ''}`}>
+                    {v.label}
+                    {v.price !== product.price_from ? ` · ${money(v.price)}` : ''}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+
+          {product.description && <p class="sp-desc">{product.description}</p>}
+
+          <div class="sp-cta">
+            <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+              <WhatsAppIcon size={20} />
+              {out ? 'Ask when it\'s back' : 'Hold it for me'}
+            </Button>
+          </div>
+
+          <p class="sp-note">
+            Price includes tax. Pay when you pick it up at our shop on {BUSINESS.address.locality}.
+            We don't ship.
+          </p>
+        </div>
+      </div>
+
+      {siblings.length > 0 && (
+        <section class="sp-more">
+          <h2>More {cat ? cat.label.toLowerCase() : 'from the shop'}</h2>
+          <div class="sh-grid">
+            {siblings.map((p) => (
+              <a class="sh-card" href={`/surf-shop-tamarindo/product/${p.slug}`}>
+                <div class="sh-card-photo">
+                  {p.image ? (
+                    <img src={p.image} alt={p.name} loading="lazy" />
+                  ) : (
+                    <span class="sh-card-noimg" aria-hidden="true">
+                      {p.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  {p.available <= 0 && <span class="sh-flag out">Sold out</span>}
+                </div>
+                <div class="sh-card-body">
+                  <span class="sh-card-name">{p.name}</span>
+                  <span class="sh-card-price">
+                    {p.price_from === p.price_to ? money(p.price_from) : `from ${money(p.price_from)}`}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .sp-wrap { padding: 2.5rem 0 var(--section-pad); }
+  .sp-crumb {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.75rem;
+  }
+  .sp-crumb a { color: var(--teal-dark); text-decoration: none; }
+  .sp-crumb a:hover { text-decoration: underline; }
+  .sp-crumb span { margin: 0 0.35rem; }
+
+  .sp-wrap h1 { margin: 0.3rem 0 0; font-size: clamp(1.9rem, 3vw + 1rem, 2.6rem); }
+  .sp-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 1.25rem 0 0;
+  }
+  .sp-desc {
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin: 1.25rem 0 1.75rem;
+    max-width: 52ch;
+  }
+  .sp-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .sp-note {
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 44ch;
+  }
+
+  .sp-more {
+    margin-top: 4rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .sp-more h2 { margin: 0 0 1.5rem; font-size: 1.5rem; }
+</style>
