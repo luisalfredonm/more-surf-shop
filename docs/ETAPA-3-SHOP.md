@@ -144,8 +144,10 @@ inventory_moves
   created_by → profiles (set null), created_at
 ```
 
-**Toda** variación de stock deja una fila acá. Es lo que después permite auditar
-un faltante sin adivinar.
+**Es la única vía para mover stock.** Nadie hace `update inventory set qty_on_hand`:
+se inserta un movimiento y un trigger (`apply_inventory_move`) aplica el delta. Un
+solo camino de escritura significa que el stock **no puede** cambiar sin dejar rastro,
+y que `inventory` y el kardex nunca se desincronizan.
 
 ### 4.5 `orders` — una venta
 
@@ -169,10 +171,22 @@ orders
 **Estados por canal:**
 
 ```
-POS       →  paid                                  (se crea y se cobra en un solo paso)
+POS       →  picked_up                             (cobrar = entregar, un solo paso)
 Online    →  pending_payment  → paid → picked_up   (PayPal)
           →  reserved         → paid → picked_up   (paga al retirar)
 ```
+
+| Estado | Qué significa | Stock |
+| ------ | ------------- | ----- |
+| `pending_payment` | online, esperando PayPal | retiene 20 min |
+| `reserved` | online, paga al retirar | retiene 48 h |
+| `paid` | pagada, esperando que el cliente pase | retiene sin límite |
+| `picked_up` | entregada. **Terminal** | **`qty_on_hand` ya bajó** |
+| `cancelled` | terminal | no retiene |
+
+> **Una sola regla:** el stock físico baja **si y sólo si** la orden llega a
+> `picked_up`. Por eso el POS crea la orden directamente en ese estado — en el
+> mostrador cobrar y entregar son el mismo momento.
 
 ### 4.6 `order_items` — las líneas
 
@@ -338,19 +352,23 @@ disponible(variant) = qty_on_hand
                     − Σ qty de órdenes 'reserved' o 'paid' aún NO retiradas
 ```
 
-Se calcula con una función `security definer` (`shop_availability()`), igual que
-`is_unit_available` en rentals. **No se guarda un contador de reservado** para que
-no se desincronice.
+Se calcula con `shop_variant_available(variant_id)`, una función `security definer`
+igual que `is_unit_available` en rentals. **No se guarda un contador de reservado**
+para que no se desincronice. El catálogo público la sirve por `list_shop_catalog()`.
 
-`qty_on_hand` baja cuando el producto sale físicamente:
-- **POS** → al cobrar (cobrar = entregar).
-- **Online** → al marcar `picked_up`, no antes.
+`qty_on_hand` baja **si y sólo si** la orden llega a `picked_up` (§4.5): en el POS
+eso es el momento del cobro; online, cuando el cliente pasa a retirar.
+
+**Stock negativo se permite a propósito.** No hay `check qty_on_hand >= 0`: si el
+stock queda negativo es señal de que falta un ajuste, y bloquear una venta en el
+mostrador es peor que registrarla. La vista Inventory lo marca en rojo.
 
 ### 8.2 Entradas y ajustes
 
-- **Compra / reposición**: pantalla simple "entró mercadería" → `+delta` con reason
-  `'purchase'`.
-- **Ajuste manual**: `+/− delta` con **motivo obligatorio** → reason `'adjustment'`.
+Todo pasa por `inventory_moves` — nunca por un `update` directo:
+
+- **Compra / reposición**: "entró mercadería" → `+delta`, reason `'purchase'`.
+- **Ajuste manual**: `+/− delta` con **motivo obligatorio**, reason `'adjustment'`.
 - La toma de inventario formal (contar todo y cuadrar) queda para v2.
 
 ### 8.3 El "me equivoqué" de v1 (sin flujo de devoluciones)
@@ -407,7 +425,7 @@ Sección **Shop** en el sidebar de `StaffApp`:
 
 | # | Paso | Entrega |
 | - | ---- | ------- |
-| **S1** | **Schema** `schema-shop.sql`: `products`, `product_variants`, `inventory`, `inventory_moves`, `orders`, `order_items` + RLS + `shop_availability()` + tipos en `supabase.ts` | base |
+| **S1** | ✅ **Schema** `schema-shop.sql`: las 6 tablas + RLS + triggers (kardex, variante `'Único'`, fila de stock) + `shop_variant_available()` / `list_shop_catalog()` / `shop_low_stock()` + tipos en `supabase.ts`. **Falta correrlo en Supabase** | base |
 | **S2** | **Panel — Products + Inventory**: CRUD, carga de las ~50 fichas, stock inicial | el dueño ya puede cargar el catálogo |
 | **S3** | **POS de mostrador** + recibo impreso + `payments` con `shift_id` → **entra al cierre solo** | **acá se retira QPOS del día a día** |
 | **S4** | **Escaparate público**: hub + categorías + fichas, SEO, sin checkout | valor SEO inmediato |

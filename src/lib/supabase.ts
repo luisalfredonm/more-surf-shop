@@ -427,3 +427,160 @@ export interface DbPaymentSettings {
   paypal_webhook_id: string | null;
   updated_at: string;
 }
+
+// ============================================
+// Etapa 3 — Tienda de accesorios (POS + escaparate)
+// Espejo de supabase/schema-shop.sql
+// ============================================
+
+export type ProductCategory =
+  | 'leash'
+  | 'fins'
+  | 'wax'
+  | 'apparel'
+  | 'sunscreen'
+  | 'bags'
+  | 'accessories';
+
+/**
+ * Estados de una orden y qué significan para el stock:
+ *   pending_payment — online esperando PayPal. Retiene stock 20 min.
+ *   reserved        — online "paga al retirar". Retiene stock 48 h.
+ *   paid            — pagada, esperando que el cliente pase. Retiene sin límite.
+ *   picked_up       — entregada. qty_on_hand ya se descontó. Terminal.
+ *   cancelled       — terminal, no retiene.
+ * El POS crea la orden directamente en 'picked_up' (cobrar = entregar).
+ */
+export type OrderStatus =
+  | 'pending_payment'
+  | 'reserved'
+  | 'paid'
+  | 'picked_up'
+  | 'cancelled';
+
+export type OrderChannel = 'pos' | 'online';
+
+export type InventoryMoveReason =
+  | 'sale'
+  | 'return'
+  | 'purchase'
+  | 'adjustment'
+  | 'shrinkage'
+  | 'correction';
+
+export interface DbProduct {
+  id: string;
+  name: string;
+  slug: string;
+  category: ProductCategory;
+  brand: string | null;
+  description: string | null;
+  image_urls: string[];
+  price: number;                 // al público, IVA incluido
+  cost: number | null;           // sin UI en v1
+  has_variants: boolean;
+  active: boolean;
+  featured: boolean;             // sale primero en la grilla del POS
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbProductVariant {
+  id: string;
+  product_id: string;
+  sku: string;                   // interno — no hay código de barras
+  label: string;                 // 'M', 'L / Negro', 'Único'
+  price_override: number | null; // null = usa products.price
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbInventory {
+  variant_id: string;
+  qty_on_hand: number;           // físico en la tienda; puede ser negativo (falta ajuste)
+  reorder_point: number | null;
+  updated_at: string;
+}
+
+/** Kardex. Es la ÚNICA vía para mover stock: el trigger aplica el delta. */
+export interface DbInventoryMove {
+  id: string;
+  variant_id: string;
+  delta: number;                 // + entrada / − salida
+  reason: InventoryMoveReason;
+  related_type: 'order' | null;
+  related_id: string | null;
+  note: string | null;
+  created_by: string | null;     // = profiles.id
+  created_at: string;
+}
+
+/**
+ * Una venta. NO lleva payment_id: una orden puede tener N pagos (split
+ * efectivo + tarjeta). Lo pagado = Σ payments where related_id = order.id.
+ */
+export interface DbOrder {
+  id: string;
+  reference: string;             // 'ORD-XXXXX'
+  channel: OrderChannel;
+  customer_id: string | null;    // null = venta anónima de mostrador
+  status: OrderStatus;
+  subtotal: number;
+  discount_total: number;
+  total: number;
+  currency: string;
+  sold_by: string | null;        // = profiles.id del staff que vendió (null = online)
+  handed_over_by: string | null; // = profiles.id de quién entregó
+  shift_id: string | null;       // = cash_shifts.id del turno del cobro
+  picked_up_at: string | null;
+  customer_note: string | null;
+  staff_note: string | null;
+  confirmation_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbOrderItem {
+  id: string;
+  order_id: string;
+  variant_id: string;
+  name_snapshot: string;         // 'Leash 6" Dakine — M'
+  sku_snapshot: string;
+  unit_price: number;
+  qty: number;
+  discount: number;
+  line_total: number;
+  created_at: string;
+}
+
+/** Fila de la RPC `list_shop_catalog` — una por variante activa. */
+export interface ShopCatalogRow {
+  product_id: string;
+  slug: string;
+  name: string;
+  category: ProductCategory;
+  brand: string | null;
+  description: string | null;
+  image_urls: string[];
+  has_variants: boolean;
+  featured: boolean;
+  sort_order: number;
+  variant_id: string;
+  sku: string;
+  label: string;
+  price: number;                 // coalesce(price_override, products.price)
+  available: number;
+}
+
+/** Fila de la RPC `shop_low_stock`. */
+export interface ShopLowStockRow {
+  variant_id: string;
+  sku: string;
+  product_name: string;
+  label: string;
+  qty_on_hand: number;
+  reorder_point: number;
+}
