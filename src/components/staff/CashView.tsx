@@ -20,12 +20,12 @@ const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 function since(iso: string): string {
   const ms = Date.now() - Date.parse(iso);
-  if (ms < 60_000) return 'recién';
+  if (ms < 60_000) return 'just now';
   const min = Math.floor(ms / 60_000);
-  if (min < 60) return `hace ${min} min`;
+  if (min < 60) return `${min} min ago`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m ? `hace ${h} h ${m} min` : `hace ${h} h`;
+  return m ? `${h} h ${m} min ago` : `${h} h ago`;
 }
 
 interface Shift {
@@ -180,7 +180,7 @@ export default function CashView() {
     void load();
   }, [load]);
 
-  // Mantiene fresco el "hace X min" de la leyenda sin recargar todo.
+  // Mantiene fresco el "X min ago" de la leyenda sin recargar todo.
   useEffect(() => {
     const t = setInterval(() => setNowTick((n) => n + 1), 60_000);
     return () => clearInterval(t);
@@ -198,11 +198,11 @@ export default function CashView() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo abrir el turno.');
+        setErr(data.error || 'Could not open the shift.');
         return;
       }
       setFloat('');
-      setMsg('Turno abierto.');
+      setMsg('Shift opened.');
       void load();
     } finally {
       setBusy(false);
@@ -213,7 +213,7 @@ export default function CashView() {
     if (!current) return;
     const amount = round2(Number(expAmount) || 0);
     if (!(amount > 0) || expDesc.trim().length === 0) {
-      setErr('Poné un monto y un concepto para el gasto.');
+      setErr('Enter an amount and a description for the expense.');
       return;
     }
     setBusy(true);
@@ -244,7 +244,7 @@ export default function CashView() {
     if (!current) return;
     const amount = round2(Number(refAmount) || 0);
     if (!(amount > 0) || refRef.trim().length < 3 || refReason.trim().length < 3) {
-      setErr('Poné la referencia (RNT-/MSS-), el monto y el motivo del reembolso.');
+      setErr('Enter the reference (RNT-/MSS-), the amount and the reason for the refund.');
       return;
     }
     setBusy(true);
@@ -262,7 +262,7 @@ export default function CashView() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo registrar el reembolso.');
+        setErr(data.error || 'Could not record the refund.');
         return;
       }
       setRefRef('');
@@ -303,15 +303,15 @@ export default function CashView() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo cerrar el turno.');
+        setErr(data.error || 'Could not close the shift.');
         return;
       }
       setCounted('');
       setNotes('');
       setMsg(
-        `Turno cerrado. Esperado ${money(data.expected_cash)} · contado ${money(
+        `Shift closed. Expected ${money(data.expected_cash)} · counted ${money(
           data.counted_cash,
-        )} · diferencia ${money(data.difference)}.`,
+        )} · difference ${money(data.difference)}.`,
       );
       void load();
     } finally {
@@ -320,7 +320,7 @@ export default function CashView() {
   }
 
   async function reopen(s: Shift) {
-    if (!confirm(`Reabrir el turno de ${one(s.profiles)?.display_name ?? '—'} (${dt(s.closed_at)})?`))
+    if (!confirm(`Reopen ${one(s.profiles)?.display_name ?? '—'}'s shift (${dt(s.closed_at)})?`))
       return;
     const { error } = await getBrowserSupabase()
       .from('cash_shifts')
@@ -339,7 +339,7 @@ export default function CashView() {
     const expectedNew = round2(Number(s.expected_cash ?? 0) + (floatNew - Number(s.opening_float)));
     const diffNew = round2(countedNew - expectedNew);
     if (diffNew !== 0 && edit.notes.trim().length === 0) {
-      setErr('Hay diferencia. Agregá una nota.');
+      setErr("There's a difference. Add a note.");
       return;
     }
     setBusy(true);
@@ -363,14 +363,14 @@ export default function CashView() {
       return;
     }
     setEdit(null);
-    setMsg('Turno ajustado y cerrado.');
+    setMsg('Shift adjusted and closed.');
     void load();
   }
 
   if (loading) {
     return (
       <p className="st-empty">
-        <span className="st-spin">◠</span> Cargando…
+        <span className="st-spin">◠</span> Loading…
       </p>
     );
   }
@@ -413,24 +413,24 @@ export default function CashView() {
         <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
           {openShifts.length === 0 ? (
             <>
-              <strong>Nadie tiene la caja abierta.</strong>{' '}
-              <span className="st-note">Abrí tu turno para poder cobrar.</span>
+              <strong>Nobody has the register open.</strong>{' '}
+              <span className="st-note">Open your shift to collect payment.</span>
             </>
           ) : (
             <>
               <strong>
-                {openShifts.length === 1 ? 'Caja abierta' : `${openShifts.length} cajas abiertas`}
+                {openShifts.length === 1 ? 'Register open' : `${openShifts.length} registers open`}
               </strong>
               <div style={{ marginTop: '0.15rem' }}>
                 {openShifts.map((s) => (
                   <div key={s.profile_id}>
                     <strong>{s.display_name}</strong>
                     {s.profile_id === me?.id && (
-                      <span className="st-note"> (vos)</span>
+                      <span className="st-note"> (you)</span>
                     )}{' '}
-                    · desde {hhmm(s.opened_at)}{' '}
+                    · since {hhmm(s.opened_at)}{' '}
                     <span className="st-note">({since(s.opened_at)})</span>
-                    {s.status === 'reopened' && <span className="st-note"> · reabierto</span>}
+                    {s.status === 'reopened' && <span className="st-note"> · reopened</span>}
                   </div>
                 ))}
               </div>
@@ -443,15 +443,15 @@ export default function CashView() {
       {!current ? (
         <div className="st-card">
           <h2 className="st-h2" style={{ marginTop: 0 }}>
-            Abrir turno
+            Open shift
           </h2>
           <p className="st-note" style={{ marginBottom: '0.75rem' }}>
-            Contá el efectivo con el que arrancás y anotalo como fondo inicial. No podés cobrar sin un
-            turno abierto.
+            Count the cash you're starting with and enter it as the opening float. You can't collect
+            payment without an open shift.
           </p>
           <div className="st-row">
             <div className="st-field">
-              <label>Fondo inicial (USD)</label>
+              <label>Opening float (USD)</label>
               <input
                 type="number"
                 min={0}
@@ -463,7 +463,7 @@ export default function CashView() {
             </div>
             <div className="st-field" style={{ justifyContent: 'flex-end' }}>
               <button className="st-btn st-btn-primary" type="button" disabled={busy} onClick={openShift}>
-                {busy ? 'Abriendo…' : 'Abrir turno'}
+                {busy ? 'Opening…' : 'Open shift'}
               </button>
             </div>
           </div>
@@ -471,48 +471,48 @@ export default function CashView() {
       ) : (
         <div className="st-card">
           <dl className="st-bdetail">
-            <dt>Fondo inicial</dt>
+            <dt>Opening float</dt>
             <dd>{money(current.opening_float)}</dd>
-            <dt>Efectivo cobrado</dt>
+            <dt>Cash collected</dt>
             <dd>
-              {money(totals?.cash_total)} <span className="st-note">({totals?.cash_count ?? 0} cobros)</span>
+              {money(totals?.cash_total)} <span className="st-note">({totals?.cash_count ?? 0} payments)</span>
             </dd>
-            <dt>Tarjeta</dt>
+            <dt>Card</dt>
             <dd>
               {money(totals?.card_total)}{' '}
-              <span className="st-note">({totals?.card_count ?? 0} cobros · no entra en la diferencia)</span>
+              <span className="st-note">({totals?.card_count ?? 0} payments · not in the difference)</span>
             </dd>
             {refundsCash > 0 && (
               <>
-                <dt>Reembolsos (efectivo)</dt>
+                <dt>Refunds (cash)</dt>
                 <dd>−{money(refundsCash)}</dd>
               </>
             )}
             {refundsCard > 0 && (
               <>
-                <dt>Reembolsos (tarjeta)</dt>
+                <dt>Refunds (card)</dt>
                 <dd>
                   −{money(refundsCard)}{' '}
-                  <span className="st-note">(no entra en la diferencia)</span>
+                  <span className="st-note">(not in the difference)</span>
                 </dd>
               </>
             )}
             {expensesTotal > 0 && (
               <>
-                <dt>Gastos</dt>
+                <dt>Expenses</dt>
                 <dd>−{money(expensesTotal)}</dd>
               </>
             )}
-            <dt>Efectivo esperado</dt>
+            <dt>Expected cash</dt>
             <dd>
               <strong>{money(expected)}</strong>{' '}
-              <span className="st-note">(fondo + efectivo − reembolsos efvo − gastos)</span>
+              <span className="st-note">(float + cash − cash refunds − expenses)</span>
             </dd>
           </dl>
 
           {/* Gastos del turno */}
           <div className="st-field">
-            <label>Gastos del turno (salidas de caja)</label>
+            <label>Shift expenses (cash paid out)</label>
             {expenses.length > 0 && (
               <div style={{ marginBottom: '0.4rem' }}>
                 {expenses.map((x) => (
@@ -524,7 +524,7 @@ export default function CashView() {
                       type="button"
                       onClick={() => delExpense(x.id)}
                     >
-                      Quitar
+                      Remove
                     </button>
                   </div>
                 ))}
@@ -537,13 +537,13 @@ export default function CashView() {
                 step="0.01"
                 value={expAmount}
                 onChange={(e) => setExpAmount(e.target.value)}
-                placeholder="Monto"
+                placeholder="Amount"
                 style={{ width: '6rem' }}
               />
               <input
                 value={expDesc}
                 onChange={(e) => setExpDesc(e.target.value)}
-                placeholder="Concepto (ej. hielo, taxi, propina proveedor)"
+                placeholder="Description (e.g. ice, taxi, supplier tip)"
                 style={{ flex: 1 }}
               />
               <button
@@ -552,21 +552,21 @@ export default function CashView() {
                 disabled={busy}
                 onClick={addExpense}
               >
-                + Gasto
+                + Expense
               </button>
             </div>
           </div>
 
           {/* Reembolsos / ajustes */}
           <div className="st-field">
-            <label>Reembolsos / ajustes (cobré de más, cancelación…)</label>
+            <label>Refunds / adjustments (overcharged, cancellation…)</label>
             {refunds.length > 0 && (
               <div style={{ marginBottom: '0.4rem' }}>
                 {refunds.map((x) => (
                   <div className="st-slotlist-row" key={x.id}>
                     <span style={{ flex: 1 }}>{x.notes ?? '—'}</span>
                     <span>
-                      −{money(x.amount)} {x.provider === 'card' ? '(tarjeta)' : '(efvo)'}
+                      −{money(x.amount)} {x.provider === 'card' ? '(card)' : '(cash)'}
                     </span>
                   </div>
                 ))}
@@ -585,7 +585,7 @@ export default function CashView() {
                 step="0.01"
                 value={refAmount}
                 onChange={(e) => setRefAmount(e.target.value)}
-                placeholder="Monto"
+                placeholder="Amount"
                 style={{ width: '5rem' }}
               />
               <select
@@ -593,13 +593,13 @@ export default function CashView() {
                 onChange={(e) => setRefMethod(e.target.value as 'cash' | 'card')}
                 style={{ width: '5.5rem' }}
               >
-                <option value="cash">Efectivo</option>
-                <option value="card">Tarjeta</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
               </select>
               <input
                 value={refReason}
                 onChange={(e) => setRefReason(e.target.value)}
-                placeholder="Motivo"
+                placeholder="Reason"
                 style={{ flex: 1 }}
               />
               <button
@@ -608,18 +608,18 @@ export default function CashView() {
                 disabled={busy}
                 onClick={addRefund}
               >
-                + Reembolso
+                + Refund
               </button>
             </div>
             <p className="st-note" style={{ marginTop: '0.3rem' }}>
-              El de efectivo resta del esperado. El de tarjeta es informativo (lo revierte el datáfono).
-              No se puede deshacer desde acá.
+              The cash one is subtracted from the expected total. The card one is informational (the
+              card terminal reverses it). It can't be undone here.
             </p>
           </div>
 
           <div className="st-row" style={{ marginTop: '0.5rem' }}>
             <div className="st-field">
-              <label>Efectivo contado al cierre (USD)</label>
+              <label>Counted cash at close (USD)</label>
               <input
                 type="number"
                 min={0}
@@ -630,7 +630,7 @@ export default function CashView() {
               />
             </div>
             <div className="st-field">
-              <label>Diferencia</label>
+              <label>Difference</label>
               <input
                 readOnly
                 value={diff === null ? '—' : `${diff > 0 ? '+' : ''}${diff.toFixed(2)}`}
@@ -639,12 +639,12 @@ export default function CashView() {
             </div>
           </div>
           <div className="st-field">
-            <label>Nota {needsNote ? '(obligatoria — hay diferencia)' : '(opcional)'}</label>
+            <label>Note {needsNote ? "(required — there's a difference)" : '(optional)'}</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Explicá el faltante o sobrante"
+              placeholder="Explain the shortage or overage"
             />
           </div>
           <button
@@ -653,11 +653,11 @@ export default function CashView() {
             disabled={busy || counted === '' || needsNote}
             onClick={closeShift}
           >
-            {busy ? 'Cerrando…' : 'Cerrar turno'}
+            {busy ? 'Closing…' : 'Close shift'}
           </button>
           {counted === '' && (
             <p className="st-note" style={{ marginTop: '0.4rem' }}>
-              Ingresá el efectivo contado para poder cerrar.
+              Enter the counted cash to close.
             </p>
           )}
         </div>
@@ -666,18 +666,18 @@ export default function CashView() {
       {/* Historial */}
       <div className="st-inline" style={{ justifyContent: 'space-between', margin: '1.5rem 0 0.5rem' }}>
         <h2 className="st-h2" style={{ margin: 0 }}>
-          Cierres
+          Closes
         </h2>
         {me?.role === 'owner' && (
           <label className="st-note st-check">
             <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-            <span>Ver los de todo el equipo</span>
+            <span>Show the whole team's</span>
           </label>
         )}
       </div>
 
       {history.length === 0 ? (
-        <p className="st-empty">Sin cierres todavía.</p>
+        <p className="st-empty">No closes yet.</p>
       ) : (
         history.map((s) => (
           <div className="st-card" key={s.id}>
@@ -686,21 +686,21 @@ export default function CashView() {
                 <strong className="st-svc-title">{one(s.profiles)?.display_name ?? '—'}</strong>
                 <span className="st-note">
                   {dt(s.opened_at)} → {dt(s.closed_at)}
-                  {s.status === 'reopened' && ' · reabierto'}
+                  {s.status === 'reopened' && ' · reopened'}
                 </span>
                 {s.notes && <span className="st-note">“{s.notes}”</span>}
               </div>
               <div className="st-rental-dates">
-                <span>fondo {money(s.opening_float)}</span>
+                <span>float {money(s.opening_float)}</span>
                 <span>
-                  esperado {money(s.expected_cash)} · contado {money(s.counted_cash)}
+                  expected {money(s.expected_cash)} · counted {money(s.counted_cash)}
                 </span>
                 <span
                   className={s.difference != null && s.difference !== 0 ? 'st-gate-warn' : 'st-note'}
                 >
-                  dif {s.difference != null && s.difference > 0 ? '+' : ''}
-                  {money(s.difference)} · tarjeta {money(s.card_total)}
-                  {s.expenses_total ? ` · gastos ${money(s.expenses_total)}` : ''}
+                  diff {s.difference != null && s.difference > 0 ? '+' : ''}
+                  {money(s.difference)} · card {money(s.card_total)}
+                  {s.expenses_total ? ` · expenses ${money(s.expenses_total)}` : ''}
                 </span>
               </div>
               {me?.role === 'owner' && (
@@ -711,7 +711,7 @@ export default function CashView() {
                       type="button"
                       onClick={() => reopen(s)}
                     >
-                      Reabrir
+                      Reopen
                     </button>
                   ) : (
                     <button
@@ -730,7 +730,7 @@ export default function CashView() {
                         )
                       }
                     >
-                      {edit?.id === s.id ? 'Cerrar edición' : 'Ajustar'}
+                      {edit?.id === s.id ? 'Close editor' : 'Adjust'}
                     </button>
                   )}
                 </div>
@@ -741,7 +741,7 @@ export default function CashView() {
               <div className="st-svc-form">
                 <div className="st-row">
                   <div className="st-field">
-                    <label>Fondo inicial (USD)</label>
+                    <label>Opening float (USD)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -750,7 +750,7 @@ export default function CashView() {
                     />
                   </div>
                   <div className="st-field">
-                    <label>Efectivo contado (USD)</label>
+                    <label>Counted cash (USD)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -760,7 +760,7 @@ export default function CashView() {
                   </div>
                 </div>
                 <div className="st-field">
-                  <label>Nota</label>
+                  <label>Note</label>
                   <textarea
                     rows={2}
                     value={edit.notes}
@@ -773,7 +773,7 @@ export default function CashView() {
                   disabled={busy}
                   onClick={() => saveEdit(s)}
                 >
-                  {busy ? 'Guardando…' : 'Guardar y cerrar'}
+                  {busy ? 'Saving…' : 'Save and close'}
                 </button>
               </div>
             )}
