@@ -3,7 +3,7 @@ import { getBrowserSupabase } from '@lib/supabase-browser';
 
 const crToday = () => new Date(Date.now() - 6 * 3_600_000).toISOString().slice(0, 10);
 const fmtDay = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('es-CR', {
+  new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -70,7 +70,7 @@ export default function DateOverridesView() {
             .map((t) => (t.length === 4 ? `0${t}` : t))
         : [];
     if (kind === 'custom' && timeList.length === 0) {
-      setErr('Poné al menos una hora (HH:MM).');
+      setErr('Add at least one time (HH:MM).');
       return;
     }
     const { error } = await getBrowserSupabase().from('date_overrides').insert({
@@ -81,7 +81,11 @@ export default function DateOverridesView() {
       note: note.trim() || null,
     });
     if (error) {
-      setErr(error.code === '23505' ? 'Ya hay una excepción para esa fecha y servicio.' : error.message);
+      setErr(
+        error.code === '23505'
+          ? 'There is already an override for that date and service.'
+          : error.message,
+      );
       return;
     }
     setNote('');
@@ -97,21 +101,21 @@ export default function DateOverridesView() {
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Cerrar un día o reemplazar sus horarios. Gana sobre la plantilla semanal. Sin servicio
-        = aplica a todos.
+        Close a day or replace its times. Overrides the weekly template. No service = applies to
+        all.
       </p>
 
       <form className="st-card" onSubmit={add}>
         {err && <div className="st-err">{err}</div>}
         <div className="st-row">
           <div className="st-field">
-            <label htmlFor="ov-date">Fecha</label>
+            <label htmlFor="ov-date">Date</label>
             <input id="ov-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div className="st-field">
-            <label htmlFor="ov-svc">Servicio</label>
+            <label htmlFor="ov-svc">Service</label>
             <select id="ov-svc" value={svcId} onChange={(e) => setSvcId(e.target.value)}>
-              <option value="">Todos</option>
+              <option value="">All</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -122,51 +126,51 @@ export default function DateOverridesView() {
         </div>
         <div className="st-row">
           <div className="st-field">
-            <label htmlFor="ov-kind">Tipo</label>
+            <label htmlFor="ov-kind">Type</label>
             <select
               id="ov-kind"
               value={kind}
               onChange={(e) => setKind(e.target.value as 'closed' | 'custom')}
             >
-              <option value="closed">Cerrado (sin horarios)</option>
-              <option value="custom">Horarios custom</option>
+              <option value="closed">Closed (no times)</option>
+              <option value="custom">Custom times</option>
             </select>
           </div>
           {kind === 'custom' && (
             <div className="st-field">
-              <label htmlFor="ov-times">Horas (HH:MM, coma)</label>
+              <label htmlFor="ov-times">Times (HH:MM, comma)</label>
               <input id="ov-times" value={times} onChange={(e) => setTimes(e.target.value)} />
             </div>
           )}
         </div>
         <div className="st-field">
-          <label htmlFor="ov-note">Nota (opcional)</label>
+          <label htmlFor="ov-note">Note (optional)</label>
           <input id="ov-note" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
         <button className="st-btn st-btn-primary" type="submit">
-          + Agregar excepción
+          + Add override
         </button>
       </form>
 
       {loading ? (
         <p className="st-empty">
-          <span className="st-spin">◠</span> Cargando…
+          <span className="st-spin">◠</span> Loading…
         </p>
       ) : rows.length === 0 ? (
-        <p className="st-empty">Sin excepciones futuras.</p>
+        <p className="st-empty">No upcoming overrides.</p>
       ) : (
         <div className="st-card">
           {rows.map((r) => (
             <div className="st-slotlist-row" key={r.id}>
               <span>{fmtDay(r.override_date)}</span>
               <span className="st-note">
-                {one(r.class_types)?.name ?? 'Todos'} ·{' '}
-                {r.kind === 'closed' ? 'cerrado' : (r.times ?? []).join(', ')}
+                {one(r.class_types)?.name ?? 'All'} ·{' '}
+                {r.kind === 'closed' ? 'closed' : (r.times ?? []).join(', ')}
                 {r.note ? ` · ${r.note}` : ''}
               </span>
               <span className="st-spacer" />
               <button className="st-btn st-btn-danger st-btn-sm" onClick={() => remove(r.id)}>
-                Quitar
+                Remove
               </button>
             </div>
           ))}

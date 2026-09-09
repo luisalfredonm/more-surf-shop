@@ -44,12 +44,12 @@ export default function PricesView() {
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Los cambios se ven de inmediato en el wizard de reservas.
+        Changes show up immediately in the booking wizard.
       </p>
 
       {loading ? (
         <p className="st-empty">
-          <span className="st-spin">◠</span> Cargando…
+          <span className="st-spin">◠</span> Loading…
         </p>
       ) : (
         services.map((s) => (
@@ -113,7 +113,7 @@ function ServiceCard({
       setMsg(error.message);
       return;
     }
-    setMsg('Guardado.');
+    setMsg('Saved.');
     onSaved();
   }
 
@@ -128,8 +128,8 @@ function ServiceCard({
         <span className={`st-dot ${form.active ? 'on' : 'off'}`} aria-hidden="true" />
         <span className="st-svc-title">{form.name}</span>
         <span className="st-svc-sum">
-          {money(form.price_per_person)}/pers · {form.min_guests}–{form.max_guests ?? form.max_capacity} pers ·{' '}
-          {form.duration_min}min
+          {money(form.price_per_person)}/person · {form.min_guests}–
+          {form.max_guests ?? form.max_capacity} people · {form.duration_min}min
         </span>
         {form.badge && <span className="st-svc-badge">{form.badge}</span>}
         <span className="st-svc-caret">{open ? '▲' : '▼'}</span>
@@ -139,21 +139,21 @@ function ServiceCard({
         <div className="st-svc-form">
           <div className="st-row">
             <div className="st-field">
-              <label>Nombre</label>
+              <label>Name</label>
               <input value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
             <div className="st-field">
-              <label>Badge (opcional)</label>
+              <label>Badge (optional)</label>
               <input
                 value={form.badge ?? ''}
                 onChange={(e) => set('badge', e.target.value)}
-                placeholder="ej. Más elegida"
+                placeholder="e.g. Most popular"
               />
             </div>
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Precio / persona (USD)</label>
+              <label>Price / person (USD)</label>
               <input
                 type="number"
                 min={0}
@@ -162,17 +162,17 @@ function ServiceCard({
               />
             </div>
             <div className="st-field">
-              <label>Ratio (texto)</label>
+              <label>Ratio (text)</label>
               <input
                 value={form.ratio_label ?? ''}
                 onChange={(e) => set('ratio_label', e.target.value)}
-                placeholder="ej. 2 o 3 personas, un instructor"
+                placeholder="e.g. 2 or 3 people, one instructor"
               />
             </div>
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Mín. personas / reserva</label>
+              <label>Min. people / booking</label>
               <input
                 type="number"
                 min={1}
@@ -181,7 +181,7 @@ function ServiceCard({
               />
             </div>
             <div className="st-field">
-              <label>Máx. personas / reserva</label>
+              <label>Max. people / booking</label>
               <input
                 type="number"
                 min={1}
@@ -194,7 +194,7 @@ function ServiceCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Cupo total / horario</label>
+              <label>Total capacity / time slot</label>
               <input
                 type="number"
                 min={1}
@@ -203,7 +203,7 @@ function ServiceCard({
               />
             </div>
             <div className="st-field">
-              <label>Duración (minutos)</label>
+              <label>Duration (minutes)</label>
               <input
                 type="number"
                 min={1}
@@ -214,7 +214,7 @@ function ServiceCard({
           </div>
           <div className="st-row">
             <div className="st-field">
-              <label>Orden</label>
+              <label>Order</label>
               <input
                 type="number"
                 value={form.sort_order}
@@ -222,18 +222,18 @@ function ServiceCard({
               />
             </div>
             <div className="st-field">
-              <label>Activo</label>
+              <label>Active</label>
               <select
                 value={form.active ? 'yes' : 'no'}
                 onChange={(e) => set('active', e.target.value === 'yes')}
               >
-                <option value="yes">Sí — visible en el wizard</option>
-                <option value="no">No — oculto</option>
+                <option value="yes">Yes — visible in the wizard</option>
+                <option value="no">No — hidden</option>
               </select>
             </div>
           </div>
           <div className="st-field">
-            <label>Descripción</label>
+            <label>Description</label>
             <textarea
               rows={2}
               value={form.description ?? ''}
@@ -241,7 +241,7 @@ function ServiceCard({
             />
           </div>
           <div className="st-field">
-            <label>Incluye (uno por línea)</label>
+            <label>Included (one per line)</label>
             <textarea
               rows={3}
               value={(form.included ?? []).join('\n')}
@@ -255,7 +255,7 @@ function ServiceCard({
             </div>
           )}
           <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
-            {saving ? 'Guardando…' : 'Guardar cambios'}
+            {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       )}

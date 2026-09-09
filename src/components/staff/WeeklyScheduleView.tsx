@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
 
-// weekday: 0 = domingo … 6 = sábado (compatible con extract(dow)). Mostramos Lun→Dom.
+// weekday: 0 = Sunday … 6 = Saturday (matches extract(dow)). We show Mon→Sun.
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const DAY_LABEL: Record<number, string> = {
-  0: 'Dom',
-  1: 'Lun',
-  2: 'Mar',
-  3: 'Mié',
-  4: 'Jue',
-  5: 'Vie',
-  6: 'Sáb',
+  0: 'Sun',
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat',
 };
 
 const fmtTime = (t: string) => {
   const [h, m] = t.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
-  return d.toLocaleTimeString('es-CR', { hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 };
 
 interface ClassType {
@@ -76,10 +76,10 @@ export default function WeeklyScheduleView() {
       start_time: time,
     });
     if (error) {
-      setErr(error.code === '23505' ? 'Ese horario ya existe.' : error.message);
+      setErr(error.code === '23505' ? 'That time already exists.' : error.message);
       return;
     }
-    setMsg('Horario agregado.');
+    setMsg('Time added.');
     await load();
   }
 
@@ -92,8 +92,7 @@ export default function WeeklyScheduleView() {
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Define qué días y horas corre cada servicio, todas las semanas. Las excepciones por
-        fecha (Date Overrides) tienen prioridad.
+        Set which days and times each service runs, every week. Date Overrides take priority.
       </p>
 
       <form className="st-card" onSubmit={addSlot}>
@@ -105,7 +104,7 @@ export default function WeeklyScheduleView() {
         )}
         <div className="st-row">
           <div className="st-field">
-            <label htmlFor="ws-svc">Servicio</label>
+            <label htmlFor="ws-svc">Service</label>
             <select id="ws-svc" value={svcId} onChange={(e) => setSvcId(e.target.value)}>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -115,7 +114,7 @@ export default function WeeklyScheduleView() {
             </select>
           </div>
           <div className="st-field">
-            <label htmlFor="ws-day">Día</label>
+            <label htmlFor="ws-day">Day</label>
             <select id="ws-day" value={weekday} onChange={(e) => setWeekday(e.target.value)}>
               {DAY_ORDER.map((d) => (
                 <option key={d} value={d}>
@@ -127,12 +126,12 @@ export default function WeeklyScheduleView() {
         </div>
         <div className="st-row">
           <div className="st-field">
-            <label htmlFor="ws-time">Hora</label>
+            <label htmlFor="ws-time">Time</label>
             <input id="ws-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
           <div className="st-field" style={{ justifyContent: 'flex-end' }}>
             <button className="st-btn st-btn-primary" type="submit">
-              + Agregar
+              + Add
             </button>
           </div>
         </div>
@@ -140,7 +139,7 @@ export default function WeeklyScheduleView() {
 
       {loading ? (
         <p className="st-empty">
-          <span className="st-spin">◠</span> Cargando…
+          <span className="st-spin">◠</span> Loading…
         </p>
       ) : (
         services.map((svc) => {
@@ -166,7 +165,7 @@ export default function WeeklyScheduleView() {
                             {fmtTime(c.start_time)}
                             <button
                               type="button"
-                              aria-label="Quitar"
+                              aria-label="Remove"
                               onClick={() => removeSlot(c.id)}
                             >
                               ×

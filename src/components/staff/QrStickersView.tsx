@@ -45,7 +45,7 @@ export default function QrStickersView() {
   if (loading || !qrcode) {
     return (
       <p className="st-empty">
-        <span className="st-spin">◠</span> Cargando…
+        <span className="st-spin">◠</span> Loading…
       </p>
     );
   }
@@ -54,8 +54,8 @@ export default function QrStickersView() {
     <div>
       <div className="st-noprint">
         <p className="st-note" style={{ marginBottom: '0.75rem' }}>
-          Un sticker por tabla — el QR lleva el <code>code</code>. Imprimí, plastificá y pegá en la
-          tabla. El escáner de Rentals lo lee en entrega y devolución.
+          One sticker per board — the QR carries the <code>code</code>. Print, laminate and stick it
+          on the board. The Rentals scanner reads it at hand-over and return.
         </p>
         <div className="st-filters" style={{ marginBottom: '1rem' }}>
           <label className="st-check" style={{ margin: 0 }}>
@@ -64,17 +64,17 @@ export default function QrStickersView() {
               checked={includeRetired}
               onChange={(e) => setIncludeRetired(e.target.checked)}
             />
-            <span>Incluir tablas retiradas</span>
+            <span>Include retired boards</span>
           </label>
           <span className="st-spacer" />
           <button className="st-btn st-btn-primary st-btn-sm" onClick={() => window.print()}>
-            Imprimir
+            Print
           </button>
         </div>
       </div>
 
       {shown.length === 0 ? (
-        <p className="st-empty">Sin tablas. Cargá la flota en Fleet.</p>
+        <p className="st-empty">No boards. Add the fleet in Fleet.</p>
       ) : (
         <div className="st-qr-sheet">
           {shown.map((u) => (
