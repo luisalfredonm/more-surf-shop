@@ -105,6 +105,15 @@ export const seoData: Record<string, PageSeo> = {
     noindex: true,
   },
 
+  'reserva-tienda': {
+    slug: '/reserva-tienda',
+    keyfocus: 'surf shop tamarindo order',
+    title: 'Your order | More Surf Shop',
+    description:
+      'Review your order and pick it up at our shop on Playa Tamarindo, Costa Rica.',
+    noindex: true, // checkout step
+  },
+
   reservation: {
     slug: '/reservation',
     keyfocus: 'surfboard rental reservation tamarindo',

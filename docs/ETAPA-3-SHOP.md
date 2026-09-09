@@ -429,7 +429,7 @@ Sección **Shop** en el sidebar de `StaffApp`:
 | **S2** | ✅ **Panel — Products + Inventory**: CRUD de productos y variantes, fotos, movimientos de stock (entrada / ajuste / pérdida / devolución), punto de reposición y kardex | el dueño ya puede cargar el catálogo |
 | **S3** | ✅ **POS de mostrador** (`PosView`) + recibo impreso + RPC `create_pos_sale` (orden + líneas + stock + pagos en **una transacción**) + `/api/shop/pos-sale`. Cobro efectivo / tarjeta / dividido con vuelto | **acá se retira QPOS del día a día** |
 | **S4** | ✅ **Escaparate público**: hub `/surf-shop-tamarindo` (index), 7 páginas de categoría, ficha por producto, `ShopGrid` con filtros en cliente, JSON-LD (Store / ItemList / Product) y sitemap dinámico | valor SEO inmediato |
-| **S5** | **Checkout online "retirá en tienda"**: carrito, PayPal / pago al retirar, cola de retiro en el panel, cron de expiración | cierra la etapa |
+| **S5** | ✅ **Compra online "retirá en tienda"**: carrito en localStorage, checkout `/reserva-tienda`, PayPal o pago al retirar, RPC `complete_shop_pickup`, cola de retiro en el panel (Shop → Orders) y expiración por cron | cierra la etapa |
 
 **S1 + S2 + S3 es el corazón.** Con eso el mostrador deja QPOS y el cierre queda
 unificado con lecciones y rentals, aunque la parte pública tarde. Mismo criterio

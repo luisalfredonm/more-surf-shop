@@ -225,3 +225,248 @@
     gap: 2rem;
   }
 }
+
+/* ----- Compra en la ficha ----- */
+.sh-buy { margin: 1.5rem 0; }
+.sh-buy-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+.sh-variant {
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.sh-variant:hover:not(:disabled) { border-color: var(--navy); }
+.sh-variant.on {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+.sh-variant:disabled { cursor: not-allowed; }
+
+.sh-buy-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.sh-qty {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  overflow: hidden;
+}
+.sh-qty button {
+  width: 2.5rem;
+  align-self: stretch;
+  border: 0;
+  background: none;
+  color: var(--navy);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sh-qty button:hover:not(:disabled) { background: var(--bg-alt); }
+.sh-qty button:disabled { color: var(--border); cursor: not-allowed; }
+.sh-qty span {
+  min-width: 2rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.sh-add {
+  flex: 1 1 12rem;
+  padding: 0.85rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--sunset);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.sh-add:hover:not(:disabled) { background: var(--sunset-dark); }
+.sh-add:disabled { background: var(--text-muted); cursor: not-allowed; }
+.sh-buy-note,
+.sh-added {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.sh-added { color: #2f7a55; font-weight: 600; }
+.sh-added a { color: var(--teal-dark); }
+
+/* ----- Pastilla del carrito ----- */
+.sh-cartbar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(10, 37, 64, 0.28);
+}
+.sh-cartbar strong { color: var(--teal); }
+.sh-cartbar-count {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--teal);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+/* No taparse con el botón flotante de WhatsApp en pantallas chicas. */
+@media (max-width: 560px) {
+  .sh-cartbar {
+    left: 1rem;
+    right: 4.75rem;
+    transform: none;
+    justify-content: center;
+  }
+}
+
+/* ----- Checkout ----- */
+.sh-co {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 3rem;
+  align-items: start;
+}
+.sh-co-line {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.sh-co-thumb {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-alt);
+}
+.sh-co-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sh-co-name { font-weight: 600; color: var(--navy); }
+.sh-co-sub { font-size: 0.82rem; color: var(--text-muted); }
+.sh-co-right { text-align: right; }
+.sh-co-price { font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.sh-co-remove {
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+.sh-co-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--navy);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.5rem;
+  color: var(--navy);
+}
+.sh-co-panel {
+  position: sticky;
+  top: 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.sh-co-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.9rem; }
+.sh-co-field label { font-size: 0.82rem; font-weight: 600; color: var(--navy); }
+.sh-co-field input,
+.sh-co-field textarea {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text);
+}
+.sh-pay-opt {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+.sh-pay-opt.on { border-color: var(--teal); background: rgba(20, 184, 166, 0.06); }
+.sh-pay-opt strong { color: var(--navy); font-size: 0.9rem; }
+.sh-pay-opt span { font-size: 0.82rem; color: var(--text-muted); }
+.sh-co-btn {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--sunset);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sh-co-btn:hover:not(:disabled) { background: var(--sunset-dark); }
+.sh-co-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
+.sh-co-err {
+  background: #fdecea;
+  border: 1px solid #f5c6c2;
+  color: #b3261e;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+.sh-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.sh-done {
+  max-width: 34rem;
+  margin: 0 auto;
+  text-align: center;
+  padding: 3rem 0;
+}
+.sh-done-ref {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--bg-alt);
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  margin: 1rem 0;
+}
+
+@media (max-width: 860px) {
+  .sh-co { grid-template-columns: 1fr; gap: 2rem; }
+  .sh-co-panel { position: static; }
+}

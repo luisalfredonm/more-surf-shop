@@ -4,6 +4,8 @@ import Container from '@components/ui/Container.astro';
 import Button from '@components/ui/Button.astro';
 import WhatsAppIcon from '@components/ui/WhatsAppIcon.astro';
 import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
+import AddToCart from '@components/shop/AddToCart.tsx';
+import CartBar from '@components/shop/CartBar.tsx';
 import { getShopProduct, getShopProducts, getShopCategory } from '@lib/queries/shop';
 import { BUSINESS, SITE, absoluteUrl, whatsappUrl } from '@lib/constants';
 import type { PageSeo } from '@lib/seo';
@@ -136,32 +138,19 @@ const breadcrumbs = [
                 : `In stock at the shop`}
           </p>
 
-          {product.variants.length > 1 && (
-            <>
-              <p class="sp-label">Available options</p>
-              <div class="sh-variants">
-                {product.variants.map((v) => (
-                  <span class={`sh-variant ${v.available <= 0 ? 'out' : ''}`}>
-                    {v.label}
-                    {v.price !== product.price_from ? ` · ${money(v.price)}` : ''}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-
           {product.description && <p class="sp-desc">{product.description}</p>}
 
+          <AddToCart client:load product={product} />
+
           <div class="sp-cta">
-            <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
-              <WhatsAppIcon size={20} />
-              {out ? 'Ask when it\'s back' : 'Hold it for me'}
+            <Button variant="outline" href={waHref} target="_blank">
+              <WhatsAppIcon size={18} />
+              Ask a question
             </Button>
           </div>
 
           <p class="sp-note">
-            Price includes tax. Pay when you pick it up at our shop on {BUSINESS.address.locality}.
-            We don't ship.
+            Price includes tax. Pick up at our shop on {BUSINESS.address.locality} — we don't ship.
           </p>
         </div>
       </div>
@@ -195,6 +184,8 @@ const breadcrumbs = [
       )}
     </Container>
   </section>
+
+  <CartBar client:load />
 </BaseLayout>
 
 <style>

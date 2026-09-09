@@ -1,0 +1,41 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Container from '@components/ui/Container.astro';
+import ShopCheckout from '@components/shop/ShopCheckout.tsx';
+import { getPageSeo } from '@lib/seo';
+import { BUSINESS } from '@lib/constants';
+import { getPayPalConfig } from '@lib/paypal';
+
+export const prerender = false;
+
+const seo = getPageSeo('reserva-tienda')!;
+// El client_id (público) sale de la config del panel; el secret nunca llega acá.
+const pp = await getPayPalConfig();
+const paypalClientId = pp.enabled ? pp.clientId : '';
+---
+
+<BaseLayout seo={seo}>
+  <section class="rt">
+    <Container>
+      <ShopCheckout
+        client:load
+        paypalClientId={paypalClientId}
+        whatsappNumber={BUSINESS.whatsapp.number}
+      />
+      <noscript>
+        <p>You need JavaScript to complete your order. Message us on WhatsApp instead.</p>
+      </noscript>
+    </Container>
+  </section>
+</BaseLayout>
+
+<style>
+  .rt {
+    padding: 2.5rem 0 var(--section-pad);
+    min-height: 60vh;
+  }
+  .rt :global(h1) {
+    margin: 0 0 1.5rem;
+    font-size: clamp(1.8rem, 3vw + 1rem, 2.4rem);
+  }
+</style>

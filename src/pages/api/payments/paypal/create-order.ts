@@ -5,7 +5,20 @@ import { isPayPalConfigured, createOrder } from '@lib/paypal';
 
 export const prerender = false;
 
-const Schema = z.object({ group_id: z.string().uuid() });
+/**
+ * Acepta dos cosas distintas:
+ *   group_id      → reserva de lecciones / tablas (booking_groups)
+ *   shop_order_id → orden de la tienda (orders)
+ * Exactamente una de las dos.
+ */
+const Schema = z
+  .object({
+    group_id: z.string().uuid().optional(),
+    shop_order_id: z.string().uuid().optional(),
+  })
+  .refine((d) => !!d.group_id !== !!d.shop_order_id, {
+    message: 'Send either group_id or shop_order_id',
+  });
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -26,10 +39,16 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const supabase = getSupabase();
+
+  // --- Tienda: orden de accesorios ---
+  if (parsed.data.shop_order_id) {
+    return createForShopOrder(supabase, parsed.data.shop_order_id);
+  }
+
   const { data: group, error } = await supabase
     .from('booking_groups')
     .select('id, reference, status, total_amount, currency, payment_method')
-    .eq('id', parsed.data.group_id)
+    .eq('id', parsed.data.group_id!)
     .maybeSingle();
   if (error) {
     console.error('[paypal/create-order] group:', error.message);
@@ -78,3 +97,58 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Couldn't start the payment" }, 502);
   }
 };
+
+/** Orden de la tienda: mismo circuito, pero contra `orders`. */
+async function createForShopOrder(
+  supabase: ReturnType<typeof getSupabase>,
+  shopOrderId: string,
+): Promise<Response> {
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select('id, reference, status, total, currency, channel')
+    .eq('id', shopOrderId)
+    .maybeSingle();
+  if (error) {
+    console.error('[paypal/create-order] shop order:', error.message);
+    return json({ error: "Couldn't verify the order" }, 500);
+  }
+  if (!order) return json({ error: 'That order does not exist.', code: 'order_missing' }, 404);
+  if (order.status === 'paid' || order.status === 'picked_up') {
+    return json({ error: 'That order is already paid.', code: 'already_paid' }, 409);
+  }
+  if (order.status !== 'pending_payment') {
+    return json({ error: 'That order cannot be paid online.', code: 'bad_status' }, 409);
+  }
+  if (!(Number(order.total) > 0)) {
+    return json({ error: 'Invalid amount.', code: 'bad_amount' }, 409);
+  }
+
+  const { count } = await supabase
+    .from('order_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('order_id', order.id);
+  const description = `More Surf Shop: ${count ?? 0} item(s) (${order.reference})`;
+
+  try {
+    const pp = await createOrder({
+      amount: Number(order.total),
+      currency: order.currency,
+      bookingId: order.id, // custom_id = order id
+      reference: order.reference,
+      description,
+    });
+    await supabase.from('payments').insert({
+      provider: 'paypal',
+      provider_ref: pp.id,
+      amount: Number(order.total),
+      currency: order.currency,
+      status: 'pending',
+      related_type: 'order',
+      related_id: order.id,
+    });
+    return json({ id: pp.id }, 201);
+  } catch (e) {
+    console.error('[paypal/create-order] shop:', e);
+    return json({ error: "Couldn't start the payment" }, 502);
+  }
+}

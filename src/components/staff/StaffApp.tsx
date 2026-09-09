@@ -13,6 +13,7 @@ import QrStickersView from './QrStickersView';
 import PosView from './PosView';
 import ProductsView from './ProductsView';
 import InventoryView from './InventoryView';
+import OrdersView from './OrdersView';
 import CashView from './CashView';
 import PaymentSettingsView from './PaymentSettingsView';
 import './staff.css';
@@ -29,6 +30,7 @@ type View =
   | 'shop_sell'
   | 'shop_products'
   | 'shop_inventory'
+  | 'shop_orders'
   | 'cash'
   | 'payments';
 
@@ -44,6 +46,7 @@ const VIEW_TITLE: Record<View, string> = {
   shop_sell: 'Sell',
   shop_products: 'Products',
   shop_inventory: 'Inventory',
+  shop_orders: 'Orders',
   cash: 'Cash Close',
   payments: 'Payments',
 };
@@ -82,6 +85,7 @@ const NAV: {
       { key: 'shop_sell', label: 'Sell' },
       { key: 'shop_products', label: 'Products' },
       { key: 'shop_inventory', label: 'Inventory' },
+      { key: 'shop_orders', label: 'Orders' },
     ],
   },
   {
@@ -232,6 +236,7 @@ export default function StaffApp() {
           {view === 'shop_sell' && <PosView />}
           {view === 'shop_products' && <ProductsView />}
           {view === 'shop_inventory' && <InventoryView />}
+          {view === 'shop_orders' && <OrdersView />}
           {view === 'cash' && <CashView />}
           {view === 'payments' && profile.role === 'owner' && <PaymentSettingsView />}
         </main>

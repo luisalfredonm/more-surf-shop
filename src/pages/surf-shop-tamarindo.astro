@@ -8,6 +8,7 @@ import FaqAccordion from '@components/sections/FaqAccordion.astro';
 import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
 import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
 import ShopGrid from '@components/shop/ShopGrid.tsx';
+import CartBar from '@components/shop/CartBar.tsx';
 import { getPageSeo } from '@lib/seo';
 import { getShopProducts, SHOP_CATEGORIES } from '@lib/queries/shop';
 import { surfShopTamarindoFaqs } from '@data/faqs/surf-shop-tamarindo';
@@ -142,6 +143,8 @@ const breadcrumbs = [
       </div>
     </Container>
   </section>
+
+  <CartBar client:load />
 </BaseLayout>
 
 <style>

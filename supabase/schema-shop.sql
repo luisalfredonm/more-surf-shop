@@ -595,6 +595,87 @@ grant execute on function public.create_pos_sale(text, uuid, uuid, jsonb, jsonb,
   to service_role;
 
 -- ============================================
+-- Función: complete_shop_pickup — el cliente retira su orden online.
+--
+-- Igual que la venta de mostrador, toca dinero y stock a la vez, así que va en
+-- UNA transacción. Acá es donde el stock físico baja de verdad (la orden pasa a
+-- 'picked_up'); mientras estuvo 'reserved' o 'paid' sólo lo retenía.
+--
+-- p_collect_method: 'cash' | 'card' cuando la orden estaba SIN pagar ('reserved').
+--                   null si ya venía pagada por PayPal ('paid').
+-- ============================================
+create or replace function public.complete_shop_pickup(
+  p_order_id uuid,
+  p_staff_id uuid,
+  p_shift_id uuid default null,
+  p_collect_method text default null
+)
+returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_o record;
+  v_it record;
+  v_collected numeric(10, 2) := 0;
+begin
+  select id, status, total, currency into v_o
+    from public.orders where id = p_order_id for update;
+  if not found then
+    raise exception 'order_not_found';
+  end if;
+  if v_o.status = 'picked_up' then
+    raise exception 'already_picked_up';
+  end if;
+  if v_o.status not in ('reserved', 'paid') then
+    raise exception 'bad_status:%', v_o.status;
+  end if;
+
+  -- Sin pagar: se cobra ahora, y eso exige turno de caja abierto.
+  if v_o.status = 'reserved' then
+    if p_collect_method is null or p_collect_method not in ('cash', 'card') then
+      raise exception 'payment_required';
+    end if;
+    if p_shift_id is null then
+      raise exception 'no_open_shift';
+    end if;
+    insert into public.payments (
+      provider, amount, currency, status, paid_at,
+      related_type, related_id, collected_by, shift_id
+    )
+    values (
+      p_collect_method, v_o.total, coalesce(v_o.currency, 'USD'), 'paid', now(),
+      'order', v_o.id, p_staff_id, p_shift_id
+    );
+    v_collected := v_o.total;
+  end if;
+
+  -- Salida de stock: recién ahora la mercadería deja la tienda.
+  for v_it in
+    select variant_id, qty from public.order_items where order_id = v_o.id
+  loop
+    insert into public.inventory_moves (
+      variant_id, delta, reason, related_type, related_id, created_by
+    )
+    values (v_it.variant_id, -v_it.qty, 'sale', 'order', v_o.id, p_staff_id);
+  end loop;
+
+  update public.orders
+     set status = 'picked_up',
+         picked_up_at = now(),
+         handed_over_by = p_staff_id,
+         shift_id = coalesce(p_shift_id, shift_id)
+   where id = v_o.id;
+
+  return v_collected;
+end;
+$$;
+
+revoke all on function public.complete_shop_pickup(uuid, uuid, uuid, text) from public;
+grant execute on function public.complete_shop_pickup(uuid, uuid, uuid, text) to service_role;
+
+-- ============================================
 -- Seed opcional — catálogo de ejemplo para desarrollo.
 -- Reemplazar por los ~50 productos reales antes de producción.
 -- (La variante 'Único' y la fila de inventory las crean los triggers.)

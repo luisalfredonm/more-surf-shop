@@ -7,6 +7,11 @@ export const prerender = false;
 // Reservas 'pending_payment' que nunca se pagaron: se borran pasadas 2h.
 const MAX_AGE_HOURS = 2;
 
+// Órdenes de tienda 'reserved' (paga al retirar) que nadie vino a buscar.
+// Coincide con las 48 h que retiene shop_variant_available y con lo que se le
+// promete al cliente en el checkout.
+const ORDER_HOLD_HOURS = 48;
+
 export const GET: APIRoute = async ({ request, url }) => {
   if (!cronAuthorized(request, url)) {
     return new Response('unauthorized', { status: 401 });
@@ -23,6 +28,8 @@ export const GET: APIRoute = async ({ request, url }) => {
   let deletedBookings = 0;
   let deletedRentals = 0;
   let deletedGroups = 0;
+  let deletedOrders = 0;
+  let expiredOrders = 0;
 
   try {
     const [{ data: delB }, { data: delR }] = await Promise.all([
@@ -58,13 +65,42 @@ export const GET: APIRoute = async ({ request, url }) => {
         deletedGroups++;
       }
     }
+    // --- Tienda ---
+    // Sin pagar y vieja: se borra (nunca llegó a haber plata ni movimiento de
+    // stock, así que no deja rastro que valga la pena guardar).
+    const { data: delO } = await supabase
+      .from('orders')
+      .delete()
+      .eq('status', 'pending_payment')
+      .lt('created_at', cutoff)
+      .select('id');
+    deletedOrders = (delO ?? []).length;
+
+    // Reservada y vencida: se cancela, no se borra. El cliente dejó sus datos y
+    // el dueño quiere ver que la orden existió. Al pasar a 'cancelled' el stock
+    // vuelve a estar disponible solo (shop_variant_available deja de contarla).
+    const orderCutoff = new Date(Date.now() - ORDER_HOLD_HOURS * 3_600_000).toISOString();
+    const { data: expO } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .eq('status', 'reserved')
+      .lt('created_at', orderCutoff)
+      .select('id');
+    expiredOrders = (expO ?? []).length;
   } catch (e) {
     console.error('[cron/cleanup]', e);
     return new Response(JSON.stringify({ ok: false }), { status: 500 });
   }
 
   return new Response(
-    JSON.stringify({ ok: true, deletedBookings, deletedRentals, deletedGroups }),
+    JSON.stringify({
+      ok: true,
+      deletedBookings,
+      deletedRentals,
+      deletedGroups,
+      deletedOrders,
+      expiredOrders,
+    }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   );
 };
