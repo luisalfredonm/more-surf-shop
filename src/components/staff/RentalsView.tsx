@@ -99,7 +99,7 @@ export default function RentalsView() {
     setScanNote(null);
     setScanPick(null);
     if (r.status === 'picked_up') openReturn(r);
-    else setCheckoutId(r.id); // 'confirmed' -> entregar
+    else setCheckoutId(r.id); // 'confirmed' -> hand over
   }
 
   async function onScan(text: string) {
@@ -114,7 +114,7 @@ export default function RentalsView() {
       (r) => (one(r.board_units)?.code ?? '').trim().toLowerCase() === norm,
     );
     if (matches.length === 0) {
-      setScanNote(`"${text}" no tiene ningún alquiler activo.`);
+      setScanNote(`"${text}" has no active rental.`);
       return;
     }
 
@@ -123,9 +123,9 @@ export default function RentalsView() {
     if (out.length === 1) return route(out[0]);
     if (out.length > 1) return setScanPick(out);
 
-    // 2) No está afuera. En "Afuera ahora" no hay nada que recibir.
+    // 2) No está afuera. En "Out now" no hay nada que recibir.
     if (tab === 'out') {
-      setScanNote(`"${text}" no está afuera.`);
+      setScanNote(`"${text}" is not out.`);
       return;
     }
 
@@ -141,7 +141,7 @@ export default function RentalsView() {
     // 4) Hay reservas, pero ninguna para ahora.
     const next = matches.find((r) => Date.parse(r.start_at) >= nowMs) ?? matches[matches.length - 1];
     setScanNote(
-      `"${text}": ${matches.length} reserva(s), ninguna para hoy. Próxima: ${next.reference} · ${dt(next.start_at)}.`,
+      `"${text}": ${matches.length} reservation(s), none for today. Next: ${next.reference} · ${dt(next.start_at)}.`,
     );
   }
 
@@ -163,10 +163,10 @@ export default function RentalsView() {
     <div>
       <div className="st-tabs">
         <button className={tab === 'out' ? 'on' : ''} onClick={() => setTab('out')}>
-          Afuera ahora {overdue > 0 && <span className="st-tab-flag">{overdue} vencidas</span>}
+          Out now {overdue > 0 && <span className="st-tab-flag">{overdue} overdue</span>}
         </button>
         <button className={tab === 'agenda' ? 'on' : ''} onClick={() => setTab('agenda')}>
-          Agenda
+          Schedule
         </button>
       </div>
 
@@ -178,14 +178,14 @@ export default function RentalsView() {
             setScan(true);
           }}
         >
-          📷 Escanear
+          📷 Scan
         </button>
         {tab === 'agenda' && (
           <button
             className={`st-btn st-btn-sm ${showNew ? 'st-btn-ghost' : 'st-btn-primary'}`}
             onClick={() => setShowNew((v) => !v)}
           >
-            {showNew ? 'Cerrar' : '+ Nuevo alquiler'}
+            {showNew ? 'Close' : '+ New rental'}
           </button>
         )}
       </div>
@@ -194,23 +194,23 @@ export default function RentalsView() {
 
       {scanPick && (
         <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && setScanPick(null)}>
-          <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Elegir alquiler">
+          <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Pick a rental">
             <div className="st-modal-hd">
               <h3>
                 {scanPick.every((r) => r.status === 'picked_up')
-                  ? `${scanPick.length} alquileres afuera con esta tabla`
-                  : `${scanPick.length} reservas de esta tabla para ahora`}
+                  ? `${scanPick.length} rentals out with this board`
+                  : `${scanPick.length} reservations for this board right now`}
               </h3>
               <span className="st-modal-ref">
                 {one(scanPick[0].board_units)?.code} · {one(scanPick[0].board_models)?.name}
               </span>
               <span className="st-spacer" />
-              <button className="st-modal-x" onClick={() => setScanPick(null)} aria-label="Cerrar">
+              <button className="st-modal-x" onClick={() => setScanPick(null)} aria-label="Close">
                 ×
               </button>
             </div>
             <p className="st-note" style={{ marginBottom: '0.75rem' }}>
-              Elegí con cuál trabajar.
+              Pick which one to work with.
             </p>
             {scanPick.map((r) => (
               <div className="st-slotlist-row" key={r.id}>
@@ -221,7 +221,7 @@ export default function RentalsView() {
                 </span>
                 <span className="st-spacer" />
                 <button className="st-btn st-btn-primary st-btn-sm" onClick={() => route(r)}>
-                  {r.status === 'picked_up' ? 'Recibir' : 'Entregar'}
+                  {r.status === 'picked_up' ? 'Return' : 'Hand over'}
                 </button>
               </div>
             ))}
@@ -239,11 +239,11 @@ export default function RentalsView() {
 
       {loading ? (
         <p className="st-empty">
-          <span className="st-spin">◠</span> Cargando…
+          <span className="st-spin">◠</span> Loading…
         </p>
       ) : rows.length === 0 ? (
         <p className="st-empty">
-          {tab === 'out' ? 'Ninguna tabla afuera.' : 'Sin alquileres en los últimos 30 días.'}
+          {tab === 'out' ? 'No boards out.' : 'No rentals in the last 30 days.'}
         </p>
       ) : (
         rows.map((r) => {
@@ -252,9 +252,9 @@ export default function RentalsView() {
           const cust = one(r.customers);
           const isOverdue = r.status === 'picked_up' && Date.parse(r.end_at) < now;
           const staffLine = [
-            one(r.res_by)?.display_name && `reservó ${one(r.res_by)!.display_name}`,
-            one(r.out_by)?.display_name && `entregó ${one(r.out_by)!.display_name}`,
-            one(r.in_by)?.display_name && `recibió ${one(r.in_by)!.display_name}`,
+            one(r.res_by)?.display_name && `booked by ${one(r.res_by)!.display_name}`,
+            one(r.out_by)?.display_name && `handed over by ${one(r.out_by)!.display_name}`,
+            one(r.in_by)?.display_name && `returned to ${one(r.in_by)!.display_name}`,
           ]
             .filter(Boolean)
             .join(' · ');
@@ -276,12 +276,12 @@ export default function RentalsView() {
                 <span className={r.payment_id ? 'st-badge paid' : 'st-badge unpaid'}>
                   {r.payment_id ? 'paid' : 'unpaid'}
                 </span>
-                {r.damage_reported && <span className="st-badge no_show">daño</span>}
+                {r.damage_reported && <span className="st-badge no_show">damage</span>}
               </div>
               <div className="st-rental-dates">
-                <span>salió {r.picked_up_at ? dt(r.picked_up_at) : dt(r.start_at)}</span>
+                <span>out {r.picked_up_at ? dt(r.picked_up_at) : dt(r.start_at)}</span>
                 <span className={isOverdue ? 'st-gate-warn' : ''}>
-                  {r.returned_at ? `devuelta ${dt(r.returned_at)}` : `devuelve ${dt(r.end_at)}`}
+                  {r.returned_at ? `returned ${dt(r.returned_at)}` : `due ${dt(r.end_at)}`}
                   {isOverdue ? ' ⚠' : ''}
                 </span>
                 <span className="st-note">{money(r.total_amount, r.currency)}</span>
@@ -297,12 +297,12 @@ export default function RentalsView() {
                 )}
                 {r.status === 'confirmed' && (
                   <button className="st-btn st-btn-primary st-btn-sm" onClick={() => setCheckoutId(r.id)}>
-                    Entregar
+                    Hand over
                   </button>
                 )}
                 {r.status === 'picked_up' && (
                   <button className="st-btn st-btn-primary st-btn-sm" onClick={() => openReturn(r)}>
-                    Recibir
+                    Return
                   </button>
                 )}
               </div>

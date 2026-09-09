@@ -64,7 +64,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       setUnitId(hit.id);
       setScanNote(null);
     } else {
-      setScanNote(`"${text}" no es una tabla disponible.`);
+      setScanNote(`"${text}" is not an available board.`);
     }
   }
 
@@ -129,7 +129,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
   const startAt = new Date(`${date}T${time}:00`);
   const endAt = new Date(startAt.getTime() + qty * (MS[rateType] ?? MS.day));
 
-  // --- autocomplete cliente ---
+  // --- customer autocomplete ---
   const searchCustomers = useCallback((q: string) => {
     if (q.trim().length < 2) return setHits([]);
     void getBrowserSupabase()
@@ -186,19 +186,19 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       });
       const data = await res.json().catch(() => ({}));
       if (res.status !== 201 || !data.ok) {
-        setErr(data.error || 'No se pudo crear la reserva.');
+        setErr(data.error || 'Could not create the reservation.');
         setBusy(false);
         return;
       }
       if (deliver) {
         setCheckoutId(data.rental_id);
       } else {
-        setMsg(`Reserva ${data.reference} creada.`);
+        setMsg(`Reservation ${data.reference} created.`);
         onCreated();
       }
       setBusy(false);
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
       setBusy(false);
     }
   }
@@ -213,20 +213,20 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
       )}
       {hasShift === false && (
         <div className="st-err">
-          No tenés un turno de caja abierto. Andá a <strong>Caja → Cierre de caja</strong> y abrí tu
-          turno para poder cobrar.
+          You don't have an open cash shift. Go to <strong>Cash → Cash Close</strong> and open your
+          shift to collect payment.
         </div>
       )}
 
-      {/* Tabla */}
+      {/* Board */}
       <div className="st-field">
-        <label>Tabla</label>
+        <label>Board</label>
         <div className="st-inline">
           <select value={unitId} onChange={(e) => setUnitId(e.target.value)} style={{ flex: 1 }}>
-            <option value="">Elegí una tabla disponible…</option>
+            <option value="">Pick an available board…</option>
             {units.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.code} — {u.model_name} · {money(u.price_per_day)}/día
+                {u.code} — {u.model_name} · {money(u.price_per_day)}/day
               </option>
             ))}
           </select>
@@ -238,29 +238,29 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
               setScan(true);
             }}
           >
-            📷 Escanear
+            📷 Scan
           </button>
         </div>
         {scanNote && <p className="st-note">{scanNote}</p>}
-        {units.length === 0 && <p className="st-note">No hay tablas disponibles. Cargá la flota en Fleet.</p>}
+        {units.length === 0 && <p className="st-note">No boards available. Add the fleet in Fleet.</p>}
       </div>
       {scan && <QrScanner onScan={onScan} onClose={() => setScan(false)} />}
 
-      {/* Retiro */}
+      {/* Pickup */}
       <div className="st-row">
         <div className="st-field">
-          <label>Fecha de retiro</label>
+          <label>Pickup date</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <div className="st-field">
-          <label>Hora</label>
+          <label>Time</label>
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         </div>
       </div>
 
-      {/* Duración */}
+      {/* Duration */}
       <div className="st-field">
-        <label>Duración</label>
+        <label>Duration</label>
         <div className="st-chiprow">
           {presets.map((p, i) => (
             <button
@@ -278,15 +278,15 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
         </div>
         <div className="st-row" style={{ marginTop: '0.5rem' }}>
           <div className="st-field">
-            <label>Tipo</label>
+            <label>Type</label>
             <select value={rateType} onChange={(e) => setRateType(e.target.value as 'hour' | 'day' | 'week')}>
-              <option value="hour">Horas</option>
-              <option value="day">Días</option>
-              <option value="week">Semanas</option>
+              <option value="hour">Hours</option>
+              <option value="day">Days</option>
+              <option value="week">Weeks</option>
             </select>
           </div>
           <div className="st-field">
-            <label>Cantidad</label>
+            <label>Quantity</label>
             <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} />
           </div>
         </div>
@@ -294,44 +294,44 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           <p className="st-note">
             {chipPrice != null ? (
               <>
-                <strong>{money(chipPrice)}</strong> (precio fijo del chip)
+                <strong>{money(chipPrice)}</strong> (fixed chip price)
               </>
             ) : (
               <>
                 {money(computedUnit)} × {qty} = <strong>{money(total)}</strong>
               </>
             )}{' '}
-            · devuelve{' '}
+            · due back{' '}
             {endAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
           </p>
         )}
       </div>
 
-      {/* Pago (se cobra al reservar) */}
+      {/* Payment (collected at booking) */}
       <div className="st-field">
-        <label>Pago — se cobra ahora{unit ? ` · ${money(total)}` : ''}</label>
+        <label>Payment — collected now{unit ? ` · ${money(total)}` : ''}</label>
         <div className="st-chiprow">
           <button
             type="button"
             className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
             onClick={() => setPayMethod('cash')}
           >
-            Efectivo
+            Cash
           </button>
           <button
             type="button"
             className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
             onClick={() => setPayMethod('card')}
           >
-            Tarjeta
+            Card
           </button>
         </div>
       </div>
 
-      {/* Cliente */}
+      {/* Customer */}
       <div className="st-row">
         <div className="st-field" style={{ position: 'relative' }}>
-          <label>Nombre del cliente</label>
+          <label>Customer name</label>
           <input
             value={cName}
             onChange={(e) => {
@@ -352,17 +352,17 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           )}
         </div>
         <div className="st-field">
-          <label>Teléfono</label>
+          <label>Phone</label>
           <input value={cPhone} onChange={(e) => setCPhone(e.target.value)} />
         </div>
       </div>
       <div className="st-row">
         <div className="st-field">
-          <label>Email (opcional)</label>
+          <label>Email (optional)</label>
           <input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} />
         </div>
         <div className="st-field">
-          <label>Nota (opcional)</label>
+          <label>Note (optional)</label>
           <input value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
@@ -374,7 +374,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           disabled={!valid || busy}
           onClick={() => submit(false)}
         >
-          {busy ? '…' : 'Reservar'}
+          {busy ? '…' : 'Book'}
         </button>
         <button
           className="st-btn st-btn-primary st-btn-sm"
@@ -382,14 +382,14 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           disabled={!valid || busy}
           onClick={() => submit(true)}
         >
-          {busy ? '…' : `Reservar y entregar · ${money(total)}`}
+          {busy ? '…' : `Book & hand over · ${money(total)}`}
         </button>
       </div>
       {!valid && !busy && (
         <p className="st-note" style={{ marginTop: '0.5rem' }}>
-          Falta: {!unitId && 'tabla · '}
-          {cName.trim().length < 2 && 'nombre · '}
-          {hasShift === false && 'abrir turno de caja'}
+          Missing: {!unitId && 'board · '}
+          {cName.trim().length < 2 && 'name · '}
+          {hasShift === false && 'open cash shift'}
         </p>
       )}
 
@@ -398,7 +398,7 @@ export default function NewRentalForm({ onCreated }: { onCreated: () => void }) 
           rentalId={checkoutId}
           onClose={() => {
             setCheckoutId(null);
-            setMsg('Reserva creada (sin entregar).');
+            setMsg('Reservation created (not handed over).');
             onCreated();
           }}
           onDone={() => {
