@@ -665,7 +665,9 @@ moverlo a un endpoint para atribución consistente.
    eventos `PAYMENT.CAPTURE.COMPLETED` / `.REFUNDED` / `.REVERSED` / `.DENIED` →
    pegar el Webhook ID en el mismo form. En local el webhook no llega sin túnel,
    pero `capture.ts` confirma en el callback del cliente; el webhook es respaldo de prod.
-4. Con PayPal activo, `RENTALS_ASSUME_ONLINE_PAID` deja de tener efecto online.
+4. El bypass `RENTALS_ASSUME_ONLINE_PAID` **ya no existe** (quitado el 2026-09-09).
+   Una reserva `on_arrival` nace confirmada y SIN pago: se cobra en el mostrador
+   con `/api/rentals/checkout`, que exige turno abierto y entra al arqueo.
 
 #### Pendiente
 

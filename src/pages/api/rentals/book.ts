@@ -20,17 +20,15 @@ export const prerender = false;
  * varias tablas — un booking_group con N rentals. Sin waiver: se firma en el
  * mostrador al retirar.
  *
- * BYPASS temporal (RENTALS_ASSUME_ONLINE_PAID=true): mientras no hay pago online
- * real, las reservas "pagar al retirar" se marcan como PAGADAS al crearse
- * (payment provider='card', sin turno). Quitar el flag cuando entre PayPal.
+ * Dos caminos de pago y ninguno inventa un cobro:
+ *   paypal     — nace 'pending_payment'; la captura la confirma y la paga.
+ *   on_arrival — nace 'confirmed' y SIN pago. Se cobra en el mostrador con
+ *                /api/rentals/checkout, que exige turno de caja abierto y por
+ *                eso entra al arqueo.
  */
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
-
-const ASSUME_ONLINE_PAID = ['1', 'true', 'yes'].includes(
-  String(import.meta.env.RENTALS_ASSUME_ONLINE_PAID ?? '').toLowerCase(),
-);
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -222,7 +220,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (!group) return json({ error: "Couldn't create the reservation." }, 500);
 
   // --- Alquileres ---
-  const assumePaid = !isPaypal && ASSUME_ONLINE_PAID && groupTotal > 0;
   const rows = priced.map((p) => ({
     reference: makeRentalRef('RNT'),
     group_id: group!.id,
@@ -237,7 +234,7 @@ export const POST: APIRoute = async ({ request }) => {
     total_amount: p.total,
     currency: 'USD',
     status: isPaypal ? 'pending_payment' : 'confirmed',
-    payment_method: assumePaid ? 'card' : d.payment_method,
+    payment_method: d.payment_method,
     source: 'web',
     customer_note: d.customer_note ?? null,
   }));
@@ -252,28 +249,6 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Couldn't create the reservation." }, 500);
   }
 
-  // BYPASS: sin pago online real, marcar la reserva como pagada (un payment de
-  // grupo, provider 'card', sin turno). Quitar con RENTALS_ASSUME_ONLINE_PAID.
-  if (assumePaid) {
-    const { data: pay } = await supabase
-      .from('payments')
-      .insert({
-        provider: 'card',
-        amount: groupTotal,
-        currency: 'USD',
-        status: 'paid',
-        paid_at: new Date().toISOString(),
-        related_type: 'booking_group',
-        related_id: group.id,
-        notes: 'Online reservation — payment pending integration (RENTALS_ASSUME_ONLINE_PAID bypass)',
-      })
-      .select('id')
-      .single();
-    if (pay) {
-      await supabase.from('rentals').update({ payment_id: pay.id }).eq('group_id', group.id);
-    }
-  }
-
   if (!isPaypal) await sendBookingGroupEmails(group.id);
 
   return json(
@@ -286,9 +261,8 @@ export const POST: APIRoute = async ({ request }) => {
       days,
       total: groupTotal,
       currency: 'USD',
-      payment_method: assumePaid ? 'card' : d.payment_method,
+      payment_method: d.payment_method,
       confirmed: !isPaypal,
-      paid: assumePaid,
       from: d.from,
       to: d.to,
     },
