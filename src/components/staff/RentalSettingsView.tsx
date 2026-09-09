@@ -25,9 +25,9 @@ const DEFAULTS: Settings = {
   duration_presets: [
     { label: '2 h', kind: 'hour', qty: 2 },
     { label: '4 h', kind: 'hour', qty: 4 },
-    { label: '1 día', kind: 'day', qty: 1 },
-    { label: '2 días', kind: 'day', qty: 2 },
-    { label: '1 semana', kind: 'week', qty: 1 },
+    { label: '1 day', kind: 'day', qty: 1 },
+    { label: '2 days', kind: 'day', qty: 2 },
+    { label: '1 week', kind: 'week', qty: 1 },
   ],
 };
 
@@ -55,7 +55,7 @@ export default function RentalSettingsView() {
   if (!form) {
     return (
       <p className="st-empty">
-        <span className="st-spin">◠</span> Cargando…
+        <span className="st-spin">◠</span> Loading…
       </p>
     );
   }
@@ -97,19 +97,19 @@ export default function RentalSettingsView() {
       setMsg(error.message);
       return;
     }
-    setMsg('Guardado. El widget online lo toma de inmediato.');
+    setMsg('Saved. The online widget picks it up immediately.');
   }
 
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Reglas del alquiler online y los chips de duración del mostrador.
+        Rules for online rentals and the counter's duration chips.
       </p>
 
       <div className="st-card">
         <div className="st-row">
           <div className="st-field">
-            <label>Duración mínima (horas)</label>
+            <label>Minimum duration (hours)</label>
             <input
               type="number"
               min={1}
@@ -118,7 +118,7 @@ export default function RentalSettingsView() {
             />
           </div>
           <div className="st-field">
-            <label>Duración máxima (días)</label>
+            <label>Maximum duration (days)</label>
             <input
               type="number"
               min={1}
@@ -129,7 +129,7 @@ export default function RentalSettingsView() {
         </div>
         <div className="st-row">
           <div className="st-field">
-            <label>Antelación mínima de reserva (horas)</label>
+            <label>Minimum booking lead time (hours)</label>
             <input
               type="number"
               min={0}
@@ -138,24 +138,24 @@ export default function RentalSettingsView() {
             />
           </div>
           <div className="st-field">
-            <label>Unidad mínima de cobro</label>
+            <label>Minimum charge unit</label>
             <select
               value={form.min_charge_unit}
               onChange={(e) => set('min_charge_unit', e.target.value)}
             >
-              <option value="hour">Hora</option>
-              <option value="day">Día</option>
+              <option value="hour">Hour</option>
+              <option value="day">Day</option>
             </select>
           </div>
         </div>
 
         <div className="st-field">
-          <label>Chips de duración</label>
+          <label>Duration chips</label>
           <div className="st-slotlist-row" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            <span style={{ flex: 1 }}>Etiqueta</span>
-            <span style={{ width: '4rem' }}>Cant.</span>
-            <span style={{ width: '5.5rem' }}>Unidad</span>
-            <span style={{ width: '6rem' }}>Precio fijo $</span>
+            <span style={{ flex: 1 }}>Label</span>
+            <span style={{ width: '4rem' }}>Qty</span>
+            <span style={{ width: '5.5rem' }}>Unit</span>
+            <span style={{ width: '6rem' }}>Fixed price $</span>
             <span className="st-spacer" />
           </div>
           {form.duration_presets.map((p, i) => (
@@ -163,7 +163,7 @@ export default function RentalSettingsView() {
               <input
                 value={p.label}
                 onChange={(e) => setPreset(i, { label: e.target.value })}
-                placeholder="1 día"
+                placeholder="1 day"
                 style={{ flex: 1 }}
               />
               <input
@@ -193,7 +193,7 @@ export default function RentalSettingsView() {
                   setPreset(i, { price: e.target.value === '' ? null : Number(e.target.value) })
                 }
                 placeholder="auto"
-                title="Precio fijo del chip. Vacío = se calcula con la tarifa/hora o /día del modelo."
+                title="Fixed chip price. Empty = calculated from the model's hourly or daily rate."
                 style={{ width: '6rem' }}
               />
               <span className="st-spacer" />
@@ -207,7 +207,7 @@ export default function RentalSettingsView() {
                   )
                 }
               >
-                Quitar
+                Remove
               </button>
             </div>
           ))}
@@ -222,11 +222,11 @@ export default function RentalSettingsView() {
               ])
             }
           >
-            + Agregar chip
+            + Add chip
           </button>
           <p className="st-note" style={{ marginTop: '0.4rem' }}>
-            <strong>Precio fijo</strong> vacío = el chip cobra la tarifa del modelo (hora/día, semana
-            = día×7). Con un número, ese chip cobra ese monto plano para cualquier tabla.
+            Empty <strong>Fixed price</strong> = the chip charges the model's rate (hour/day, week =
+            day×7). With a number, that chip charges that flat amount for any board.
           </p>
         </div>
 
@@ -236,7 +236,7 @@ export default function RentalSettingsView() {
           </div>
         )}
         <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
-          {saving ? 'Guardando…' : 'Guardar'}
+          {saving ? 'Saving…' : 'Save'}
         </button>
       </div>
     </div>

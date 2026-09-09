@@ -34,8 +34,8 @@ export default function PaymentSettingsView() {
     if (!res.ok || !data.ok) {
       setLoadErr(
         data.code === 'forbidden'
-          ? 'Sólo el dueño puede ver la configuración de pagos.'
-          : data.error || 'No se pudo cargar la configuración.',
+          ? 'Only the owner can view the payment settings.'
+          : data.error || 'Could not load the settings.',
       );
       return;
     }
@@ -97,16 +97,16 @@ export default function PaymentSettingsView() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setMsg(data.error || 'No se pudo guardar.');
+        setMsg(data.error || 'Could not save.');
         return;
       }
       setSecret('');
       setDirty(false);
       setTestRes(null);
       if (form.paypal_enabled && !data.ready) {
-        setMsg('Guardado. Ojo: PayPal está activo pero faltan Client ID o Secret.');
+        setMsg('Saved. Note: PayPal is active but Client ID or Secret is missing.');
       } else {
-        setMsg('Guardado. El checkout online lo toma en ~30 s.');
+        setMsg('Saved. The online checkout picks it up in ~30 s.');
       }
       void load();
     } finally {
@@ -118,7 +118,7 @@ export default function PaymentSettingsView() {
   if (!form) {
     return (
       <p className="st-empty">
-        <span className="st-spin">◠</span> Cargando…
+        <span className="st-spin">◠</span> Loading…
       </p>
     );
   }
@@ -126,20 +126,20 @@ export default function PaymentSettingsView() {
   return (
     <div>
       <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Credenciales de PayPal para el pago online de reservas (lecciones y alquileres). El{' '}
-        <strong>secret</strong> se guarda en la base y sólo lo ve el dueño. Si dejás todo vacío, la
-        app usa las variables de entorno.
+        PayPal credentials for online reservation payments (lessons and rentals). The{' '}
+        <strong>secret</strong> is stored in the database and only the owner can see it. Leave
+        everything blank to fall back to the environment variables.
       </p>
 
       <div className="st-card">
         <div className="st-field">
-          <label>Estado</label>
+          <label>Status</label>
           <select
             value={form.paypal_enabled ? 'on' : 'off'}
             onChange={(e) => set('paypal_enabled', e.target.value === 'on')}
           >
-            <option value="off">Desactivado — online paga al retirar</option>
-            <option value="on">Activo — online paga con PayPal / tarjeta</option>
+            <option value="off">Off — online pays at pickup</option>
+            <option value="on">Active — online pays with PayPal / card</option>
           </select>
         </div>
 
@@ -149,24 +149,24 @@ export default function PaymentSettingsView() {
             <input
               value={form.paypal_client_id}
               onChange={(e) => set('paypal_client_id', e.target.value)}
-              placeholder="Del PayPal Developer Dashboard"
+              placeholder="From the PayPal Developer Dashboard"
               autoComplete="off"
             />
           </div>
           <div className="st-field">
-            <label>Modo</label>
+            <label>Mode</label>
             <select
               value={form.paypal_env}
               onChange={(e) => set('paypal_env', e.target.value as 'sandbox' | 'live')}
             >
-              <option value="sandbox">Sandbox (pruebas)</option>
-              <option value="live">Live (pagos reales)</option>
+              <option value="sandbox">Sandbox (testing)</option>
+              <option value="live">Live (real payments)</option>
             </select>
           </div>
         </div>
 
         <div className="st-field">
-          <label>PayPal Secret {form.has_secret && <span className="st-note">· ya hay uno guardado</span>}</label>
+          <label>PayPal Secret {form.has_secret && <span className="st-note">· one is already saved</span>}</label>
           <input
             type="password"
             value={secret}
@@ -176,22 +176,22 @@ export default function PaymentSettingsView() {
               setTestRes(null);
               setMsg(null);
             }}
-            placeholder={form.has_secret ? '•••••••• (dejalo vacío para no cambiarlo)' : 'Pegá el secret'}
+            placeholder={form.has_secret ? '•••••••• (leave blank to keep it)' : 'Paste the secret'}
             autoComplete="new-password"
           />
         </div>
 
         <div className="st-field">
-          <label>Webhook ID (opcional)</label>
+          <label>Webhook ID (optional)</label>
           <input
             value={form.paypal_webhook_id}
             onChange={(e) => set('paypal_webhook_id', e.target.value)}
-            placeholder="Para verificar los webhooks de PayPal en producción"
+            placeholder="To verify PayPal webhooks in production"
             autoComplete="off"
           />
           <p className="st-note" style={{ marginTop: '0.3rem' }}>
             Webhook URL: <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/api/payments/paypal/webhook`}</code>{' '}
-            · eventos <code>PAYMENT.CAPTURE.COMPLETED / .REFUNDED / .REVERSED / .DENIED</code>.
+            · events <code>PAYMENT.CAPTURE.COMPLETED / .REFUNDED / .REVERSED / .DENIED</code>.
           </p>
         </div>
 
@@ -207,14 +207,14 @@ export default function PaymentSettingsView() {
             style={testRes.ok ? { margin: '0.5rem 0', color: '#15803d', fontWeight: 600 } : { margin: '0.5rem 0' }}
           >
             {testRes.ok
-              ? `✓ Conectado a PayPal (${testRes.env}). Las credenciales sirven.`
-              : `✗ ${testRes.error ?? 'PayPal rechazó las credenciales.'}`}
+              ? `✓ Connected to PayPal (${testRes.env}). The credentials work.`
+              : `✗ ${testRes.error ?? 'PayPal rejected the credentials.'}`}
           </div>
         )}
 
         <div className="st-inline" style={{ gap: '0.5rem' }}>
           <button className="st-btn st-btn-primary" type="button" disabled={saving} onClick={save}>
-            {saving ? 'Guardando…' : 'Guardar configuración'}
+            {saving ? 'Saving…' : 'Save settings'}
           </button>
           <button
             className="st-btn st-btn-ghost"
@@ -222,13 +222,13 @@ export default function PaymentSettingsView() {
             disabled={testing || saving}
             onClick={runTest}
           >
-            {testing ? 'Probando…' : 'Probar conexión'}
+            {testing ? 'Testing…' : 'Test connection'}
           </button>
         </div>
         <p className="st-note" style={{ marginTop: '0.4rem' }}>
-          "Probar conexión" pide un token a PayPal con lo <strong>guardado</strong>
-          {dirty ? ' — guardá primero para probar los cambios' : ''}.
-          {form.updated_at && ` Última actualización: ${new Date(form.updated_at).toLocaleString('en-US')}.`}
+          "Test connection" requests a token from PayPal using the <strong>saved</strong> values
+          {dirty ? ' — save first to test the changes' : ''}.
+          {form.updated_at && ` Last updated: ${new Date(form.updated_at).toLocaleString('en-US')}.`}
         </p>
       </div>
     </div>
