@@ -96,7 +96,7 @@ export default function RentalCheckoutModal({
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) return setLoadErr(error.message);
-        if (!data) return setLoadErr('No se encontró la reserva.');
+        if (!data) return setLoadErr('Reservation not found.');
         const d = data as any;
         const unit = one<{ code?: string; default_fins?: number }>(d.board_units);
         const loaded: Loaded = {
@@ -179,27 +179,27 @@ export default function RentalCheckoutModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setErr(data.error || 'No se pudo registrar la entrega.');
+        setErr(data.error || 'Could not record the hand-over.');
         setBusy(false);
         return;
       }
       onDone();
     } catch {
-      setErr('Falló la conexión.');
+      setErr('Connection failed.');
       setBusy(false);
     }
   }
 
   return (
     <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Entregar tabla">
+      <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Hand over board">
         <div className="st-modal-hd">
-          <h3>Entregar</h3>
+          <h3>Hand over</h3>
           <span className="st-modal-ref">
             {r ? `${r.code} · ${r.model} · ${r.customer_name}` : '…'}
           </span>
           <span className="st-spacer" />
-          <button className="st-modal-x" onClick={onClose} aria-label="Cerrar">
+          <button className="st-modal-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -207,12 +207,12 @@ export default function RentalCheckoutModal({
         {r && (
           <div className="st-checkout-span">
             <div>
-              <span className="st-cs-label">Retiro</span>
+              <span className="st-cs-label">Pickup</span>
               {dt(r.start_at)}
             </div>
             <span className="st-cs-arrow">→</span>
             <div>
-              <span className="st-cs-label">Devolución</span>
+              <span className="st-cs-label">Return</span>
               {dt(r.end_at)}
             </div>
             <span className="st-cs-total">
@@ -227,20 +227,22 @@ export default function RentalCheckoutModal({
         {err && <div className="st-err">{err}</div>}
         {!r && !loadErr && (
           <p className="st-empty">
-            <span className="st-spin">◠</span> Cargando…
+            <span className="st-spin">◠</span> Loading…
           </p>
         )}
 
         {r && r.status !== 'confirmed' && (
-          <div className="st-err">Esta reserva ya fue entregada o cancelada ({r.status}).</div>
+          <div className="st-err">
+            This reservation was already handed over or cancelled ({r.status}).
+          </div>
         )}
 
         {r && r.status === 'confirmed' && (
           <>
-            {/* Condición de salida */}
+            {/* Check-out condition */}
             <div className="st-row">
               <div className="st-field">
-                <label>Fins entregadas</label>
+                <label>Fins handed out</label>
                 <input
                   type="number"
                   min={0}
@@ -250,51 +252,51 @@ export default function RentalCheckoutModal({
                 />
               </div>
               <div className="st-field">
-                <label>Foto de la tabla</label>
+                <label>Board photo</label>
                 <input type="file" accept="image/*" capture="environment" onChange={onPhoto} disabled={photoBusy} />
-                {photoBusy && <span className="st-note">Subiendo…</span>}
-                {photo && <span className="st-note">✓ foto cargada</span>}
-                {photoWarn && <span className="st-note">No se pudo subir — seguí sin foto.</span>}
+                {photoBusy && <span className="st-note">Uploading…</span>}
+                {photo && <span className="st-note">✓ photo uploaded</span>}
+                {photoWarn && <span className="st-note">Upload failed — continue without a photo.</span>}
               </div>
             </div>
             <div className="st-field">
-              <label>Nota de condición (opcional)</label>
+              <label>Condition note (optional)</label>
               <input
                 value={condNotes}
                 onChange={(e) => setCondNotes(e.target.value)}
-                placeholder="ej. ding chico en el nose"
+                placeholder="e.g. small ding on the nose"
               />
             </div>
 
             {/* Waiver */}
             <div className="st-field">
-              <label>Waiver — lo firma {isMinor ? 'el tutor' : 'el cliente'}</label>
+              <label>Waiver — signed by {isMinor ? 'the guardian' : 'the customer'}</label>
               <div className="st-row">
                 <div className="st-field">
-                  <label>Nombre del que alquila</label>
+                  <label>Renter's name</label>
                   <input value={signerName} onChange={(e) => setSignerName(e.target.value)} />
                 </div>
                 <div className="st-field">
-                  <label>¿Es menor de edad?</label>
+                  <label>Is the renter a minor?</label>
                   <select value={isMinor ? 'yes' : 'no'} onChange={(e) => setIsMinor(e.target.value === 'yes')}>
                     <option value="no">No</option>
-                    <option value="yes">Sí</option>
+                    <option value="yes">Yes</option>
                   </select>
                 </div>
               </div>
               {isMinor && (
                 <div className="st-field">
-                  <label>Nombre del tutor</label>
+                  <label>Guardian's name</label>
                   <input value={guardian} onChange={(e) => setGuardian(e.target.value)} />
                 </div>
               )}
               <div className="st-row">
                 <div className="st-field">
-                  <label>Contacto de emergencia — nombre</label>
+                  <label>Emergency contact — name</label>
                   <input value={ecName} onChange={(e) => setEcName(e.target.value)} />
                 </div>
                 <div className="st-field">
-                  <label>Teléfono</label>
+                  <label>Phone</label>
                   <input value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} />
                 </div>
               </div>
@@ -327,7 +329,7 @@ export default function RentalCheckoutModal({
               </label>
             </div>
 
-            {/* Pago (normalmente ya está pagado — se cobra al reservar) */}
+            {/* Payment (usually already paid — collected at booking) */}
             {due > 0 && (
               <>
                 <label className="st-check">
@@ -336,7 +338,7 @@ export default function RentalCheckoutModal({
                     checked={collectCash}
                     onChange={(e) => setCollectCash(e.target.checked)}
                   />
-                  <span>Cobrar {money(due, r.currency)} ahora</span>
+                  <span>Collect {money(due, r.currency)} now</span>
                 </label>
                 {collectCash && (
                   <div className="st-chiprow" style={{ marginTop: '0.35rem' }}>
@@ -345,14 +347,14 @@ export default function RentalCheckoutModal({
                       className={`st-dchip ${payMethod === 'cash' ? 'on' : ''}`}
                       onClick={() => setPayMethod('cash')}
                     >
-                      Efectivo
+                      Cash
                     </button>
                     <button
                       type="button"
                       className={`st-dchip ${payMethod === 'card' ? 'on' : ''}`}
                       onClick={() => setPayMethod('card')}
                     >
-                      Tarjeta
+                      Card
                     </button>
                   </div>
                 )}
@@ -361,18 +363,18 @@ export default function RentalCheckoutModal({
 
             <div className="st-modal-actions">
               <button className="st-btn st-btn-ghost st-btn-sm" onClick={onClose}>
-                Cancelar
+                Cancel
               </button>
               <button className="st-btn st-btn-primary st-btn-sm" disabled={!valid || busy} onClick={submit}>
-                {busy ? 'Entregando…' : 'Confirmar entrega'}
+                {busy ? 'Handing over…' : 'Confirm hand-over'}
               </button>
             </div>
             {!valid && !busy && (
               <p className="st-note" style={{ marginTop: '0.4rem' }}>
-                Falta: {signerName.trim().length < 2 && 'nombre · '}
-                {isMinor && guardian.trim().length < 2 && 'tutor · '}
-                {!signature && 'firma · '}
-                {!accepted && 'aceptar términos'}
+                Missing: {signerName.trim().length < 2 && 'name · '}
+                {isMinor && guardian.trim().length < 2 && 'guardian · '}
+                {!signature && 'signature · '}
+                {!accepted && 'accept terms'}
               </p>
             )}
           </>

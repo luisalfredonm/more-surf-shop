@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Validation failed', issues: parsed.error.flatten() }, 400);
   }
   if (!isSupabaseConfigured()) {
-    return json({ error: 'Supabase no está configurado.', code: 'not_configured' }, 503);
+    return json({ error: 'Supabase is not configured.', code: 'not_configured' }, 503);
   }
   const d = parsed.data;
   const supabase = getSupabase();
@@ -66,12 +66,12 @@ export const POST: APIRoute = async ({ request }) => {
     .maybeSingle();
   if (rErr) {
     console.error('[rentals/checkout] load:', rErr.message);
-    return json({ error: 'No se pudo cargar la reserva.' }, 500);
+    return json({ error: 'Could not load the reservation.' }, 500);
   }
-  if (!rental) return json({ error: 'Esa reserva no existe.' }, 404);
+  if (!rental) return json({ error: 'That reservation does not exist.' }, 404);
   if (rental.status !== 'confirmed') {
     return json(
-      { error: `La reserva está en estado "${rental.status}", no se puede entregar.`, code: 'not_reservable' },
+      { error: `The reservation is "${rental.status}", it cannot be handed over.`, code: 'not_reservable' },
       409,
     );
   }
@@ -113,7 +113,7 @@ export const POST: APIRoute = async ({ request }) => {
     .single();
   if (wErr || !waiver) {
     console.error('[rentals/checkout] waiver:', wErr?.message);
-    return json({ error: 'No se pudo guardar el waiver.' }, 500);
+    return json({ error: 'Could not save the waiver.' }, 500);
   }
 
   // --- Entrega ---
@@ -131,7 +131,7 @@ export const POST: APIRoute = async ({ request }) => {
     .eq('id', rental.id);
   if (upErr) {
     console.error('[rentals/checkout] update:', upErr.message);
-    return json({ error: 'No se pudo registrar la entrega.' }, 500);
+    return json({ error: 'Could not record the hand-over.' }, 500);
   }
 
   // --- Cobro en el mostrador (opcional) ---
@@ -143,7 +143,7 @@ export const POST: APIRoute = async ({ request }) => {
     const shift = await getOpenShift(supabase, staff.userId);
     if (!shift) {
       return json(
-        { error: 'Abrí tu turno de caja antes de cobrar.', code: 'no_open_shift' },
+        { error: 'Open your cash shift before collecting payment.', code: 'no_open_shift' },
         409,
       );
     }

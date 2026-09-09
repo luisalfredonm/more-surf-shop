@@ -95,7 +95,7 @@ export default function SignaturePad({ onChange }: { onChange: (svg: string | nu
         }}
       />
       <div className="st-sigpad-foot">
-        <span>{has ? 'Firma capturada' : 'Firmá con el dedo o el mouse'}</span>
+        <span>{has ? 'Signature captured' : 'Sign with your finger or mouse'}</span>
         <button
           type="button"
           className="st-btn st-btn-ghost st-btn-sm"
@@ -106,7 +106,7 @@ export default function SignaturePad({ onChange }: { onChange: (svg: string | nu
             emit();
           }}
         >
-          Borrar
+          Clear
         </button>
       </div>
     </div>
