@@ -463,6 +463,138 @@ revoke all on function public.shop_low_stock() from public;
 grant execute on function public.shop_low_stock() to authenticated, service_role;
 
 -- ============================================
+-- Función: create_pos_sale — la venta de mostrador, en UNA transacción.
+--
+-- Una venta toca dinero (payments) y stock (inventory_moves) a la vez. Si eso
+-- se hiciera con varios inserts desde el server y uno fallara, quedaría una
+-- venta a medias: cobrada sin descontar, o descontada sin cobrar. Acá es todo
+-- o nada.
+--
+-- El precio NUNCA viene del cliente: se lee de la variante/producto.
+-- El total se compara contra lo cobrado y, si no cuadra, la venta se revierte.
+--
+-- La orden nace en 'picked_up' (en el mostrador cobrar y entregar son el mismo
+-- momento), que es exactamente lo que hace bajar el stock.
+--
+-- p_items:    [{"variant_id": uuid, "qty": int, "discount": numeric}]
+-- p_payments: [{"method": "cash"|"card", "amount": numeric}]
+-- ============================================
+create or replace function public.create_pos_sale(
+  p_reference text,
+  p_staff_id uuid,
+  p_shift_id uuid,
+  p_items jsonb,
+  p_payments jsonb,
+  p_customer_id uuid default null,
+  p_staff_note text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order_id uuid;
+  v_item jsonb;
+  v_pay jsonb;
+  v_v record;
+  v_qty integer;
+  v_discount numeric(10, 2);
+  v_unit_price numeric(10, 2);
+  v_line_total numeric(10, 2);
+  v_subtotal numeric(10, 2) := 0;
+  v_discount_total numeric(10, 2) := 0;
+  v_total numeric(10, 2) := 0;
+  v_paid numeric(10, 2) := 0;
+begin
+  if p_items is null or jsonb_array_length(p_items) = 0 then
+    raise exception 'empty_cart';
+  end if;
+  if p_payments is null or jsonb_array_length(p_payments) = 0 then
+    raise exception 'no_payment';
+  end if;
+
+  insert into public.orders (
+    reference, channel, customer_id, status,
+    sold_by, handed_over_by, shift_id, picked_up_at, staff_note
+  )
+  values (
+    p_reference, 'pos', p_customer_id, 'picked_up',
+    p_staff_id, p_staff_id, p_shift_id, now(), p_staff_note
+  )
+  returning id into v_order_id;
+
+  for v_item in select value from jsonb_array_elements(p_items) loop
+    select v.id, v.sku, v.label, v.price_override, p.name as product_name, p.price
+      into v_v
+      from public.product_variants v
+      join public.products p on p.id = v.product_id
+     where v.id = (v_item ->> 'variant_id')::uuid;
+    if not found then
+      raise exception 'variant_not_found:%', v_item ->> 'variant_id';
+    end if;
+
+    v_qty := greatest(1, coalesce((v_item ->> 'qty')::integer, 1));
+    v_discount := greatest(0, coalesce((v_item ->> 'discount')::numeric, 0));
+    v_unit_price := coalesce(v_v.price_override, v_v.price);
+    v_line_total := greatest(0, round(v_unit_price * v_qty - v_discount, 2));
+
+    insert into public.order_items (
+      order_id, variant_id, name_snapshot, sku_snapshot,
+      unit_price, qty, discount, line_total
+    )
+    values (
+      v_order_id, v_v.id,
+      v_v.product_name || case when v_v.label = 'Único' then '' else ' — ' || v_v.label end,
+      v_v.sku, v_unit_price, v_qty, v_discount, v_line_total
+    );
+
+    -- Salida de stock. El trigger de inventory_moves aplica el delta.
+    insert into public.inventory_moves (
+      variant_id, delta, reason, related_type, related_id, created_by
+    )
+    values (v_v.id, -v_qty, 'sale', 'order', v_order_id, p_staff_id);
+
+    v_subtotal := v_subtotal + round(v_unit_price * v_qty, 2);
+    v_discount_total := v_discount_total + v_discount;
+    v_total := v_total + v_line_total;
+  end loop;
+
+  for v_pay in select value from jsonb_array_elements(p_payments) loop
+    if (v_pay ->> 'method') not in ('cash', 'card') then
+      raise exception 'bad_method:%', v_pay ->> 'method';
+    end if;
+    insert into public.payments (
+      provider, amount, currency, status, paid_at,
+      related_type, related_id, collected_by, shift_id
+    )
+    values (
+      (v_pay ->> 'method'), round((v_pay ->> 'amount')::numeric, 2), 'USD', 'paid', now(),
+      'order', v_order_id, p_staff_id, p_shift_id
+    );
+    v_paid := v_paid + round((v_pay ->> 'amount')::numeric, 2);
+  end loop;
+
+  -- Si lo cobrado no cuadra con el total, se cae todo (transacción).
+  if v_paid <> v_total then
+    raise exception 'payment_mismatch:% vs %', v_paid, v_total;
+  end if;
+
+  update public.orders
+     set subtotal = v_subtotal,
+         discount_total = v_discount_total,
+         total = v_total
+   where id = v_order_id;
+
+  return v_order_id;
+end;
+$$;
+
+revoke all on function public.create_pos_sale(text, uuid, uuid, jsonb, jsonb, uuid, text) from public;
+grant execute on function public.create_pos_sale(text, uuid, uuid, jsonb, jsonb, uuid, text)
+  to service_role;
+
+-- ============================================
 -- Seed opcional — catálogo de ejemplo para desarrollo.
 -- Reemplazar por los ~50 productos reales antes de producción.
 -- (La variante 'Único' y la fila de inventory las crean los triggers.)

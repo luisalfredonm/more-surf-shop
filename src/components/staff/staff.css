@@ -889,3 +889,158 @@
   .st-qr-sheet { grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
   .st-qr-sticker { border-color: #999; }
 }
+
+/* ----- Shop: POS de mostrador ----- */
+.st-pos {
+  display: grid;
+  grid-template-columns: 1fr 21rem;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .st-pos { grid-template-columns: 1fr; }
+}
+
+.st-pos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+}
+.st-pos-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem;
+  min-height: 5.5rem;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+.st-pos-item:hover { border-color: var(--teal); }
+.st-pos-item:active { transform: scale(0.98); }
+.st-pos-item.is-out { opacity: 0.55; }
+.st-pos-item-name {
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+.st-pos-item-meta {
+  margin-top: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+}
+.st-pos-item-price { font-weight: 700; color: var(--navy); }
+.st-pos-item-stock { color: var(--text-muted); }
+.st-pos-item-stock.low { color: #9a6114; font-weight: 600; }
+
+.st-pos-cart {
+  position: sticky;
+  top: 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.st-pos-cart h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--navy);
+  margin: 0 0 0.6rem;
+}
+.st-pos-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.5rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.st-pos-line-name { color: var(--navy); font-weight: 600; min-width: 0; }
+.st-pos-line-total { font-weight: 700; font-variant-numeric: tabular-nums; }
+.st-pos-line-ctl {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.st-pos-qty {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--navy);
+  font-weight: 700;
+  line-height: 1;
+}
+.st-pos-qty:hover { border-color: var(--navy); }
+.st-pos-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0.75rem 0;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--navy);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.35rem;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.st-pos-change {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.6rem;
+  color: var(--teal-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Shop: recibo impreso (80 mm) -----
+   El ancho lo fija el CSS; el tamaño de papel lo pone el driver de la impresora
+   térmica (configurarla como predeterminada). No se toca @page para no romper
+   la hoja de stickers QR, que se imprime en A4. */
+.st-receipt {
+  width: 72mm;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+  background: #fff;
+  color: #000;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.st-receipt-center { text-align: center; }
+.st-receipt-name { font-weight: 600; font-size: 13px; letter-spacing: 0.06em; }
+.st-receipt hr {
+  border: 0;
+  border-top: 1px dashed #000;
+  margin: 0.45rem 0;
+}
+.st-receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.st-receipt-row span:last-child { white-space: nowrap; }
+.st-receipt-total { font-weight: 700; font-size: 13px; }
+.st-receipt-foot { font-size: 10px; text-align: center; margin-top: 0.5rem; }
+
+/* Al imprimir un recibo se oculta todo lo demás. El componente pone la clase en
+   <body> mientras está montado, así no interfiere con la impresión de stickers. */
+@media print {
+  body.st-printing-receipt * { visibility: hidden; }
+  body.st-printing-receipt .st-receipt,
+  body.st-printing-receipt .st-receipt * { visibility: visible; }
+  body.st-printing-receipt .st-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+  }
+}

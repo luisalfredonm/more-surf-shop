@@ -427,7 +427,7 @@ Sección **Shop** en el sidebar de `StaffApp`:
 | - | ---- | ------- |
 | **S1** | ✅ **Schema** `schema-shop.sql`: las 6 tablas + RLS + triggers (kardex, variante `'Único'`, fila de stock) + `shop_variant_available()` / `list_shop_catalog()` / `shop_low_stock()` + tipos en `supabase.ts`. **Falta correrlo en Supabase** | base |
 | **S2** | ✅ **Panel — Products + Inventory**: CRUD de productos y variantes, fotos, movimientos de stock (entrada / ajuste / pérdida / devolución), punto de reposición y kardex | el dueño ya puede cargar el catálogo |
-| **S3** | **POS de mostrador** + recibo impreso + `payments` con `shift_id` → **entra al cierre solo** | **acá se retira QPOS del día a día** |
+| **S3** | ✅ **POS de mostrador** (`PosView`) + recibo impreso + RPC `create_pos_sale` (orden + líneas + stock + pagos en **una transacción**) + `/api/shop/pos-sale`. Cobro efectivo / tarjeta / dividido con vuelto | **acá se retira QPOS del día a día** |
 | **S4** | **Escaparate público**: hub + categorías + fichas, SEO, sin checkout | valor SEO inmediato |
 | **S5** | **Checkout online "retirá en tienda"**: carrito, PayPal / pago al retirar, cola de retiro en el panel, cron de expiración | cierra la etapa |
 
