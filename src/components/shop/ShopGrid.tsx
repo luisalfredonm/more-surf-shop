@@ -52,6 +52,11 @@ export default function ShopGrid({ products, categories, activeCategory }: Props
     return categories.filter((c) => present.has(c.slug));
   }, [products, categories]);
 
+  const label = useMemo(() => {
+    const bySlug = new Map(categories.map((c) => [c.slug, c.label]));
+    return (slug: string) => bySlug.get(slug) ?? slug;
+  }, [categories]);
+
   return (
     <>
       <div className="sh-bar">
@@ -95,7 +100,7 @@ export default function ShopGrid({ products, categories, activeCategory }: Props
       ) : (
         <div className="sh-grid">
           {shown.map((p) => (
-            <ProductCard key={p.product_id} product={p} />
+            <ProductCard key={p.product_id} product={p} categoryLabel={label(p.category)} />
           ))}
         </div>
       )}
@@ -103,20 +108,31 @@ export default function ShopGrid({ products, categories, activeCategory }: Props
   );
 }
 
-function ProductCard({ product: p }: { product: ShopProduct }) {
+function ProductCard({
+  product: p,
+  categoryLabel,
+}: {
+  product: ShopProduct;
+  categoryLabel: string;
+}) {
   const out = p.available <= 0;
   const low = !out && p.available <= 3;
-  const priceLabel =
-    p.price_from === p.price_to ? money(p.price_from) : `from ${money(p.price_from)}`;
+  const ranged = p.price_from !== p.price_to;
 
   return (
-    <a className="sh-card" href={`/surf-shop-tamarindo/product/${p.slug}`}>
+    <a
+      className={`sh-card ${out ? 'is-out' : ''}`}
+      href={`/surf-shop-tamarindo/product/${p.slug}`}
+    >
       <div className="sh-card-photo">
         {p.image ? (
           <img src={p.image} alt={p.name} loading="lazy" />
         ) : (
+          // Sin foto: trama + inicial fantasma + estante, para que el hueco se
+          // lea intencional y no como una imagen que no cargó.
           <span className="sh-card-noimg" aria-hidden="true">
-            {p.name.charAt(0).toUpperCase()}
+            <b>{p.name.charAt(0).toUpperCase()}</b>
+            <span>{categoryLabel}</span>
           </span>
         )}
         {out ? (
@@ -128,14 +144,22 @@ function ProductCard({ product: p }: { product: ShopProduct }) {
         ) : null}
       </div>
       <div className="sh-card-body">
-        {p.brand && <span className="sh-card-brand">{p.brand}</span>}
+        <span className="sh-card-brand">{p.brand || categoryLabel}</span>
         <span className="sh-card-name">{p.name}</span>
-        <span className="sh-card-price">{priceLabel}</span>
         {p.variants.length > 1 && (
           <span className="sh-card-opts">
             {p.variants.length} options · {p.variants.map((v) => v.label).join(', ')}
           </span>
         )}
+        <span className="sh-card-foot">
+          <span className="sh-card-price">
+            {ranged && <small>from</small>}
+            {money(p.price_from)}
+          </span>
+          <span className="sh-card-go" aria-hidden="true">
+            {out ? 'Details' : 'Buy'} →
+          </span>
+        </span>
       </div>
     </a>
   );

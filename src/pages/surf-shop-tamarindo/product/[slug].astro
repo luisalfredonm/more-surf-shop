@@ -160,21 +160,32 @@ const breadcrumbs = [
           <h2>More {cat ? cat.label.toLowerCase() : 'from the shop'}</h2>
           <div class="sh-grid">
             {siblings.map((p) => (
-              <a class="sh-card" href={`/surf-shop-tamarindo/product/${p.slug}`}>
+              <a
+                class={`sh-card ${p.available <= 0 ? 'is-out' : ''}`}
+                href={`/surf-shop-tamarindo/product/${p.slug}`}
+              >
                 <div class="sh-card-photo">
                   {p.image ? (
                     <img src={p.image} alt={p.name} loading="lazy" />
                   ) : (
                     <span class="sh-card-noimg" aria-hidden="true">
-                      {p.name.charAt(0).toUpperCase()}
+                      <b>{p.name.charAt(0).toUpperCase()}</b>
+                      <span>{cat ? cat.label : p.category}</span>
                     </span>
                   )}
                   {p.available <= 0 && <span class="sh-flag out">Sold out</span>}
                 </div>
                 <div class="sh-card-body">
+                  <span class="sh-card-brand">{p.brand || (cat ? cat.label : p.category)}</span>
                   <span class="sh-card-name">{p.name}</span>
-                  <span class="sh-card-price">
-                    {p.price_from === p.price_to ? money(p.price_from) : `from ${money(p.price_from)}`}
+                  <span class="sh-card-foot">
+                    <span class="sh-card-price">
+                      {p.price_from !== p.price_to && <small>from</small>}
+                      {money(p.price_from)}
+                    </span>
+                    <span class="sh-card-go" aria-hidden="true">
+                      {p.available <= 0 ? 'Details' : 'Buy'} →
+                    </span>
                   </span>
                 </div>
               </a>

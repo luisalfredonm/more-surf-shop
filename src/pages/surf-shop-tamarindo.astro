@@ -9,6 +9,7 @@ import FAQPageSchema from '@components/seo/FAQPageSchema.astro';
 import BreadcrumbSchema from '@components/seo/BreadcrumbSchema.astro';
 import ShopGrid from '@components/shop/ShopGrid.tsx';
 import CartBar from '@components/shop/CartBar.tsx';
+import { Icon } from 'astro-icon/components';
 import { getPageSeo } from '@lib/seo';
 import { getShopProducts, SHOP_CATEGORIES } from '@lib/queries/shop';
 import { surfShopTamarindoFaqs } from '@data/faqs/surf-shop-tamarindo';
@@ -24,9 +25,43 @@ const url = absoluteUrl('/surf-shop-tamarindo');
 const inStock = products.filter((p) => p.available > 0);
 const from = inStock.length ? Math.min(...inStock.map((p) => p.price_from)) : 0;
 
-// Categorías que realmente tienen producto cargado.
-const present = new Set(products.map((p) => p.category));
-const cats = SHOP_CATEGORIES.filter((c) => present.has(c.slug));
+// Categorías que realmente tienen producto cargado, con su conteo en vitrina.
+const counts = new Map<string, number>();
+for (const p of inStock) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+const cats = SHOP_CATEGORIES.filter((c) => counts.has(c.slug)).map((c) => ({
+  ...c,
+  count: counts.get(c.slug)!,
+}));
+
+// Una sola marquesina en la página. Son hechos, no eslóganes.
+const strip = [
+  { icon: 'ph:storefront', text: 'Pick up on Tamarindo Beach' },
+  { icon: 'ph:credit-card', text: 'PayPal now or pay at the counter' },
+  { icon: 'ph:package', text: 'We hold your order 48 hours' },
+  { icon: 'ph:leaf', text: 'Reef-safe sunscreen only' },
+  { icon: 'ph:sun-horizon', text: 'Open every day' },
+];
+
+const steps = [
+  {
+    n: '01',
+    title: 'Pick what you need',
+    text: 'Everything on this page is counted off the shelf in the shop. If it shows here, it is here.',
+  },
+  {
+    n: '02',
+    title: 'Pay now or later',
+    text: 'Check out with PayPal, or reserve it and pay cash or card when you walk in.',
+  },
+  {
+    n: '03',
+    title: 'Collect it in the shop',
+    text: `${BUSINESS.address.formatted}. Give us your order number at the counter and it is bagged in a minute.`,
+  },
+];
+
+const heroPhoto =
+  'https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=1200&q=80&auto=format&fit=crop';
 
 const storeSchema = {
   '@context': 'https://schema.org',
@@ -67,30 +102,87 @@ const breadcrumbs = [
 
   <section class="ss-hero">
     <Container>
-      <Eyebrow>Surf shop · Playa Tamarindo</Eyebrow>
-      <h1>The stuff you forgot to pack</h1>
-      <p class="ss-lead">
-        Wax, leashes, fins, rash guards and reef-safe sunscreen. What you see here is what is on
-        the shelf today.
-      </p>
-      <div class="ss-cta">
-        <Button href="#catalog" size="lg">Browse the shop</Button>
-        <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
-          <WhatsAppIcon size={20} />
-          Ask on WhatsApp
-        </Button>
+      <div class="ss-hero-grid">
+        <div class="ss-hero-copy">
+          <Eyebrow>Surf shop · Playa Tamarindo</Eyebrow>
+          <h1>The stuff you forgot to pack</h1>
+          <p class="ss-lead">
+            Wax, leashes, fins, rash guards and reef-safe sunscreen. What you see here is what is
+            on the shelf today, counted by the same people who hand it to you.
+          </p>
+          <div class="ss-cta">
+            <Button href="#catalog" size="lg">Browse the shop</Button>
+            <Button variant="whatsapp" size="lg" href={waHref} target="_blank">
+              <WhatsAppIcon size={20} />
+              Ask on WhatsApp
+            </Button>
+          </div>
+
+          {inStock.length > 0 && (
+            <dl class="ss-stats">
+              <div>
+                <dt>On the shelf</dt>
+                <dd>{inStock.length}</dd>
+              </div>
+              <div>
+                <dt>From</dt>
+                <dd>${from.toFixed(0)}</dd>
+              </div>
+              <div>
+                <dt>Pickup</dt>
+                <dd>Same day</dd>
+              </div>
+            </dl>
+          )}
+        </div>
+
+        <figure class="ss-hero-photo">
+          <img
+            src={heroPhoto}
+            alt="A surfer sitting on a board at sunset off Playa Tamarindo"
+            width="1200"
+            height="900"
+            fetchpriority="high"
+          />
+          <figcaption>Playa Tamarindo, Guanacaste</figcaption>
+        </figure>
       </div>
     </Container>
   </section>
 
+  <div class="ss-strip" aria-hidden="true">
+    <div class="ss-strip-track">
+      {/* La segunda copia es la que hace el loop continuo; sin movimiento sobra. */}
+      {[0, 1].map((copy) =>
+        strip.map((s) => (
+          <span class={`ss-strip-item ${copy === 1 ? 'is-dupe' : ''}`}>
+            <Icon name={s.icon} />
+            {s.text}
+          </span>
+        )),
+      )}
+    </div>
+  </div>
+
   {cats.length > 0 && (
     <section class="ss-cats">
       <Container>
+        <div class="ss-sec-head">
+          <Eyebrow>Shop by shelf</Eyebrow>
+          <h2>What we keep in stock</h2>
+        </div>
         <div class="ss-cat-grid">
-          {cats.map((c) => (
+          {cats.map((c, i) => (
             <a class="ss-cat" href={`/surf-shop-tamarindo/${c.slug}`}>
+              <span class="ss-cat-ghost" aria-hidden="true">
+                {String(i + 1).padStart(2, '0')}
+              </span>
               <strong>{c.label}</strong>
-              <span>{c.blurb}</span>
+              <span class="ss-cat-blurb">{c.blurb}</span>
+              <span class="ss-cat-foot">
+                {c.count} {c.count === 1 ? 'product' : 'products'}
+                <Icon name="ph:arrow-right" />
+              </span>
             </a>
           ))}
         </div>
@@ -100,12 +192,16 @@ const breadcrumbs = [
 
   <section class="ss-catalog" id="catalog">
     <Container>
-      <div class="ss-cat-head">
-        <h2>Everything we stock</h2>
-        <p>
-          Live from the shop. Prices include tax, and you pay when you pick it up on Tamarindo
-          Beach.
-        </p>
+      <div class="ss-sec-head ss-sec-head-split">
+        <div>
+          <h2>Everything we stock</h2>
+          <p>
+            Live from the shop floor. Prices include tax, and you collect it on Tamarindo Beach.
+          </p>
+        </div>
+        <a class="ss-head-link" href={waHref} target="_blank" rel="noopener noreferrer">
+          Looking for something else?
+        </a>
       </div>
 
       {products.length > 0 ? (
@@ -119,6 +215,21 @@ const breadcrumbs = [
           <a class="ss-wa" href={waHref} target="_blank" rel="noopener noreferrer">WhatsApp</a>
         </div>
       )}
+    </Container>
+  </section>
+
+  <section class="ss-how">
+    <Container>
+      <h2>How buying here works</h2>
+      <ol class="ss-steps">
+        {steps.map((s) => (
+          <li>
+            <span class="ss-step-n">{s.n}</span>
+            <strong>{s.title}</strong>
+            <p>{s.text}</p>
+          </li>
+        ))}
+      </ol>
     </Container>
   </section>
 
@@ -148,15 +259,31 @@ const breadcrumbs = [
 </BaseLayout>
 
 <style>
+  /* ---------- Hero: split, no centrado ---------- */
   .ss-hero {
-    padding: 4rem 0 3rem;
+    padding: 3.5rem 0 3rem;
     background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
   }
-  .ss-hero h1 { max-width: 16ch; }
+  .ss-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 3.5rem;
+    align-items: stretch;
+  }
+  .ss-hero-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .ss-hero h1 {
+    max-width: 14ch;
+    margin: 0;
+  }
   .ss-lead {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     color: var(--text-muted);
-    max-width: 46ch;
+    max-width: 44ch;
     margin: 1.1rem 0 1.75rem;
   }
   .ss-cta {
@@ -165,46 +292,193 @@ const breadcrumbs = [
     flex-wrap: wrap;
   }
 
-  .ss-cats {
-    padding: 2.25rem 0;
-    border-bottom: 1px solid var(--border);
+  .ss-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.25rem;
+    margin: 2.25rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
   }
+  .ss-stats dt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .ss-stats dd {
+    margin: 0.2rem 0 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    color: var(--navy);
+  }
+
+  .ss-hero-photo {
+    position: relative;
+    margin: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .ss-hero-photo img {
+    width: 100%;
+    height: 100%;
+    min-height: 24rem;
+    object-fit: cover;
+  }
+  .ss-hero-photo figcaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 2.5rem 1.25rem 1rem;
+    background: linear-gradient(to top, rgba(6, 26, 46, 0.72), transparent);
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Marquesina (una sola en la página) ---------- */
+  .ss-strip {
+    overflow: hidden;
+    background: var(--sunset);
+    color: #fff;
+    padding: 0.85rem 0;
+  }
+  .ss-strip-track {
+    display: flex;
+    width: max-content;
+    animation: ss-slide 42s linear infinite;
+  }
+  .ss-strip-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ss-strip-item [data-icon] { font-size: 1.05rem; }
+  @keyframes ss-slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ss-strip-track {
+      animation: none;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 0.4rem;
+    }
+    .ss-strip-item.is-dupe { display: none; }
+  }
+
+  /* ---------- Cabeceras de sección ---------- */
+  .ss-sec-head { margin-bottom: 2rem; }
+  .ss-sec-head h2 { margin: 0 0 0.4rem; }
+  .ss-sec-head p { color: var(--text-muted); margin: 0; max-width: 58ch; }
+  .ss-sec-head-split {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .ss-head-link {
+    color: var(--teal-dark);
+    font-weight: 600;
+    font-size: 0.92rem;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+    white-space: nowrap;
+  }
+  .ss-head-link:hover { color: var(--navy); }
+
+  /* ---------- Categorías: mosaico escalonado ---------- */
+  .ss-cats { padding: var(--section-pad) 0 0; }
   .ss-cat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+    align-items: start;
   }
   .ss-cat {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    padding: 1rem 1.1rem;
+    gap: 0.35rem;
+    min-height: 12.5rem;
+    padding: 1.4rem 1.5rem 1.2rem;
+    overflow: hidden;
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: inherit;
-    text-decoration: none;
-    transition: border-color 160ms ease, transform 160ms ease;
+    transition:
+      border-color 200ms ease,
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease;
   }
   .ss-cat:hover {
     border-color: var(--teal);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+  .ss-cat:active { transform: translateY(-1px); }
+  /* El numeral vive arriba a la derecha: abajo chocaba con el pie de la
+     tarjeta y se cortaba a media letra. */
+  .ss-cat-ghost {
+    position: absolute;
+    top: 0.5rem;
+    right: 1rem;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 3.25rem;
+    line-height: 1;
+    color: var(--bg-alt);
+    pointer-events: none;
   }
   .ss-cat strong {
+    position: relative;
+    padding-right: 3rem;
     font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.05rem;
+    font-size: 1.25rem;
     color: var(--navy);
   }
-  .ss-cat span {
-    font-size: 0.85rem;
+  .ss-cat-blurb {
+    position: relative;
+    font-size: 0.88rem;
     color: var(--text-muted);
-    line-height: 1.45;
+    line-height: 1.5;
+    max-width: 26ch;
   }
+  .ss-cat-foot {
+    position: relative;
+    margin-top: auto;
+    padding-top: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--teal-dark);
+  }
+  .ss-cat-foot [data-icon] {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ss-cat:hover .ss-cat-foot [data-icon] { transform: translateX(4px); }
 
-  .ss-catalog { padding: 3rem 0 var(--section-pad); }
-  .ss-cat-head { margin-bottom: 1.5rem; }
-  .ss-cat-head h2 { margin: 0 0 0.4rem; }
-  .ss-cat-head p { color: var(--text-muted); margin: 0; max-width: 60ch; }
+  /* ---------- Catálogo ---------- */
+  .ss-catalog { padding: var(--section-pad) 0 0; }
 
   .ss-fallback {
     max-width: 560px;
@@ -223,14 +497,82 @@ const breadcrumbs = [
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius-sm);
     font-weight: 600;
-    text-decoration: none;
   }
 
+  /* ---------- Cómo funciona: pasos, no tarjetas ---------- */
+  .ss-how { padding: var(--section-pad) 0 0; }
+  .ss-how h2 { margin: 0 0 1.75rem; }
+  .ss-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 0;
+    border-top: 1px solid var(--border);
+  }
+  .ss-steps li {
+    padding: 1.5rem 1.75rem 1.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ss-step-n {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: var(--sunset-dark);
+    margin-bottom: 0.6rem;
+  }
+  .ss-steps strong {
+    display: block;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.15rem;
+    color: var(--navy);
+    margin-bottom: 0.35rem;
+  }
+  .ss-steps p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 34ch;
+  }
+
+  /* ---------- Cierre ---------- */
   .ss-final {
+    margin-top: var(--section-pad);
     padding: 3.5rem 0;
     text-align: center;
+    background: var(--bg-alt);
     border-top: 1px solid var(--border);
   }
   .ss-final p { color: var(--text-muted); margin: 0.5rem 0 1.5rem; }
   .ss-final .ss-cta { justify-content: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ss-cat,
+    .ss-cat-foot [data-icon] {
+      transition: none;
+    }
+    .ss-cat:hover { transform: none; }
+    .ss-cat:hover .ss-cat-foot [data-icon] { transform: none; }
+  }
+
+  @media (max-width: 900px) {
+    .ss-hero-grid {
+      grid-template-columns: 1fr;
+      gap: 2.25rem;
+    }
+    .ss-hero h1 { max-width: 18ch; }
+    .ss-hero-photo img {
+      min-height: 0;
+      aspect-ratio: 16 / 10;
+    }
+  }
+  @media (max-width: 640px) {
+    .ss-stats { gap: 1.5rem; }
+    .ss-stats dd { font-size: 1.35rem; }
+    .ss-cat { min-height: 0; }
+    .ss-steps li { padding-right: 0; }
+  }
 </style>
