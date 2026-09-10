@@ -185,82 +185,133 @@ export default function OrdersView() {
           {tab === 'queue' ? 'Nothing waiting for pickup.' : 'No orders in the last 30 days.'}
         </p>
       ) : (
-        rows.map((o) => {
-          const cust = one(o.customers);
-          const items = o.order_items ?? [];
-          const unpaid = o.status === 'reserved';
-          const canHandOver = o.status === 'reserved' || o.status === 'paid';
-          return (
-            <div className="st-card st-rental-row" key={o.id}>
-              <div className="st-rental-main">
-                <span className="st-b-ref">{o.reference}</span>
-                <strong className="st-svc-title">{cust?.full_name ?? 'Walk-in'}</strong>
-                <span className="st-note">
-                  {cust?.email}
-                  {cust?.phone ? ` · ${cust.phone}` : ''}
-                </span>
-                <span className="st-note">
-                  {items.map((i) => `${i.qty}x ${i.name_snapshot}`).join(' · ') || '—'}
-                </span>
-                {o.customer_note && <span className="st-note">{o.customer_note}</span>}
-              </div>
+        <>
+          <p className="st-tbl-count">
+            {rows.length} {rows.length === 1 ? 'order' : 'orders'}
+            {tab === 'queue' && ' waiting'}
+          </p>
+          <div className="st-tbl-wrap">
+            <table className="st-tbl">
+              <thead>
+                <tr>
+                  <th scope="col">Order</th>
+                  <th scope="col">Items</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="st-tbl-num">
+                    Total
+                  </th>
+                  <th scope="col">Placed</th>
+                  <th scope="col">
+                    <span className="st-sr">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((o) => {
+                  const cust = one(o.customers);
+                  const items = o.order_items ?? [];
+                  const units = items.reduce((s, i) => s + i.qty, 0);
+                  const unpaid = o.status === 'reserved';
+                  const canHandOver = o.status === 'reserved' || o.status === 'paid';
+                  const handler = one(o.handler)?.display_name;
+                  return (
+                    <tr key={o.id}>
+                      <td>
+                        <span className="st-tbl-name">
+                          {cust?.full_name ?? 'Walk-in'}
+                          <span className="st-src">{o.channel}</span>
+                        </span>
+                        <span className="st-tbl-sub">{o.reference}</span>
+                        {cust?.email && (
+                          <span className="st-ord-contact">
+                            {cust.email}
+                            {cust.phone ? ` · ${cust.phone}` : ''}
+                          </span>
+                        )}
+                      </td>
 
-              <div className="st-rental-meta">
-                <span className={`st-badge ${BADGE[o.status] ?? 'unpaid'}`}>
-                  {STATUS_LABEL[o.status] ?? o.status}
-                </span>
-                <span className="st-badge confirmed">{o.channel}</span>
-              </div>
+                      <td className="st-ord-items">
+                        <span className="st-ord-lines">
+                          {items.map((i) => `${i.qty}× ${i.name_snapshot}`).join(', ') || '—'}
+                        </span>
+                        <span className="st-tbl-sub">
+                          {units} {units === 1 ? 'unit' : 'units'}
+                        </span>
+                        {o.customer_note && (
+                          <span className="st-ord-note">“{o.customer_note}”</span>
+                        )}
+                      </td>
 
-              <div className="st-rental-dates">
-                <span>ordered {dt(o.created_at)}</span>
-                {o.picked_up_at && <span>picked up {dt(o.picked_up_at)}</span>}
-                <span className="st-b-total">{money(o.total, o.currency)}</span>
-                {one(o.handler)?.display_name && (
-                  <span className="st-note">handed over by {one(o.handler)!.display_name}</span>
-                )}
-              </div>
+                      <td>
+                        <span className={`st-badge ${BADGE[o.status] ?? 'unpaid'}`}>
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </span>
+                      </td>
 
-              {canHandOver && (
-                <div className="st-rental-actions">
-                  {unpaid ? (
-                    <>
-                      <button
-                        className="st-btn st-btn-primary st-btn-sm"
-                        disabled={busyId === o.id || hasShift !== true}
-                        onClick={() => handOver(o, 'cash')}
-                      >
-                        Hand over · cash
-                      </button>
-                      <button
-                        className="st-btn st-btn-primary st-btn-sm"
-                        disabled={busyId === o.id || hasShift !== true}
-                        onClick={() => handOver(o, 'card')}
-                      >
-                        Hand over · card
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="st-btn st-btn-primary st-btn-sm"
-                      disabled={busyId === o.id}
-                      onClick={() => handOver(o, null)}
-                    >
-                      Hand over (paid)
-                    </button>
-                  )}
-                  <button
-                    className="st-btn st-btn-danger st-btn-sm"
-                    disabled={busyId === o.id}
-                    onClick={() => cancel(o)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })
+                      <td className="st-tbl-num st-tbl-price">{money(o.total, o.currency)}</td>
+
+                      <td className="st-ord-when">
+                        {dt(o.created_at)}
+                        {o.picked_up_at && (
+                          <span className="st-tbl-sub">picked up {dt(o.picked_up_at)}</span>
+                        )}
+                        {handler && <span className="st-tbl-sub">by {handler}</span>}
+                      </td>
+
+                      <td>
+                        {canHandOver ? (
+                          <span className="st-tbl-acts st-ord-acts">
+                            {unpaid ? (
+                              <>
+                                <button
+                                  className="st-btn st-btn-primary st-btn-sm"
+                                  disabled={busyId === o.id || hasShift !== true}
+                                  onClick={() => handOver(o, 'cash')}
+                                >
+                                  Cash
+                                </button>
+                                <button
+                                  className="st-btn st-btn-primary st-btn-sm"
+                                  disabled={busyId === o.id || hasShift !== true}
+                                  onClick={() => handOver(o, 'card')}
+                                >
+                                  Card
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="st-btn st-btn-primary st-btn-sm"
+                                disabled={busyId === o.id}
+                                onClick={() => handOver(o, null)}
+                              >
+                                Hand over
+                              </button>
+                            )}
+                            <button
+                              className="st-btn st-btn-danger st-btn-sm"
+                              disabled={busyId === o.id}
+                              onClick={() => cancel(o)}
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="st-tbl-muted st-ord-done">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {tab === 'queue' && (
+            <p className="st-note st-ord-hint">
+              Handing over is what drops the stock. An unpaid order is collected here and lands in
+              your cash shift; a prepaid one only needs the hand over.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

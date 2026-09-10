@@ -148,88 +148,126 @@ export default function InventoryView() {
         <Tile label="Negative" value={String(stats.negative)} tone={stats.negative ? 'warn' : undefined} />
       </div>
 
-      <p className="st-note" style={{ marginBottom: '1rem' }}>
-        Every change goes through a movement — nothing edits the stock directly, so the history
-        always adds up. Negative stock means a count is missing, not that selling is blocked.
+      <p className="st-note st-inv-rule">
+        Every change goes through a movement, so the balance and the history can never drift
+        apart. Negative stock means a count is missing, not that selling is blocked.
       </p>
 
-      <div className="st-filters">
-        <div className="st-field">
-          <label htmlFor="inv-q">Search</label>
+      <div className="st-tbl-bar">
+        <div className="st-pos-search st-tbl-search">
+          <span aria-hidden="true">⌕</span>
           <input
-            id="inv-q"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Product, variant or SKU"
+            placeholder="Search by product, variant or SKU…"
+            aria-label="Search inventory"
           />
         </div>
-        <label className="st-check" style={{ margin: 0 }}>
+        <label className="st-check st-tbl-check">
           <input type="checkbox" checked={onlyLow} onChange={(e) => setOnlyLow(e.target.checked)} />
           <span>Only below minimum</span>
         </label>
-        <span className="st-spacer" />
-        <span className="st-note">
-          {shown.length} of {rows.length}
-        </span>
       </div>
 
+      <p className="st-tbl-count">
+        {shown.length === rows.length ? `${rows.length} SKUs` : `${shown.length} of ${rows.length}`}
+      </p>
+
       {shown.length === 0 ? (
-        <p className="st-empty">Nothing matches. Add products in Shop → Products.</p>
+        <p className="st-empty">
+          {rows.length === 0
+            ? 'Nothing to count yet. Add products in Shop → Products.'
+            : 'Nothing matches those filters.'}
+        </p>
       ) : (
-        <div className="st-card">
-          {shown.map((r) => (
-            <div className="st-slotlist-row" key={r.variant_id}>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <strong>{r.product_name}</strong>
-                {r.label !== 'Único' && <span className="st-note"> · {r.label}</span>}
-                {!r.active && (
-                  <span className="st-badge cancelled" style={{ marginLeft: '0.4rem' }}>
-                    inactive
-                  </span>
-                )}
-                <br />
-                <span className="st-b-ref">{r.sku}</span>
-              </span>
-
-              <span
-                className={r.qty_on_hand < 0 ? 'st-gate-warn' : isLow(r) ? 'st-gate-warn' : ''}
-                style={{ width: '5rem', textAlign: 'right', fontWeight: 700 }}
-              >
-                {r.qty_on_hand}
-                {isLow(r) && r.qty_on_hand >= 0 ? ' ⚠' : ''}
-              </span>
-
-              <span className="st-note" style={{ width: '7rem' }}>
-                min{' '}
-                <input
-                  type="number"
-                  min={0}
-                  defaultValue={r.reorder_point ?? ''}
-                  onBlur={(e) => {
-                    const v = e.target.value;
-                    if (v !== String(r.reorder_point ?? '')) void setReorderPoint(r, v);
-                  }}
-                  style={{ width: '3.5rem' }}
-                />
-              </span>
-
-              <span className="st-spacer" />
-              <button
-                className="st-btn st-btn-ghost st-btn-sm"
-                type="button"
-                onClick={() => setMoveFor(r)}
-              >
-                Move stock
-              </button>
-              <button
-                className="st-btn st-btn-ghost st-btn-sm"
-                type="button"
-                onClick={() => setKardexFor(r)}
-              >
-                History
-              </button>
-            </div>
-          ))}
+        <div className="st-tbl-wrap">
+          <table className="st-tbl">
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">Category</th>
+                <th scope="col" className="st-tbl-num">
+                  In stock
+                </th>
+                <th scope="col" className="st-tbl-num">
+                  Minimum
+                </th>
+                <th scope="col">
+                  <span className="st-sr">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => {
+                const low = isLow(r);
+                const neg = r.qty_on_hand < 0;
+                return (
+                  <tr key={r.variant_id}>
+                    <td>
+                      <span className="st-tbl-name">
+                        {r.product_name}
+                        {r.label !== 'Único' && (
+                          <span className="st-inv-variant">{r.label}</span>
+                        )}
+                        {!r.active && <span className="st-badge cancelled">inactive</span>}
+                      </span>
+                      <span className="st-tbl-sub">{r.sku}</span>
+                    </td>
+                    <td className="st-tbl-cat">{r.category}</td>
+                    <td className="st-tbl-num">
+                      <span
+                        className={`st-tbl-stock${neg ? ' out' : low ? ' low' : ''}`}
+                        title={
+                          neg
+                            ? 'Negative: a count is missing'
+                            : low
+                              ? 'At or below the minimum'
+                              : undefined
+                        }
+                      >
+                        {r.qty_on_hand}
+                      </span>
+                      {(neg || low) && (
+                        <span className={`st-inv-flag${neg ? ' neg' : ''}`}>{neg ? '!' : '⚠'}</span>
+                      )}
+                    </td>
+                    <td className="st-tbl-num">
+                      <input
+                        className="st-inv-min"
+                        type="number"
+                        min={0}
+                        defaultValue={r.reorder_point ?? ''}
+                        placeholder="—"
+                        aria-label={`Minimum for ${r.product_name}`}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          if (v !== String(r.reorder_point ?? '')) void setReorderPoint(r, v);
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <span className="st-tbl-acts">
+                        <button
+                          className="st-btn st-btn-ghost st-btn-sm"
+                          type="button"
+                          onClick={() => setMoveFor(r)}
+                        >
+                          Move stock
+                        </button>
+                        <button
+                          className="st-btn st-btn-ghost st-btn-sm"
+                          type="button"
+                          onClick={() => setKardexFor(r)}
+                        >
+                          History
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -473,25 +511,38 @@ function KardexModal({ row, onClose }: { row: Row; onClose: () => void }) {
         )}
         {moves && moves.length === 0 && <p className="st-empty">No movements yet.</p>}
         {moves && moves.length > 0 && (
-          <div className="st-card" style={{ marginBottom: 0 }}>
-            {moves.map((m) => (
-              <div className="st-slotlist-row" key={m.id}>
-                <span
-                  style={{ width: '3.5rem', textAlign: 'right', fontWeight: 700 }}
-                  className={m.delta < 0 ? 'st-gate-warn' : ''}
-                >
-                  {m.delta > 0 ? `+${m.delta}` : m.delta}
-                </span>
-                <span className="st-badge confirmed">{REASON_LABEL[m.reason] ?? m.reason}</span>
-                <span className="st-note" style={{ flex: 1, minWidth: 0 }}>
-                  {m.note ?? '—'}
-                </span>
-                <span className="st-note">
-                  {dt(m.created_at)}
-                  {one(m.profiles)?.display_name ? ` · ${one(m.profiles)!.display_name}` : ''}
-                </span>
-              </div>
-            ))}
+          <div className="st-tbl-wrap">
+            <table className="st-tbl st-tbl-sm">
+              <thead>
+                <tr>
+                  <th scope="col" className="st-tbl-num">
+                    Change
+                  </th>
+                  <th scope="col">Reason</th>
+                  <th scope="col">Note</th>
+                  <th scope="col">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {moves.map((m) => (
+                  <tr key={m.id}>
+                    <td className="st-tbl-num">
+                      <span className={`st-inv-delta${m.delta < 0 ? ' down' : ''}`}>
+                        {m.delta > 0 ? `+${m.delta}` : m.delta}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="st-src">{REASON_LABEL[m.reason] ?? m.reason}</span>
+                    </td>
+                    <td className="st-tbl-muted">{m.note ?? '—'}</td>
+                    <td className="st-tbl-muted st-inv-when">
+                      {dt(m.created_at)}
+                      {one(m.profiles)?.display_name ? ` · ${one(m.profiles)!.display_name}` : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

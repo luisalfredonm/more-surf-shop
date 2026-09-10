@@ -1790,3 +1790,74 @@
   border-color: var(--teal);
   background: var(--white);
 }
+
+/* ----- Shop: Inventory ----- */
+.st-inv-rule { margin: 0 0 1rem; }
+.st-tbl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-size: 0.86rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.st-tbl-check:hover { border-color: var(--navy); }
+.st-inv-variant {
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--bg-alt);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+/* La marca va aparte del numero para no romper la alineacion de la columna. */
+.st-inv-flag { margin-left: 0.3rem; font-size: 0.75rem; color: #9a6114; }
+.st-inv-flag.neg { color: #b3261e; font-weight: 700; }
+.st-inv-min {
+  width: 4rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: right;
+  color: var(--text);
+}
+.st-inv-min:hover { border-color: var(--border); background: var(--bg); }
+.st-inv-min:focus { outline: none; border-color: var(--teal); background: var(--white); }
+.st-inv-delta { font-weight: 700; color: #2f7a55; }
+.st-inv-delta.down { color: #b3261e; }
+.st-inv-when { white-space: nowrap; font-size: 0.76rem; }
+
+/* ----- Shop: Orders ----- */
+.st-ord-contact {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.st-ord-items { max-width: 22rem; }
+.st-ord-lines {
+  display: block;
+  color: var(--navy);
+  line-height: 1.35;
+}
+.st-ord-note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.st-ord-when { white-space: nowrap; font-size: 0.8rem; color: var(--text-muted); }
+.st-ord-when .st-tbl-sub { font-family: inherit; }
+/* Los botones de cobro no se parten en dos lineas en pantallas medianas. */
+.st-ord-acts { flex-wrap: nowrap; }
+.st-ord-done { display: block; text-align: center; }
+.st-ord-hint { margin: 0.75rem 0 0; }
