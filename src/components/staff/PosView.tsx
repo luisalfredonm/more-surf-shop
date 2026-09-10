@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getBrowserSupabase } from '@lib/supabase-browser';
 import { BUSINESS } from '@lib/constants';
 
@@ -8,6 +8,10 @@ import { BUSINESS } from '@lib/constants';
  * No hay lector de código de barras (decisión 4): se vende con búsqueda por
  * nombre + grilla de productos, los destacados primero. Con ~50 productos eso
  * es más rápido que cualquier scanner.
+ *
+ * Tampoco hay línea de impuesto: los precios ya lo incluyen y el sistema no
+ * calcula desglose (ver docs/ETAPA-3-SHOP.md §3). Se dice "tax included" y
+ * listo, en vez de inventar un porcentaje.
  *
  * El cobro lo cierra /api/shop/pos-sale, que corre todo en una transacción y
  * estampa collected_by + shift_id: la venta entra al cierre de caja sola.
@@ -34,9 +38,16 @@ interface CartLine {
   variant_id: string;
   name: string;
   label: string;
+  image: string | null;
   price: number;
   qty: number;
   available: number;
+}
+
+/** Línea lista para mandar: con el descuento ya repartido. */
+interface PricedLine extends CartLine {
+  discount: number;
+  lineTotal: number;
 }
 
 interface SaleResult {
@@ -48,7 +59,32 @@ interface SaleResult {
   cashReceived: number | null;
 }
 
+type Method = 'cash' | 'card' | 'split';
+
 const lineName = (name: string, label: string) => (label === 'Único' ? name : `${name} · ${label}`);
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/**
+ * Reparte un descuento de venta entre las líneas, en proporción a cada una.
+ * La última se lleva el resto para que la suma cierre AL CENTAVO: el RPC
+ * recalcula el total del lado del server y aborta con payment_mismatch si lo
+ * cobrado no coincide, así que un centavo de deriva tumbaría la venta.
+ */
+function priceLines(cart: CartLine[], discount: number): PricedLine[] {
+  const gross = cart.map((l) => round2(l.price * l.qty));
+  const subtotal = round2(gross.reduce((s, n) => s + n, 0));
+  const disc = Math.min(Math.max(discount, 0), subtotal);
+  if (disc === 0 || subtotal === 0) {
+    return cart.map((l, i) => ({ ...l, discount: 0, lineTotal: gross[i] }));
+  }
+  let assigned = 0;
+  return cart.map((l, i) => {
+    const last = i === cart.length - 1;
+    const d = last ? round2(disc - assigned) : round2((disc * gross[i]) / subtotal);
+    assigned = round2(assigned + d);
+    return { ...l, discount: d, lineTotal: round2(gross[i] - d) };
+  });
+}
 
 export default function PosView() {
   const [rows, setRows] = useState<CatalogRow[]>([]);
@@ -59,9 +95,12 @@ export default function PosView() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState<string>('all');
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [discount, setDiscount] = useState('');
+  const [method, setMethod] = useState<Method>('cash');
   const [picking, setPicking] = useState<CatalogRow[] | null>(null);
   const [paying, setPaying] = useState(false);
   const [sale, setSale] = useState<SaleResult | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,6 +126,19 @@ export default function PosView() {
     void load();
   }, [load]);
 
+  // ⌘K / Ctrl+K vuelve a la búsqueda sin soltar el teclado.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Una tarjeta por producto; las variantes se eligen al tocarlo.
   const products = useMemo(() => {
     const byProduct = new Map<string, CatalogRow[]>();
@@ -98,10 +150,7 @@ export default function PosView() {
     return [...byProduct.values()];
   }, [rows]);
 
-  const categories = useMemo(
-    () => ['all', ...new Set(rows.map((r) => r.category))],
-    [rows],
-  );
+  const categories = useMemo(() => ['all', ...new Set(rows.map((r) => r.category))], [rows]);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -111,7 +160,9 @@ export default function PosView() {
       if (!needle) return true;
       return (
         p.name.toLowerCase().includes(needle) ||
-        vs.some((v) => v.sku.toLowerCase().includes(needle) || v.label.toLowerCase().includes(needle))
+        vs.some(
+          (v) => v.sku.toLowerCase().includes(needle) || v.label.toLowerCase().includes(needle),
+        )
       );
     });
   }, [products, q, category]);
@@ -130,6 +181,7 @@ export default function PosView() {
           variant_id: v.variant_id,
           name: v.name,
           label: v.label,
+          image: (v.image_urls ?? [])[0] ?? null,
           price: Number(v.price),
           qty: 1,
           available: v.available,
@@ -152,10 +204,25 @@ export default function PosView() {
     );
   }
 
-  const total = useMemo(
-    () => round2(cart.reduce((s, l) => s + l.price * l.qty, 0)),
+  function drop(variantId: string) {
+    setCart((c) => c.filter((l) => l.variant_id !== variantId));
+  }
+
+  function reset() {
+    setCart([]);
+    setDiscount('');
+    setMethod('cash');
+  }
+
+  const subtotal = useMemo(
+    () => round2(cart.reduce((s, l) => s + round2(l.price * l.qty), 0)),
     [cart],
   );
+  const disc = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
+  const priced = useMemo(() => priceLines(cart, disc), [cart, disc]);
+  const total = useMemo(() => round2(priced.reduce((s, l) => s + l.lineTotal, 0)), [priced]);
+  const count = cart.reduce((s, l) => s + l.qty, 0);
+  const overstock = cart.some((l) => l.qty > l.available);
 
   if (loading) {
     return (
@@ -175,29 +242,29 @@ export default function PosView() {
       )}
 
       <div className="st-pos">
-        <div>
-          <div className="st-filters" style={{ marginBottom: '0.75rem' }}>
-            <div className="st-field" style={{ flex: 1 }}>
-              <label htmlFor="pos-q">Search</label>
-              <input
-                id="pos-q"
-                autoFocus
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Product name or SKU"
-              />
-            </div>
+        <div className="st-pos-left">
+          <div className="st-pos-search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              ref={searchRef}
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by product name or SKU…"
+              aria-label="Search products"
+            />
+            <kbd>{isMac ? '⌘K' : 'Ctrl K'}</kbd>
           </div>
 
-          <div className="st-chiprow" style={{ marginBottom: '0.75rem' }}>
+          <div className="st-pos-tabs">
             {categories.map((c) => (
               <button
                 key={c}
                 type="button"
-                className={`st-dchip ${category === c ? 'on' : ''}`}
+                className={`st-pos-tab ${category === c ? 'on' : ''}`}
                 onClick={() => setCategory(c)}
               >
-                {c}
+                {c === 'all' ? 'All' : c}
               </button>
             ))}
           </div>
@@ -213,6 +280,7 @@ export default function PosView() {
               {shown.map((vs) => {
                 const p = vs[0];
                 const stock = vs.reduce((s, v) => s + v.available, 0);
+                const img = (p.image_urls ?? [])[0] ?? null;
                 return (
                   <button
                     key={p.product_id}
@@ -220,17 +288,20 @@ export default function PosView() {
                     className={`st-pos-item${stock <= 0 ? ' is-out' : ''}`}
                     onClick={() => pick(vs)}
                   >
+                    <span className="st-pos-item-photo">
+                      {img ? (
+                        <img src={img} alt="" loading="lazy" />
+                      ) : (
+                        <span className="st-pos-ph" aria-hidden="true">
+                          {p.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      {vs.length > 1 && <span className="st-pos-item-opts">{vs.length}</span>}
+                    </span>
                     <span className="st-pos-item-name">{p.name}</span>
-                    {vs.length > 1 && (
-                      <span className="st-note" style={{ fontSize: '0.72rem' }}>
-                        {vs.length} options
-                      </span>
-                    )}
-                    <span className="st-pos-item-meta">
-                      <span className="st-pos-item-price">{money(p.price)}</span>
-                      <span className={`st-pos-item-stock${stock <= 3 ? ' low' : ''}`}>
-                        {stock} left
-                      </span>
+                    <span className="st-pos-item-price">{money(p.price)}</span>
+                    <span className={`st-pos-item-stock${stock <= 3 ? ' low' : ''}`}>
+                      {stock <= 0 ? 'Out of stock' : `Stock: ${stock}`}
                     </span>
                   </button>
                 );
@@ -239,66 +310,139 @@ export default function PosView() {
           )}
         </div>
 
-        <div className="st-pos-cart">
-          <h3>Sale</h3>
+        <aside className="st-pos-cart">
+          <div className="st-pos-cart-hd">
+            <h3>Current sale{count > 0 ? ` (${count})` : ''}</h3>
+            {cart.length > 0 && (
+              <button type="button" className="st-linkbtn" onClick={reset}>
+                Clear
+              </button>
+            )}
+          </div>
+
           {cart.length === 0 ? (
-            <p className="st-note">Tap a product to start.</p>
+            <p className="st-note st-pos-empty">Tap a product to start a sale.</p>
           ) : (
             <>
-              {cart.map((l) => (
-                <div className="st-pos-line" key={l.variant_id}>
-                  <span className="st-pos-line-name">{lineName(l.name, l.label)}</span>
-                  <span className="st-pos-line-total">{money(l.price * l.qty)}</span>
-                  <span className="st-pos-line-ctl">
-                    <button
-                      type="button"
-                      className="st-pos-qty"
-                      onClick={() => setQty(l.variant_id, -1)}
-                      aria-label="One less"
-                    >
-                      −
-                    </button>
-                    <strong>{l.qty}</strong>
-                    <button
-                      type="button"
-                      className="st-pos-qty"
-                      onClick={() => setQty(l.variant_id, 1)}
-                      aria-label="One more"
-                    >
-                      +
-                    </button>
-                    <span>× {money(l.price)}</span>
-                    {l.qty > l.available && (
-                      <span className="st-gate-warn">⚠ only {l.available} left</span>
-                    )}
+              <div className="st-pos-lines">
+                {priced.map((l) => (
+                  <div className="st-pos-line" key={l.variant_id}>
+                    <span className="st-pos-line-thumb">
+                      {l.image ? (
+                        <img src={l.image} alt="" loading="lazy" />
+                      ) : (
+                        <span aria-hidden="true">{l.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </span>
+
+                    <span className="st-pos-line-body">
+                      <span className="st-pos-line-name">{l.name}</span>
+                      {l.label !== 'Único' && (
+                        <span className="st-pos-line-sub">{l.label}</span>
+                      )}
+                      <span className="st-pos-qty">
+                        <button
+                          type="button"
+                          onClick={() => setQty(l.variant_id, -1)}
+                          aria-label={`One less ${l.name}`}
+                        >
+                          −
+                        </button>
+                        <strong>{l.qty}</strong>
+                        <button
+                          type="button"
+                          onClick={() => setQty(l.variant_id, 1)}
+                          aria-label={`One more ${l.name}`}
+                        >
+                          +
+                        </button>
+                        <span className="st-pos-line-unit">× {money(l.price)}</span>
+                      </span>
+                      {l.qty > l.available && (
+                        <span className="st-gate-warn">⚠ only {l.available} in stock</span>
+                      )}
+                    </span>
+
+                    <span className="st-pos-line-right">
+                      <button
+                        type="button"
+                        className="st-pos-line-x"
+                        onClick={() => drop(l.variant_id)}
+                        aria-label={`Remove ${l.name}`}
+                      >
+                        ✕
+                      </button>
+                      <span className="st-pos-line-total">{money(l.lineTotal)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="st-pos-sums">
+                <div>
+                  <span>Subtotal</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+                <div className="st-pos-disc">
+                  <label htmlFor="pos-disc">Discount</label>
+                  <span>
+                    <em>−$</em>
+                    <input
+                      id="pos-disc"
+                      type="number"
+                      min={0}
+                      max={subtotal}
+                      step="0.01"
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      placeholder="0.00"
+                    />
                   </span>
                 </div>
-              ))}
+              </div>
 
               <div className="st-pos-total">
                 <span>Total</span>
                 <strong>{money(total)}</strong>
               </div>
+              <p className="st-pos-taxnote">Tax included</p>
 
+              <div className="st-pos-methods">
+                {(
+                  [
+                    ['cash', 'Cash'],
+                    ['card', 'Card'],
+                    ['split', 'Split'],
+                  ] as [Method, string][]
+                ).map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`st-pos-method ${method === m ? 'on' : ''}`}
+                    onClick={() => setMethod(m)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <button
-                className="st-btn st-btn-primary st-btn-block"
+                className="st-btn st-btn-primary st-pos-checkout"
                 type="button"
                 disabled={hasShift !== true || total <= 0}
                 onClick={() => setPaying(true)}
               >
-                Charge {money(total)}
+                <span>Checkout</span>
+                <strong>{money(total)}</strong>
               </button>
-              <button
-                className="st-btn st-btn-ghost st-btn-sm st-btn-block"
-                type="button"
-                style={{ marginTop: '0.4rem' }}
-                onClick={() => setCart([])}
-              >
-                Clear
-              </button>
+              {overstock && (
+                <p className="st-note st-pos-warn">
+                  Over the counted stock. The sale still goes through.
+                </p>
+              )}
+
             </>
           )}
-        </div>
+        </aside>
       </div>
 
       {picking && (
@@ -307,21 +451,20 @@ export default function PosView() {
 
       {paying && (
         <PayModal
-          cart={cart}
+          lines={priced}
           total={total}
+          method={method}
           onClose={() => setPaying(false)}
           onDone={(result) => {
             setPaying(false);
-            setCart([]);
+            reset();
             setSale(result);
             void load();
           }}
         />
       )}
 
-      {sale && (
-        <ReceiptModal sale={sale} staffName={staffName} onClose={() => setSale(null)} />
-      )}
+      {sale && <ReceiptModal sale={sale} staffName={staffName} onClose={() => setSale(null)} />}
     </div>
   );
 }
@@ -355,21 +498,19 @@ function VariantPicker({
             ×
           </button>
         </div>
-        <div className="st-pos-grid">
+        <div className="st-pos-varlist">
           {variants.map((v) => (
             <button
               key={v.variant_id}
               type="button"
-              className={`st-pos-item${v.available <= 0 ? ' is-out' : ''}`}
+              className={`st-pos-var${v.available <= 0 ? ' is-out' : ''}`}
               onClick={() => onPick(v)}
             >
-              <span className="st-pos-item-name">{v.label}</span>
-              <span className="st-pos-item-meta">
-                <span className="st-pos-item-price">{money(v.price)}</span>
-                <span className={`st-pos-item-stock${v.available <= 3 ? ' low' : ''}`}>
-                  {v.available} left
-                </span>
+              <span className="st-pos-var-label">{v.label}</span>
+              <span className={`st-pos-item-stock${v.available <= 3 ? ' low' : ''}`}>
+                {v.available <= 0 ? 'Out of stock' : `Stock: ${v.available}`}
               </span>
+              <span className="st-pos-item-price">{money(v.price)}</span>
             </button>
           ))}
         </div>
@@ -381,17 +522,19 @@ function VariantPicker({
 // ---------- Cobro ----------
 
 function PayModal({
-  cart,
+  lines,
   total,
+  method,
   onClose,
   onDone,
 }: {
-  cart: CartLine[];
+  lines: PricedLine[];
   total: number;
+  method: Method;
   onClose: () => void;
   onDone: (r: SaleResult) => void;
 }) {
-  const [mode, setMode] = useState<'cash' | 'card' | 'split'>('cash');
+  const [mode, setMode] = useState<Method>(method);
   const [received, setReceived] = useState('');
   const [cashPart, setCashPart] = useState('');
   const [busy, setBusy] = useState(false);
@@ -441,7 +584,11 @@ function PayModal({
           Authorization: `Bearer ${sess.session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
-          items: cart.map((l) => ({ variant_id: l.variant_id, qty: l.qty })),
+          items: lines.map((l) => ({
+            variant_id: l.variant_id,
+            qty: l.qty,
+            discount: l.discount || undefined,
+          })),
           payments,
         }),
       });
@@ -470,7 +617,10 @@ function PayModal({
   }
 
   return (
-    <div className="st-modal" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
+    <div
+      className="st-modal"
+      onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}
+    >
       <div className="st-modal-card" role="dialog" aria-modal="true" aria-label="Charge">
         <div className="st-modal-hd">
           <h3>Charge {money(total)}</h3>
@@ -484,15 +634,21 @@ function PayModal({
 
         <div className="st-field">
           <label>Method</label>
-          <div className="st-chiprow">
-            {(['cash', 'card', 'split'] as const).map((m) => (
+          <div className="st-pos-methods">
+            {(
+              [
+                ['cash', 'Cash'],
+                ['card', 'Card'],
+                ['split', 'Split'],
+              ] as [Method, string][]
+            ).map(([m, label]) => (
               <button
                 key={m}
                 type="button"
-                className={`st-dchip ${mode === m ? 'on' : ''}`}
+                className={`st-pos-method ${mode === m ? 'on' : ''}`}
                 onClick={() => setMode(m)}
               >
-                {m === 'cash' ? 'Cash' : m === 'card' ? 'Card' : 'Split'}
+                {label}
               </button>
             ))}
           </div>
@@ -514,9 +670,7 @@ function PayModal({
             </div>
             <div className="st-field">
               <label>Change</label>
-              <span className="st-pos-change">
-                {cashIn >= total ? money(change) : '—'}
-              </span>
+              <span className="st-pos-change">{cashIn >= total ? money(change) : '—'}</span>
             </div>
           </div>
         )}
