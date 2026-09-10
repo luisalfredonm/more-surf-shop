@@ -1634,6 +1634,9 @@
 .st-tbl-sm { font-size: 0.82rem; }
 .st-tbl-sm .st-b-ref { white-space: nowrap; }
 .st-tbl-sm td, .st-tbl-sm thead th { padding: 0.45rem 0.8rem; }
+/* El numero alineado a la derecha quedaba pegado al badge de la columna
+   siguiente. Se separan con aire propio, no moviendo la alineacion. */
+.st-tbl-sm .st-tbl-num { padding-right: 1.4rem; }
 
 /* ----- Panel de edición del producto ----- */
 .st-tbl-panel td {
@@ -1766,3 +1769,24 @@
   border-top: 1px solid var(--border);
 }
 .st-ped-ok { color: #2f7a55; font-weight: 600; font-size: 0.85rem; }
+
+/* Etiqueta de variante editable en su celda: se lee como texto hasta que la
+   tocas. Sin esto, un producto creado como simple se quedaba con 'Único'
+   para siempre. */
+.st-ped-label {
+  width: 100%;
+  min-width: 5rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--navy);
+}
+.st-ped-label:hover { border-color: var(--border); background: var(--bg); }
+.st-ped-label:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: var(--white);
+}

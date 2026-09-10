@@ -785,15 +785,16 @@ function VariantList({
       return;
     }
     setBusy(true);
-    const { error } = await getBrowserSupabase().from('product_variants').insert({
+    const sb = getBrowserSupabase();
+    const { error } = await sb.from('product_variants').insert({
       product_id: product.id,
       sku: `${product.slug}-${slugify(label)}`,
       label: label.trim(),
       price_override: price === '' ? null : Number(price),
       sort_order: variants.length,
     });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       setErr(
         (error as { code?: string }).code === '23505'
           ? 'That variant already exists for this product.'
@@ -801,8 +802,35 @@ function VariantList({
       );
       return;
     }
+    // El producto pasa a tener variantes por el hecho de agregar una. Antes
+    // habia que marcarlo antes en un campo que solo existia en el alta, asi
+    // que en la practica no se podian agregar variantes despues.
+    if (!product.has_variants) {
+      await sb.from('products').update({ has_variants: true }).eq('id', product.id);
+    }
+    setBusy(false);
     setLabel('');
     setPrice('');
+    onSaved();
+  }
+
+  /** Renombrar la etiqueta. El SKU no cambia: es interno y estable. */
+  async function rename(v: Variant, next: string) {
+    const clean = next.trim();
+    if (!clean || clean === v.label) return;
+    const { error } = await getBrowserSupabase()
+      .from('product_variants')
+      .update({ label: clean })
+      .eq('id', v.id);
+    if (error) {
+      setErr(
+        (error as { code?: string }).code === '23505'
+          ? `This product already has a variant called "${clean}".`
+          : error.message,
+      );
+      return;
+    }
+    setErr(null);
     onSaved();
   }
 
@@ -867,7 +895,19 @@ function VariantList({
                 return (
                   <tr key={v.id}>
                     <td>
-                      <span className="st-tbl-name">{v.label}</span>
+                      <input
+                        className="st-ped-label"
+                        defaultValue={v.label}
+                        aria-label={`Rename ${v.label}`}
+                        onBlur={(e) => rename(v, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur();
+                          if (e.key === 'Escape') {
+                            e.currentTarget.value = v.label;
+                            e.currentTarget.blur();
+                          }
+                        }}
+                      />
                     </td>
                     <td>
                       <span className="st-b-ref">{v.sku}</span>
@@ -914,33 +954,31 @@ function VariantList({
 
       {err && <div className="st-err">{err}</div>}
 
-      {product.has_variants ? (
-        <form className="st-ped-addvar" onSubmit={addVariant}>
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Label (M, L / Black…)"
-            aria-label="Variant label"
-          />
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="Price"
-            title="Leave empty to use the product price"
-            aria-label="Variant price override"
-          />
-          <button className="st-btn st-btn-ghost st-btn-sm" type="submit" disabled={busy}>
-            {busy ? 'Adding…' : '+ Add variant'}
-          </button>
-        </form>
-      ) : (
-        <p className="st-note">
-          Set <strong>Sizes / colors</strong> to <em>Yes</em> above and save to add variants.
-        </p>
-      )}
+      <form className="st-ped-addvar" onSubmit={addVariant}>
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Label (M, L / Black…)"
+          aria-label="Variant label"
+        />
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="Price"
+          title="Leave empty to use the product price"
+          aria-label="Variant price override"
+        />
+        <button className="st-btn st-btn-ghost st-btn-sm" type="submit" disabled={busy}>
+          {busy ? 'Adding…' : '+ Add variant'}
+        </button>
+      </form>
+      <p className="st-note">
+        A size, a color, or both: <code>M</code>, <code>L / Black</code>. Leave the price empty
+        to use the product price. Click a label to rename it.
+      </p>
     </div>
   );
 }
