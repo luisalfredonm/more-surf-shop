@@ -16,14 +16,26 @@ export default function QrStickersView() {
   const [loading, setLoading] = useState(true);
   const [includeRetired, setIncludeRetired] = useState(false);
   const [qrcode, setQrcode] = useState<typeof QrcodeFactory | null>(null);
+  // null = todavía cargando la librería; false = no cargó.
+  const [qrOk, setQrOk] = useState<boolean | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    void import('qrcode-generator').then((m) => setQrcode(() => m.default));
+    // Sin este catch, un import fallido dejaba la vista en "Loading…" para
+    // siempre y sin ninguna pista de qué pasó.
+    import('qrcode-generator')
+      .then((m) => {
+        setQrcode(() => m.default);
+        setQrOk(true);
+      })
+      .catch(() => setQrOk(false));
+
     void getBrowserSupabase()
       .from('board_units')
       .select('id, code, status, board_models ( name )')
       .order('code')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) setErr(error.message);
         setUnits((data ?? []) as unknown as Unit[]);
         setLoading(false);
       });
@@ -42,7 +54,7 @@ export default function QrStickersView() {
     [units, includeRetired],
   );
 
-  if (loading || !qrcode) {
+  if (loading || qrOk === null) {
     return (
       <p className="st-empty">
         <span className="st-spin">◠</span> Loading…
@@ -53,6 +65,13 @@ export default function QrStickersView() {
   return (
     <div>
       <div className="st-noprint">
+        {err && <div className="st-err">Could not load the fleet: {err}</div>}
+        {qrOk === false && (
+          <div className="st-err">
+            The QR generator did not load, so the stickers have no code. Reload the page; if it
+            keeps happening, restart the dev server. The board numbers below are still correct.
+          </div>
+        )}
         <p className="st-note" style={{ marginBottom: '0.75rem' }}>
           One sticker per board — the QR carries the <code>code</code>. Print, laminate and stick it
           on the board. The Rentals scanner reads it at hand-over and return.
@@ -67,7 +86,12 @@ export default function QrStickersView() {
             <span>Include retired boards</span>
           </label>
           <span className="st-spacer" />
-          <button className="st-btn st-btn-primary st-btn-sm" onClick={() => window.print()}>
+          <button
+            className="st-btn st-btn-primary st-btn-sm"
+            onClick={() => window.print()}
+            disabled={qrOk !== true}
+            title={qrOk !== true ? 'The QR generator did not load' : undefined}
+          >
             Print
           </button>
         </div>
