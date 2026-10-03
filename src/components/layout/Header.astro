@@ -30,9 +30,64 @@ const navLinks = [
       <Button variant="dark" size="sm" href="/surf-lessons-tamarindo#book" class="header-cta">
         Book Now
       </Button>
+      <button
+        type="button"
+        class="menu-toggle"
+        aria-controls="mobile-menu"
+        aria-expanded="false"
+        aria-label="Abrir menú"
+      >
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+      </button>
     </nav>
   </div>
+
+  <!-- Menú mobile: panel debajo del header (absolute, no cambia su altura,
+       así la barra sticky de rentals/catalog.css sigue anclada igual). -->
+  <div id="mobile-menu" class="mobile-menu" hidden>
+    <ul>
+      {navLinks.map((link) => (
+        <li><a href={link.href}>{link.label}</a></li>
+      ))}
+    </ul>
+    <Button variant="dark" href="/surf-lessons-tamarindo#book" class="mobile-cta">
+      Book Now
+    </Button>
+  </div>
 </header>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
+  const menu = document.getElementById('mobile-menu');
+
+  if (toggle && menu) {
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+      menu.hidden = !open;
+    };
+
+    toggle.addEventListener('click', () => {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+    // Cerrar al elegir un link (incluye anclas #book en la misma página).
+    menu.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !menu.hidden) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    // Si se agranda la ventana a desktop con el menú abierto, cerrarlo.
+    window.matchMedia('(min-width: 901px)').addEventListener('change', (e) => {
+      if (e.matches) setOpen(false);
+    });
+  }
+</script>
 
 <style>
   .header {
@@ -86,8 +141,72 @@ const navLinks = [
   }
   .nav-links a:hover { color: var(--teal-dark); }
 
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    padding: 0 11px;
+    margin-right: -11px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .menu-bar {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: var(--navy);
+    border-radius: 2px;
+    transition: transform 200ms, opacity 200ms;
+  }
+  .menu-toggle[aria-expanded='true'] .menu-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .menu-toggle[aria-expanded='true'] .menu-bar:nth-child(2) { opacity: 0; }
+  .menu-toggle[aria-expanded='true'] .menu-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-bottom: 1px solid rgba(229, 222, 205, 0.8);
+    box-shadow: 0 12px 24px rgba(10, 37, 64, 0.08);
+    padding: 0.5rem 1rem 1.25rem;
+  }
+  .mobile-menu[hidden] { display: none; }
+  .mobile-menu ul {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+  .mobile-menu li + li { border-top: 1px solid rgba(229, 222, 205, 0.6); }
+  .mobile-menu a:not(.mobile-cta) {
+    display: block;
+    padding: 0.875rem 0.25rem;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .mobile-menu :global(.mobile-cta) {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+
   @media (max-width: 900px) {
     .nav-links { display: none; }
+    .menu-toggle { display: flex; }
+  }
+  @media (min-width: 901px) {
+    .mobile-menu { display: none !important; }
   }
   @media (max-width: 640px) {
     .header-cta { display: none; }
