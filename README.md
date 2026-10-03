@@ -36,7 +36,8 @@ src/
 └── assets/images/               # Imágenes optimizadas por Astro
 public/
 ├── robots.txt
-└── (favicon, og-default.jpg, logo.png — pendientes)
+├── images/logo.png
+└── (favicon, og-default.jpg — pendientes)
 supabase/schema.sql              # Schema con RLS
 ```
 
@@ -132,7 +133,7 @@ Antes de quitar `noindex` de cualquier página y de anunciar el sitio, reemplaza
 
 - [ ] `src/lib/constants.ts` — WhatsApp number, dirección exacta, coords GPS precisas, horarios reales, redes sociales
 - [ ] `public/og-default.jpg` — imagen de 1200×630 (foto de la playa/instructor)
-- [ ] `public/logo.png` — logo del negocio
+- [x] `public/images/logo.png` — logo del negocio (PNG transparente, recortado al contenido)
 - [ ] `public/favicon.svg` + `favicon.png` + `apple-touch-icon.png`
 - [ ] Fotos reales en Hero, FamilyKids, Instructors (reemplazar Unsplash placeholders)
 - [ ] Datos reales en Supabase: `class_types` (precios), `instructors` (nombres, bios, fotos), `reviews` (quotes reales de Google/TripAdvisor)

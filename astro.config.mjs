@@ -35,6 +35,14 @@ export default defineConfig({
     '/book': '/surf-lessons-tamarindo#book',
   },
   vite: {
+    // El panel de staff es client:only, y el escáner de Vite no lo recorre al
+    // arrancar: descubría estas dependencias recién al abrir /staff, volvía a
+    // optimizar y los imports ya compilados quedaban apuntando al hash viejo
+    // (504 "Outdated Optimize Dep" -> QR Stickers sin QR hasta reiniciar).
+    // Declaradas acá se pre-empaquetan desde el arranque.
+    optimizeDeps: {
+      include: ['@supabase/supabase-js', 'qrcode-generator', 'jsqr', 'react-dom'],
+    },
     ssr: {
       noExternal: ['@supabase/supabase-js'],
     },

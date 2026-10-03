@@ -1861,3 +1861,166 @@
 .st-ord-acts { flex-wrap: nowrap; }
 .st-ord-done { display: block; text-align: center; }
 .st-ord-hint { margin: 0.75rem 0 0; }
+
+/* ----- Sales: listado de pagos + reporte imprimible ----- */
+/* Alineado con los inputs de fecha, que llevan el margen de .st-field. */
+.st-rep-print { margin-bottom: 1rem; }
+
+.st-rep { margin-top: 0.5rem; }
+.st-rep-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.st-rep-top .st-h2 { margin-bottom: 0.6rem; }
+.st-rep-top .st-tbl-count { margin-bottom: 0.6rem; }
+
+.st-rep-table td { vertical-align: top; }
+.st-rep-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.st-rep-what { min-width: 14rem; }
+.st-rep-line {
+  display: block;
+  color: var(--navy);
+  line-height: 1.4;
+}
+.st-rep-method { white-space: nowrap; }
+.st-rep-tag {
+  display: inline-block;
+  margin-bottom: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b3261e;
+}
+.st-rep-neg { font-weight: 700; color: #b3261e; }
+.st-rep-table tr.is-refund td { background: rgba(179, 38, 30, 0.035); }
+
+/* Separador de día: sólo cuando el período abarca más de uno. */
+.st-rep-day th,
+.st-rep-day td {
+  padding-top: 0.9rem !important;
+  background: var(--bg);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--navy);
+  text-align: left;
+}
+.st-rep-day td { text-align: right; font-family: inherit; }
+.st-rep-day span {
+  margin-left: 0.6rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.st-rep-table tfoot th,
+.st-rep-table tfoot td {
+  padding: 0.55rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  font-weight: 600;
+  color: var(--navy);
+  text-align: left;
+}
+.st-rep-table tfoot td { text-align: right; }
+.st-rep-table tfoot tr:first-child th,
+.st-rep-table tfoot tr:first-child td { border-top: 2px solid var(--navy); }
+.st-rep-grand th,
+.st-rep-grand td { font-size: 1rem; }
+
+/* Sólo papel. */
+.st-rep-head,
+.st-rep-foot { display: none; }
+
+@media print {
+  .st-sales { color: #111; font-size: 10.5pt; }
+
+  .st-rep-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #111;
+  }
+  .st-rep-head img { height: 38px; width: auto; }
+  .st-rep-head div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.1rem;
+    font-size: 8.5pt;
+    color: #555;
+  }
+  .st-rep-head strong {
+    font-size: 8pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #111;
+  }
+  .st-rep-head .st-rep-period {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 15pt;
+    font-weight: 600;
+    color: #111;
+  }
+
+  .st-rep-foot {
+    display: block;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #bbb;
+    font-size: 8pt;
+    color: #555;
+  }
+
+  /* Totales: cuatro en fila; en papel el ancho cae bajo el corte de 720px. */
+  .st-sales .st-tiles { grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+  .st-sales .st-tile { padding: 0.55rem 0.7rem; border-color: #bbb; break-inside: avoid; }
+  .st-sales .st-tile-val { font-size: 15pt; }
+  .st-sales-cols { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .st-sales .st-card { padding: 0.75rem 0.9rem; margin-bottom: 0.75rem; border-color: #bbb; break-inside: avoid; }
+  .st-sales .st-h2 { font-size: 11.5pt; margin-bottom: 0.4rem; }
+  .st-sales-table { font-size: 9pt; }
+  .st-sales-table th,
+  .st-sales-table td { padding: 0.3rem 0.3rem; }
+  /* Sin esto el navegador no imprime fondos y las barras desaparecen. */
+  .st-sales-bar span { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .st-rep .st-tbl-wrap { overflow: visible; border: 0; border-radius: 0; }
+  .st-rep-table { font-size: 8.5pt; }
+  .st-rep-table thead th {
+    position: static;
+    padding: 0.35rem 0.4rem;
+    background: none;
+    border-bottom: 1.5px solid #111;
+    color: #111;
+  }
+  .st-rep-table td { padding: 0.35rem 0.4rem; border-bottom-color: #ddd; }
+  .st-rep-table tr { break-inside: avoid; }
+  /* El encabezado se repite en cada hoja; los totales van una sola vez, al final. */
+  .st-rep-table thead { display: table-header-group; }
+  .st-rep-table tfoot { display: table-row-group; }
+  .st-rep-table tfoot th,
+  .st-rep-table tfoot td { background: none; padding: 0.35rem 0.4rem; }
+  .st-rep-table tfoot tr:first-child th,
+  .st-rep-table tfoot tr:first-child td { border-top: 1.5px solid #111; }
+  .st-rep-day th,
+  .st-rep-day td { background: none; border-bottom: 1px solid #999; break-after: avoid; }
+  .st-rep-table tr.is-refund td { background: none; }
+  .st-rep-what { min-width: 0; }
+}

@@ -19,7 +19,7 @@ const navLinks = [
 <header class="header">
   <div class="header-inner">
     <a href="/" class="logo" aria-label="More Surf Shop, inicio">
-      <img src="/logo.png" alt="More Surf Shop" />
+      <img src="/images/logo.png" alt="More Surf Shop" width="850" height="351" />
     </a>
     <nav class="nav" aria-label="Primary">
       <ul class="nav-links">
@@ -47,7 +47,9 @@ const navLinks = [
   .header-inner {
     max-width: var(--container);
     margin: 0 auto;
-    padding: 1rem 1.5rem;
+    /* 12 + logo 44 + 12 + borde ≈ 69px: rentals/catalog.css ancla su barra
+       sticky en top: 72px (64px en mobile) justo debajo de este header. */
+    padding: 0.75rem 1.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -60,7 +62,7 @@ const navLinks = [
     flex-shrink: 0;
   }
   .logo img {
-    height: 30px;
+    height: 44px;
     width: auto;
     display: block;
   }
@@ -89,6 +91,7 @@ const navLinks = [
   }
   @media (max-width: 640px) {
     .header-cta { display: none; }
-    .header-inner { padding: 0.875rem 1rem; }
+    .header-inner { padding: 0.75rem 1rem; }
+    .logo img { height: 36px; }
   }
 </style>

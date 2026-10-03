@@ -242,7 +242,9 @@ export default function StaffApp() {
           {view === 'shop_inventory' && <InventoryView />}
           {view === 'shop_orders' && <OrdersView />}
           {view === 'cash' && <CashView />}
-          {view === 'sales' && profile.role === 'owner' && <SalesView />}
+          {view === 'sales' && profile.role === 'owner' && (
+            <SalesView printedBy={profile.display_name || undefined} />
+          )}
           {view === 'payments' && profile.role === 'owner' && <PaymentSettingsView />}
         </main>
       </div>

@@ -4,6 +4,7 @@ import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { isPayPalConfigured, refundCapture } from '@lib/paypal';
 import { requireStaff } from '@lib/staff-auth';
 import { cancelGroupLines } from '@lib/group-lines';
+import { captureIdFromNotes, recordPayPalRefund } from '@lib/paypal-refund';
 
 export const prerender = false;
 
@@ -52,12 +53,21 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'No hay un pago para reembolsar.', code: 'no_payment' }, 409);
   }
 
-  let captureId: string | null = null;
-  try {
-    captureId = JSON.parse(payment.notes ?? '{}').capture_id ?? null;
-  } catch {
-    /* noop */
+  // La venta sigue 'paid' después de reembolsar: lo que dice si ya se devolvió
+  // es la fila de reembolso.
+  const { data: already } = await supabase
+    .from('payments')
+    .select('id')
+    .eq('related_id', group.id)
+    .eq('provider', 'paypal')
+    .eq('status', 'refunded')
+    .limit(1)
+    .maybeSingle();
+  if (already) {
+    return json({ error: 'That reservation was already refunded.', code: 'already_refunded' }, 409);
   }
+
+  const captureId = captureIdFromNotes(payment.notes);
   if (!captureId) {
     return json({ error: 'Capture ID not found. Refund it manually in PayPal.', code: 'no_capture' }, 409);
   }
@@ -77,7 +87,15 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: `Reembolso no completado (${result.status}).`, code: 'not_completed' }, 409);
   }
 
-  await supabase.from('payments').update({ status: 'refunded' }).eq('id', payment.id);
+  await recordPayPalRefund(supabase, {
+    relatedType: 'booking_group',
+    relatedId: group.id,
+    amount: Number(group.total_amount),
+    currency: group.currency,
+    refundId: result.id,
+    captureId,
+    staffId: staff.userId,
+  });
   await cancelGroupLines(supabase, group.id);
   await supabase.from('booking_groups').update({ status: 'cancelled' }).eq('id', group.id);
 

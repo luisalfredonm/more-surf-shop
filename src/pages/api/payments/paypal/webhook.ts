@@ -4,6 +4,7 @@ import { getSupabase, isSupabaseConfigured } from '@lib/supabase';
 import { verifyWebhook, captureBreakdown } from '@lib/paypal';
 import { sendBookingGroupEmails } from '@lib/email';
 import { confirmGroupLines, cancelGroupLines } from '@lib/group-lines';
+import { captureIdFromNotes, recordPayPalRefund } from '@lib/paypal-refund';
 
 export const prerender = false;
 
@@ -50,6 +51,7 @@ async function confirmGroup(supabase: SupabaseClient, groupId: string, resource:
     .select('id')
     .eq('related_id', group.id)
     .eq('provider', 'paypal')
+    .neq('status', 'refunded') // una fila de reembolso nunca se recicla como cobro
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -66,6 +68,45 @@ async function confirmGroup(supabase: SupabaseClient, groupId: string, resource:
   await supabase.from('booking_groups').update({ status: 'confirmed' }).eq('id', group.id);
 
   await sendBookingGroupEmails(group.id);
+}
+
+/**
+ * Reembolso o reversión hecha desde PayPal (o el eco de uno hecho desde el
+ * panel). Se registra como fila nueva; si refund.ts ya la registró, el índice
+ * único la descarta. Antes se pisaban a 'refunded' TODAS las filas PayPal del
+ * grupo, incluidos los intentos de checkout abandonados.
+ */
+async function recordRefund(
+  supabase: SupabaseClient,
+  relatedId: string,
+  type: string,
+  resource: any,
+): Promise<void> {
+  const { data: sale } = await supabase
+    .from('payments')
+    .select('related_type, amount, currency, notes')
+    .eq('related_id', relatedId)
+    .eq('provider', 'paypal')
+    .eq('status', 'paid')
+    .order('paid_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!sale) return;
+
+  // REFUNDED trae el reembolso (su monto); REVERSED trae la captura entera.
+  const value = Number(resource?.amount?.value);
+  const amount =
+    Number.isFinite(value) && value > 0 ? Math.min(value, Number(sale.amount)) : Number(sale.amount);
+
+  await recordPayPalRefund(supabase, {
+    relatedType: sale.related_type,
+    relatedId,
+    amount,
+    currency: sale.currency,
+    refundId: type === 'PAYMENT.CAPTURE.REFUNDED' ? (resource?.id ?? null) : null,
+    captureId: captureIdFromNotes(sale.notes),
+    staffId: null,
+  });
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -102,11 +143,7 @@ export const POST: APIRoute = async ({ request }) => {
       (type === 'PAYMENT.CAPTURE.REFUNDED' || type === 'PAYMENT.CAPTURE.REVERSED') &&
       groupId
     ) {
-      await supabase
-        .from('payments')
-        .update({ status: 'refunded' })
-        .eq('related_id', groupId)
-        .eq('provider', 'paypal');
+      await recordRefund(supabase, groupId, type, resource);
       await cancelGroupLines(supabase, groupId);
       await supabase
         .from('booking_groups')
@@ -117,7 +154,8 @@ export const POST: APIRoute = async ({ request }) => {
         .from('payments')
         .update({ status: 'failed' })
         .eq('related_id', groupId)
-        .eq('provider', 'paypal');
+        .eq('provider', 'paypal')
+        .neq('status', 'refunded');
     }
   } catch (e) {
     console.error('[paypal/webhook]', type, e);
