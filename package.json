@@ -5,7 +5,7 @@
   "private": true,
   "description": "More Surf Shop — Tamarindo, Guanacaste, Costa Rica",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "astro dev",
@@ -16,15 +16,15 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.4",
-    "@astrojs/react": "^3.6.2",
-    "@astrojs/tailwind": "^5.1.2",
-    "@astrojs/vercel": "^7.8.2",
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/tailwind": "^6.0.2",
+    "@astrojs/vercel": "^9.0.5",
     "@iconify-json/ph": "^1.2.2",
     "@supabase/supabase-js": "^2.45.4",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
-    "astro": "^4.16.7",
+    "astro": "^5.18.2",
     "astro-icon": "^1.2.0",
     "jsqr": "^1.4.0",
     "qrcode-generator": "^2.0.4",
