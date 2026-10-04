@@ -111,6 +111,26 @@ export default function StaffApp() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [view, setView] = useState<View>('bookings');
+  // Menú lateral en mobile (en desktop la barra siempre está visible).
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    // Sin esto la página de atrás scrollea al deslizar dentro del menú.
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
+
+  function go(next: View) {
+    setView(next);
+    setMenuOpen(false);
+    window.scrollTo(0, 0);
+  }
 
   useEffect(() => {
     if (!configured) return;
@@ -179,12 +199,29 @@ export default function StaffApp() {
     );
   }
 
+  const section = NAV.find((g) => g.items.some((it) => it.key === view))?.section;
+
   return (
     <div className="st-wrap">
-      <aside className="st-side">
-        <span className="st-side-brand">
-          more<span>surf</span>shop
-        </span>
+      <div
+        className={`st-side-backdrop${menuOpen ? ' is-open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside id="st-side" className={`st-side${menuOpen ? ' is-open' : ''}`}>
+        <div className="st-side-top">
+          <span className="st-side-brand">
+            more<span>surf</span>shop
+          </span>
+          <button
+            type="button"
+            className="st-side-close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            ×
+          </button>
+        </div>
         <nav className="st-side-nav">
           {NAV.map((group) => {
             const items = group.items.filter((it) => !it.ownerOnly || profile.role === 'owner');
@@ -197,7 +234,8 @@ export default function StaffApp() {
                     key={`${item.key}-${i}`}
                     className={!item.disabled && view === item.key ? 'is-active' : ''}
                     disabled={item.disabled}
-                    onClick={() => !item.disabled && setView(item.key)}
+                    aria-current={view === item.key ? 'page' : undefined}
+                    onClick={() => !item.disabled && go(item.key)}
                   >
                     {item.label}
                   </button>
@@ -208,15 +246,37 @@ export default function StaffApp() {
         </nav>
         <div className="st-side-foot">
           <span className="st-side-user">
-            {profile.display_name || 'staff'} · {profile.role}
+            <span className="st-avatar st-avatar-sm" aria-hidden="true">
+              {initials(profile.display_name || profile.role)}
+            </span>
+            <span>
+              <strong>{profile.display_name || 'staff'}</strong>
+              <em>{profile.role}</em>
+            </span>
           </span>
+          <a className="st-side-site" href="/" target="_blank" rel="noopener noreferrer">
+            View site ↗
+          </a>
           <button onClick={signOut}>Sign out</button>
         </div>
       </aside>
 
       <div className="st-content">
         <header className="st-topbar">
+          <button
+            type="button"
+            className="st-menu-btn"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            aria-controls="st-side"
+            aria-expanded={menuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
           <div className="st-topbar-head">
+            {section && <span className="st-topbar-section">{section}</span>}
             <h1>{VIEW_TITLE[view]}</h1>
             <span className="st-topbar-sub">More Surf Shop · Tamarindo, Costa Rica</span>
           </div>

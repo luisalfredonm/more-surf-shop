@@ -80,9 +80,11 @@
 }
 .st-note { color: var(--text-muted); font-size: 0.85rem; }
 
-/* ----- Sidebar ----- */
+/* ----- Sidebar -----
+   Desktop: columna fija a la izquierda. Mobile (<=860px): el mismo panel se
+   vuelve un drawer que entra desde la izquierda con el botón del topbar. */
 .st-side {
-  width: 220px;
+  width: 232px;
   flex-shrink: 0;
   background: var(--navy);
   color: #fff;
@@ -93,17 +95,38 @@
   top: 0;
   align-self: flex-start;
   height: 100vh;
+  height: 100dvh;
   /* La lista ya no cabe en 100vh. Sin esto los ultimos items se dibujaban
      fuera del fondo navy, sobre el papel, y quedaban ilegibles. */
   overflow: hidden;
+}
+.st-side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.6rem 1.25rem;
 }
 .st-side-brand {
   font-family: 'Fraunces', serif;
   font-weight: 600;
   font-size: 1.1rem;
-  padding: 0 0.6rem 1.25rem;
 }
 .st-side-brand span { color: var(--teal); }
+.st-side-close {
+  display: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-right: -0.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.st-side-close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.st-side-backdrop { display: none; }
 
 /* flex:1 + min-height:0 es lo que deja scrollear el hijo dentro de un flex
    column; la marca y el pie quedan fijos. */
@@ -164,22 +187,48 @@
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.6rem;
+  gap: 0.6rem;
+  padding: 0.9rem 0.6rem 0.2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
-.st-side-user { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
-.st-side-foot button {
-  background: rgba(255, 255, 255, 0.12);
+.st-side-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.st-side-user > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.st-side-user strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-side-user em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: capitalize;
+}
+.st-side-site { display: none; }
+.st-side-foot button,
+.st-side-site {
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 0.45rem 0.8rem;
+  padding: 0.5rem 0.8rem;
   font: inherit;
   font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
 }
-.st-side-foot button:hover { background: rgba(255, 255, 255, 0.2); }
+.st-side-foot button:hover,
+.st-side-site:hover { background: rgba(255, 255, 255, 0.18); }
 
 .st-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .st-main { max-width: 1040px; width: 100%; margin: 0 auto; padding: 1.75rem 1.5rem 4rem; }
@@ -193,13 +242,17 @@
   background: var(--white);
   border-bottom: 1px solid var(--border);
 }
-.st-topbar-head { display: flex; flex-direction: column; gap: 0.1rem; }
+.st-topbar-head { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.st-topbar-section { display: none; }
 .st-topbar-head h1 {
   font-family: 'Fraunces', Georgia, serif;
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--navy);
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .st-topbar-sub { font-size: 0.8rem; color: var(--text-muted); }
 .st-topbar-spacer { flex: 1; }
@@ -225,46 +278,104 @@
   font-weight: 700;
   flex-shrink: 0;
 }
-@media (max-width: 560px) {
-  .st-topbar-sub { display: none; }
+.st-avatar-sm { width: 1.9rem; height: 1.9rem; font-size: 0.7rem; }
+
+/* Botón de menú: sólo en mobile. */
+.st-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.5rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+.st-menu-btn span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--navy);
+}
+.st-menu-btn:hover { background: var(--bg-alt); }
+
+@media screen and (max-width: 860px) {
+  .st-wrap { display: block; }
+
+  .st-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 70;
+    width: min(84vw, 300px);
+    height: 100vh;
+    height: 100dvh;
+    padding: 1rem 0.9rem calc(1rem + env(safe-area-inset-bottom));
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 240ms ease, visibility 0s linear 240ms;
+    box-shadow: 0 0 40px rgba(6, 26, 46, 0.35);
+  }
+  .st-side.is-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 240ms ease;
+  }
+  .st-side-top { padding-bottom: 1rem; }
+  .st-side-close { display: grid; place-items: center; }
+  .st-side-nav button { padding: 0.75rem 0.7rem; font-size: 0.98rem; }
+  .st-side-site { display: block; }
+  .st-side-foot { gap: 0.5rem; }
+  .st-side-foot .st-side-user { margin-bottom: 0.2rem; }
+
+  .st-side-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    background: rgba(6, 26, 46, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms ease;
+  }
+  .st-side-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+  .st-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    gap: 0.6rem;
+    padding: 0.55rem 1rem;
+    padding-top: calc(0.55rem + env(safe-area-inset-top));
+  }
+  .st-menu-btn { display: flex; }
+  .st-topbar-head { gap: 0; }
+  .st-topbar-section {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .st-topbar-head h1 { font-size: 1.12rem; line-height: 1.2; }
+  .st-topbar-sub,
   .st-topbar-link { display: none; }
+  .st-avatar { width: 2rem; height: 2rem; font-size: 0.72rem; }
+
+  .st-main { padding: 1rem 1rem 3rem; }
 }
 
-@media (max-width: 780px) {
-  .st-wrap { flex-direction: column; }
-  .st-side {
-    width: auto;
-    height: auto;
-    overflow: visible;
-    position: static;
-    align-self: stretch;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
-  }
-  .st-side-brand { padding: 0; font-size: 1rem; }
-  .st-side-nav {
-    flex-direction: row;
-    gap: 0.25rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-  .st-side-nav button { flex-shrink: 0; white-space: nowrap; }
-  .st-side-group { display: contents; }
-  .st-side-section { display: none; }
-  .st-side-nav button { border-left: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.4rem 0.6rem; }
-  .st-side-nav button.is-active { border-left: none; border-bottom-color: var(--teal); }
-  .st-side-nav button:disabled { display: none; }
-  .st-side-foot {
-    margin-top: 0;
-    margin-left: auto;
-    flex-direction: row;
-    align-items: center;
-    border-top: none;
-    padding: 0;
-  }
-  .st-main { padding: 1.25rem 1rem 3rem; }
+@media (prefers-reduced-motion: reduce) {
+  .st-side,
+  .st-side.is-open,
+  .st-side-backdrop { transition: none; }
 }
 .st-h2 {
   font-family: 'Fraunces', serif;
@@ -2023,4 +2134,242 @@
   .st-rep-day td { background: none; border-bottom: 1px solid #999; break-after: avoid; }
   .st-rep-table tr.is-refund td { background: none; }
   .st-rep-what { min-width: 0; }
+}
+
+/* ===================================================================
+   Mobile (<=640px). Todo lo que sigue sólo cambia pantallas chicas; el
+   desktop y la impresión quedan como estaban.
+   =================================================================== */
+
+/* Barra de venta del POS: sólo existe en mobile. */
+.st-pos-mbar { display: none; }
+
+@media screen and (max-width: 640px) {
+  /* iOS hace zoom en cualquier campo con letra < 16px. */
+  .st-field input,
+  .st-field select,
+  .st-field textarea,
+  .st-pos-search input,
+  .st-tbl-bar select,
+  .st-pos-disc input,
+  .st-ped-addvar input,
+  .st-inv-min { font-size: 16px; }
+  /* Selects con opciones largas y campos de fecha no pasan del ancho de la tarjeta. */
+  .st-field input,
+  .st-field select,
+  .st-field textarea { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .st-field { min-width: 0; }
+
+  /* Objetivos táctiles de ~40px. */
+  .st-btn { padding: 0.7rem 1rem; }
+  .st-btn-sm { padding: 0.55rem 0.8rem; font-size: 0.85rem; }
+  .st-tabs { overflow-x: auto; scrollbar-width: none; }
+  .st-tabs::-webkit-scrollbar { display: none; }
+  .st-tabs button { flex-shrink: 0; white-space: nowrap; padding: 0.7rem 0.9rem; }
+
+  .st-h2 { font-size: 1.12rem; }
+  .st-card { padding: 1rem; margin-bottom: 1rem; }
+
+  /* Tiles: dos por fila, más compactos. */
+  .st-tiles { gap: 0.5rem; }
+  .st-tile { padding: 0.75rem 0.85rem; }
+  .st-tile-label { font-size: 0.62rem; }
+  .st-tile-val { font-size: 1.35rem; }
+
+  /* Filtros: grilla de dos columnas; chips y botones a todo el ancho. */
+  .st-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .st-filters .st-field { margin: 0; min-width: 0; }
+  .st-filters .st-field input,
+  .st-filters .st-field select { width: 100%; min-width: 0; }
+  .st-filters .st-spacer { display: none; }
+  .st-filters > .st-chiprow,
+  .st-filters > .st-btn,
+  .st-filters > .st-note,
+  .st-filters > span:not(.st-spacer) { grid-column: 1 / -1; }
+
+  /* Reservas: la fila se apila. */
+  .st-day-hd { padding: 0.7rem 0.9rem; }
+  .st-day-sum { margin-left: 0; width: 100%; }
+  .st-brow { padding: 0.85rem 0.9rem; gap: 0.6rem 0.9rem; }
+  .st-b-when { flex: 0 0 auto; flex-direction: row; align-items: baseline; gap: 0.6rem; width: 100%; }
+  .st-b-main { flex-basis: 100%; }
+  .st-b-actions .st-btn { flex: 1 1 auto; }
+  .st-bdetail { padding: 0.85rem 0.9rem; }
+  .st-bdetail dl { grid-template-columns: 1fr; gap: 0.1rem; }
+  .st-bdetail dt { margin-top: 0.4rem; font-size: 0.75rem; }
+
+  /* Horario semanal: un día por fila en vez de 7 columnas aplastadas. */
+  .st-week-grid { grid-template-columns: 1fr; gap: 0.4rem; overflow: visible; }
+  .st-week-col {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+  }
+  .st-week-day { flex: 0 0 2.75rem; text-align: left; }
+  .st-week-none { text-align: left; }
+
+  /* Encabezados plegables (servicios, modelos): el resumen baja a su línea. */
+  .st-svc-head { flex-wrap: wrap; row-gap: 0.25rem; }
+  .st-svc-title { flex: 1 1 auto; min-width: 0; }
+  .st-svc-caret { order: 2; }
+  .st-svc-sum { order: 3; flex-basis: 100%; padding-left: 1.2rem; }
+  .st-svc-badge { order: 4; margin-left: 1.2rem; }
+
+  /* Filas de lista (unidades de la flota, slots): los botones bajan. */
+  .st-slotlist-row { flex-wrap: wrap; row-gap: 0.5rem; padding: 0.75rem 0; }
+  .st-slotlist-row .st-spacer { flex-basis: 100%; height: 0; }
+  .st-slotlist-row > .st-btn { flex: 1 1 0; }
+
+  /* Rentas. */
+  .st-rental-row { grid-template-columns: 1fr; gap: 0.6rem; }
+  .st-rental-actions .st-btn { flex: 1 1 0; }
+  .st-rental-dates > * { align-self: flex-start; text-align: left; }
+
+  /* Tablas marcadas con .st-tbl-cards: cada fila se vuelve una tarjeta. */
+  .st-tbl-wrap:has(.st-tbl-cards) { overflow: visible; }
+  .st-tbl-cards,
+  .st-tbl-cards tbody { display: block; }
+  .st-tbl-cards thead { display: none; }
+  .st-tbl-cards tbody > tr:not(.st-tbl-panel) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 1.1rem;
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .st-tbl-cards tbody > tr:last-child { border-bottom: 0; }
+  .st-tbl-cards td {
+    display: block;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    text-align: left;
+  }
+  .st-tbl-cards td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.1rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .st-tbl-cards .st-card-main { flex: 1 1 0; min-width: 0; }
+  .st-tbl-cards .st-card-main .st-tbl-name { flex-wrap: wrap; }
+  .st-tbl-cards .st-card-full { flex-basis: 100%; }
+  .st-tbl-cards .st-card-badge { order: 0; }
+  .st-tbl-cards .st-tbl-thumbcol { width: auto; }
+  .st-tbl-cards .st-card-caret { margin-left: auto; }
+  /* Products: foto + nombre + flecha en la primera línea, datos debajo. */
+  .st-tbl-cards .st-tbl-thumbcol + .st-card-main { flex-basis: calc(100% - 6rem); }
+  .st-tbl-cards .st-tbl-acts { display: flex; flex-wrap: wrap; justify-content: flex-start; }
+  .st-tbl-cards .st-tbl-acts .st-btn { flex: 1 1 auto; }
+  .st-tbl-cards .st-ord-items { max-width: none; }
+  .st-tbl-cards .st-inv-min { border-color: var(--border); background: var(--bg); text-align: left; width: 5rem; }
+  .st-tbl-cards tr.st-tbl-row.is-open { background: var(--bg-alt); }
+  .st-tbl-cards tr.st-tbl-panel { display: block; }
+  .st-tbl-cards tr.st-tbl-panel td { display: block; }
+  .st-ped { padding: 1rem 0.9rem; }
+  .st-ped-cols { grid-template-columns: 1fr; }
+
+  /* Tablas que siguen siendo tablas (reportes): scroll propio y más aire. */
+  .st-tbl-wrap { -webkit-overflow-scrolling: touch; }
+  .st-rep-what { min-width: 11rem; }
+  .st-sales-cols { grid-template-columns: 1fr; }
+  .st-tbl-bar select { flex: 1 1 0; min-width: 0; }
+
+  /* POS: el carrito va al final; una barra fija abajo lleva el total. */
+  .st-pos-search kbd { display: none; }
+  .st-pos-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -1rem 0.9rem; padding: 0 1rem; }
+  .st-pos-tabs::-webkit-scrollbar { display: none; }
+  .st-pos-tab { flex-shrink: 0; }
+  .st-pos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+  .st-pos-cart { position: static; scroll-margin-top: 4.5rem; }
+  .st-pos-lines { max-height: none; }
+  .st-pos-qty button { width: 2rem; height: 2rem; }
+  .st-pos:has(.st-pos-mbar) { padding-bottom: 4.5rem; }
+  .st-pos-mbar {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--navy);
+    color: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    box-shadow: 0 10px 30px rgba(6, 26, 46, 0.3);
+    cursor: pointer;
+  }
+  .st-pos-mbar strong { font-variant-numeric: tabular-nums; }
+  .st-pos-mbar span:last-child { margin-left: auto; color: var(--teal); font-weight: 600; }
+
+  /* Fotos del editor de producto. */
+  .st-ped-photo,
+  .st-ped-drop { width: 4.5rem; height: 4.5rem; }
+
+  /* Modales: hoja que sube desde abajo, a todo el ancho. */
+  .st-modal { place-items: end stretch; padding: 0; }
+  .st-modal-card {
+    max-width: none;
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: 0;
+    padding: 1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
+  }
+  .st-modal-actions .st-btn { flex: 1 1 auto; }
+  .st-bigchoice { flex-direction: column; }
+
+  .st-login { padding: 1.5rem; }
+
+  /* Textos largos sin espacios (URLs, IDs) no empujan la página de lado. */
+  .st-main code,
+  .st-note { overflow-wrap: anywhere; }
+
+  /* Barra de tablas: buscador a todo el ancho, filtros debajo. */
+  .st-tbl-search { flex-basis: 100%; }
+  .st-filters .st-rep-print { margin-bottom: 0; }
+
+  /* Products: el estado y los datos van en la segunda línea, alineados con
+     el nombre; "Variants" se ve al abrir el producto. */
+  .st-tbl-cards .st-card-badge,
+  .st-tbl-cards td[data-label] { order: 1; }
+  .st-tbl-cards .st-tbl-thumbcol ~ .st-card-badge { margin-left: 3.65rem; }
+  .st-tbl-cards .st-tbl-thumbcol ~ td[data-label='Variants'] { display: none; }
+
+  /* Rental Settings: cada duración en dos líneas. */
+  .st-dur-head { display: none; }
+  .st-dur-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 6.5rem;
+    gap: 0.5rem;
+  }
+  .st-dur-row > * { width: 100% !important; min-width: 0; }
+  .st-dur-row > input:nth-of-type(1) { grid-column: 1 / 3; grid-row: 1; }
+  .st-dur-row > input:nth-of-type(2) { grid-column: 3; grid-row: 1; }
+  .st-dur-row > select { grid-column: 1; grid-row: 2; }
+  .st-dur-row > input:nth-of-type(3) { grid-column: 2; grid-row: 2; }
+  .st-dur-row > .st-btn { grid-column: 3; grid-row: 2; flex: none; }
+  .st-dur-row > .st-spacer { display: none; }
+
+  .st-tbl-bar select { flex: 1 1 0; }
+  .st-tbl-bar > .st-btn { flex-basis: 100%; }
 }

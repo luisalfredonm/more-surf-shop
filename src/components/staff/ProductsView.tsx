@@ -203,7 +203,7 @@ export default function ProductsView() {
         <p className="st-empty">Nothing matches those filters.</p>
       ) : (
         <div className="st-tbl-wrap">
-          <table className="st-tbl">
+          <table className="st-tbl st-tbl-cards">
             <thead>
               <tr>
                 <th scope="col" className="st-tbl-thumbcol">
@@ -247,7 +247,7 @@ export default function ProductsView() {
                           )}
                         </span>
                       </td>
-                      <td>
+                      <td className="st-card-main">
                         <span className="st-tbl-name">
                           {p.name}
                           {p.featured && <span className="st-src counter">featured</span>}
@@ -257,20 +257,20 @@ export default function ProductsView() {
                           {p.slug}
                         </span>
                       </td>
-                      <td>
+                      <td className="st-card-badge">
                         <span className={`st-badge ${p.active ? 'confirmed' : 'cancelled'}`}>
                           {p.active ? 'active' : 'inactive'}
                         </span>
                       </td>
-                      <td className="st-tbl-cat">{p.category}</td>
-                      <td className="st-tbl-num st-tbl-price">{money(p.price)}</td>
-                      <td className="st-tbl-num">
+                      <td className="st-tbl-cat" data-label="Category">{p.category}</td>
+                      <td className="st-tbl-num st-tbl-price" data-label="Price">{money(p.price)}</td>
+                      <td className="st-tbl-num" data-label="Stock">
                         <span className={`st-tbl-stock${qty <= 0 ? ' out' : qty <= 3 ? ' low' : ''}`}>
                           {qty}
                         </span>
                       </td>
-                      <td className="st-tbl-num st-tbl-muted">{vs.length}</td>
-                      <td className="st-tbl-caret">{open ? '▲' : '▼'}</td>
+                      <td className="st-tbl-num st-tbl-muted" data-label="Variants">{vs.length}</td>
+                      <td className="st-tbl-caret st-card-caret">{open ? '▲' : '▼'}</td>
                     </tr>
 
                     {open && (

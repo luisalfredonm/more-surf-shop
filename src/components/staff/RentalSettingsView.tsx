@@ -151,7 +151,7 @@ export default function RentalSettingsView() {
 
         <div className="st-field">
           <label>Duration chips</label>
-          <div className="st-slotlist-row" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          <div className="st-slotlist-row st-dur-head" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
             <span style={{ flex: 1 }}>Label</span>
             <span style={{ width: '4rem' }}>Qty</span>
             <span style={{ width: '5.5rem' }}>Unit</span>
@@ -159,7 +159,7 @@ export default function RentalSettingsView() {
             <span className="st-spacer" />
           </div>
           {form.duration_presets.map((p, i) => (
-            <div className="st-slotlist-row" key={i}>
+            <div className="st-slotlist-row st-dur-row" key={i}>
               <input
                 value={p.label}
                 onChange={(e) => setPreset(i, { label: e.target.value })}

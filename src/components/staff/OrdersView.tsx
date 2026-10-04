@@ -191,7 +191,7 @@ export default function OrdersView() {
             {tab === 'queue' && ' waiting'}
           </p>
           <div className="st-tbl-wrap">
-            <table className="st-tbl">
+            <table className="st-tbl st-tbl-cards">
               <thead>
                 <tr>
                   <th scope="col">Order</th>
@@ -216,7 +216,7 @@ export default function OrdersView() {
                   const handler = one(o.handler)?.display_name;
                   return (
                     <tr key={o.id}>
-                      <td>
+                      <td className="st-card-main">
                         <span className="st-tbl-name">
                           {cust?.full_name ?? 'Walk-in'}
                           <span className="st-src">{o.channel}</span>
@@ -230,7 +230,7 @@ export default function OrdersView() {
                         )}
                       </td>
 
-                      <td className="st-ord-items">
+                      <td className="st-ord-items st-card-full" data-label="Items">
                         <span className="st-ord-lines">
                           {items.map((i) => `${i.qty}× ${i.name_snapshot}`).join(', ') || '—'}
                         </span>
@@ -242,15 +242,15 @@ export default function OrdersView() {
                         )}
                       </td>
 
-                      <td>
+                      <td className="st-card-badge">
                         <span className={`st-badge ${BADGE[o.status] ?? 'unpaid'}`}>
                           {STATUS_LABEL[o.status] ?? o.status}
                         </span>
                       </td>
 
-                      <td className="st-tbl-num st-tbl-price">{money(o.total, o.currency)}</td>
+                      <td className="st-tbl-num st-tbl-price" data-label="Total">{money(o.total, o.currency)}</td>
 
-                      <td className="st-ord-when">
+                      <td className="st-ord-when" data-label="Placed">
                         {dt(o.created_at)}
                         {o.picked_up_at && (
                           <span className="st-tbl-sub">picked up {dt(o.picked_up_at)}</span>
@@ -258,7 +258,7 @@ export default function OrdersView() {
                         {handler && <span className="st-tbl-sub">by {handler}</span>}
                       </td>
 
-                      <td>
+                      <td className="st-card-full">
                         {canHandOver ? (
                           <span className="st-tbl-acts st-ord-acts">
                             {unpaid ? (

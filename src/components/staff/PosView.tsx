@@ -310,7 +310,7 @@ export default function PosView() {
           )}
         </div>
 
-        <aside className="st-pos-cart">
+        <aside className="st-pos-cart" id="st-pos-cart">
           <div className="st-pos-cart-hd">
             <h3>Current sale{count > 0 ? ` (${count})` : ''}</h3>
             {cart.length > 0 && (
@@ -443,6 +443,22 @@ export default function PosView() {
             </>
           )}
         </aside>
+
+        {/* Mobile: el carrito queda debajo del catalogo; esta barra fija abajo
+            muestra el total y lleva a cobrar sin buscarlo. */}
+        {count > 0 && (
+          <button
+            type="button"
+            className="st-pos-mbar"
+            onClick={() => document.getElementById('st-pos-cart')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <span>
+              {count} {count === 1 ? 'item' : 'items'}
+            </span>
+            <strong>{money(total)}</strong>
+            <span>Review sale ↓</span>
+          </button>
+        )}
       </div>
 
       {picking && (

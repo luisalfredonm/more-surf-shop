@@ -181,7 +181,7 @@ export default function InventoryView() {
         </p>
       ) : (
         <div className="st-tbl-wrap">
-          <table className="st-tbl">
+          <table className="st-tbl st-tbl-cards">
             <thead>
               <tr>
                 <th scope="col">Product</th>
@@ -203,7 +203,7 @@ export default function InventoryView() {
                 const neg = r.qty_on_hand < 0;
                 return (
                   <tr key={r.variant_id}>
-                    <td>
+                    <td className="st-card-main st-card-full">
                       <span className="st-tbl-name">
                         {r.product_name}
                         {r.label !== 'Único' && (
@@ -213,8 +213,8 @@ export default function InventoryView() {
                       </span>
                       <span className="st-tbl-sub">{r.sku}</span>
                     </td>
-                    <td className="st-tbl-cat">{r.category}</td>
-                    <td className="st-tbl-num">
+                    <td className="st-tbl-cat" data-label="Category">{r.category}</td>
+                    <td className="st-tbl-num" data-label="In stock">
                       <span
                         className={`st-tbl-stock${neg ? ' out' : low ? ' low' : ''}`}
                         title={
@@ -231,7 +231,7 @@ export default function InventoryView() {
                         <span className={`st-inv-flag${neg ? ' neg' : ''}`}>{neg ? '!' : '⚠'}</span>
                       )}
                     </td>
-                    <td className="st-tbl-num">
+                    <td className="st-tbl-num" data-label="Minimum">
                       <input
                         className="st-inv-min"
                         type="number"
@@ -245,7 +245,7 @@ export default function InventoryView() {
                         }}
                       />
                     </td>
-                    <td>
+                    <td className="st-card-full">
                       <span className="st-tbl-acts">
                         <button
                           className="st-btn st-btn-ghost st-btn-sm"
